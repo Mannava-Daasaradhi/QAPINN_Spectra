@@ -121,6 +121,30 @@ def test_sample_boundary_2d_steady_hits_all_four_edges():
     assert bool((on_x_edge | on_y_edge).all())
 
 
+def test_sample_boundary_only_excludes_ic_slice():
+    pde = _Dummy2DTime()
+    gen = set_global_seed(0)
+    pts = pde.sample_boundary_only(2000, gen)
+
+    assert set(torch.unique(pts[:, 0]).tolist()) == {0.0, 1.0}
+    assert not bool((pts[:, 1] == 0.0).all())  # t is free, not pinned to the IC slice
+
+
+def test_sample_initial_pins_time_axis_to_lower_bound():
+    pde = _Dummy2DTime()
+    gen = set_global_seed(0)
+    pts = pde.sample_initial(2000, gen)
+
+    assert bool((pts[:, 1] == 0.0).all())
+    assert not bool((pts[:, 0] == 0.0).all())  # x is free, not pinned to a boundary edge
+
+
+def test_sample_initial_none_for_steady_pde():
+    pde = _Dummy2DSteady()
+    gen = set_global_seed(0)
+    assert pde.sample_initial(100, gen) is None
+
+
 def test_apply_hard_bc_matches_lift_plus_mask_times_n():
     pde = _Dummy1D()
     x = torch.tensor([[0.0], [0.5], [1.0]])

@@ -93,21 +93,10 @@ class PDE(ABC):
         u = torch.rand((n, self.dim), generator=gen, dtype=dtype)
         return lo + u * (hi - lo)
 
-    def sample_boundary(self, n: int, gen: torch.Generator) -> Tensor:
-        """Uniform samples on the constrained set: both endpoints of every non-time axis
-        (the spatial boundary), plus only the lower endpoint of the time axis if one
-        exists (the initial condition; the upper/final time is never constrained). This
-        single rule reproduces the constrained set of all four PDE instances (P1: both
-        endpoints of x; P2/P3: both endpoints of x + t=0; P4: all four edges). [n, d]."""
+    def _sample_from_faces(
+        self, n: int, gen: torch.Generator, faces: list[tuple[int, float]]
+    ) -> Tensor:
         dtype = torch.get_default_dtype()
-        faces: list[tuple[int, float]] = []
-        for axis, (lo, hi) in enumerate(self.domain.bounds):
-            if axis == self.domain.time_axis:
-                faces.append((axis, lo))
-            else:
-                faces.append((axis, lo))
-                faces.append((axis, hi))
-
         lo_vec = torch.tensor([b[0] for b in self.domain.bounds], dtype=dtype)
         hi_vec = torch.tensor([b[1] for b in self.domain.bounds], dtype=dtype)
         u = torch.rand((n, self.dim), generator=gen, dtype=dtype)
@@ -118,6 +107,41 @@ class PDE(ABC):
             mask = face_idx == i
             x[mask, axis] = value
         return x
+
+    def _all_faces(self) -> list[tuple[int, float]]:
+        faces: list[tuple[int, float]] = []
+        for axis, (lo, hi) in enumerate(self.domain.bounds):
+            if axis == self.domain.time_axis:
+                faces.append((axis, lo))
+            else:
+                faces.append((axis, lo))
+                faces.append((axis, hi))
+        return faces
+
+    def sample_boundary(self, n: int, gen: torch.Generator) -> Tensor:
+        """Uniform samples on the constrained set: both endpoints of every non-time axis
+        (the spatial boundary), plus only the lower endpoint of the time axis if one
+        exists (the initial condition; the upper/final time is never constrained). This
+        single rule reproduces the constrained set of all four PDE instances (P1: both
+        endpoints of x; P2/P3: both endpoints of x + t=0; P4: all four edges). [n, d]."""
+        return self._sample_from_faces(n, gen, self._all_faces())
+
+    def sample_boundary_only(self, n: int, gen: torch.Generator) -> Tensor:
+        """Pure spatial-boundary points: both endpoints of every non-time axis, EXCLUDING
+        the initial-condition slice. Needed to keep the BC and IC loss blocks distinct in
+        soft-BC mode (D6 -- the NTK loss-imbalance study, T3.6, treats residual/BC/IC as
+        three separate blocks). [n, d]."""
+        faces = [(axis, v) for axis, v in self._all_faces() if axis != self.domain.time_axis]
+        return self._sample_from_faces(n, gen, faces)
+
+    def sample_initial(self, n: int, gen: torch.Generator) -> Tensor | None:
+        """Pure initial-condition points (time axis fixed at its lower bound), or None if
+        the PDE is steady (no time axis -- there is no IC term for P1/P4). [n, d]."""
+        if self.domain.time_axis is None:
+            return None
+        lo, _ = self.domain.bounds[self.domain.time_axis]
+        faces = [(self.domain.time_axis, lo)]
+        return self._sample_from_faces(n, gen, faces)
 
     def eval_grid(self, n: int) -> Tensor:
         """Deterministic tensor-product uniform grid, [n**d, d]. Excludes the duplicate

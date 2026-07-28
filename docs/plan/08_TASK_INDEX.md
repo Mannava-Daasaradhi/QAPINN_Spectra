@@ -43,7 +43,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T0.14 | `PINNModel` ABC + `match_param_count` | T0.5 | matches a 3000-param target within 10 % |
 | ☑ T0.15 | `c_mlp` | T0.14 | forwards `[B,d]→[B,1]`; empty quantum group |
 | ☑ T0.16 | `c_ff` + `c_rff_matched` | T0.15 | matched basis fits `sin(πx)+0.3sin(15πx)` to 1e-8 |
-| ☐ T0.17 | Loss assembly (hard + soft BC) | T0.8, T0.15 | exact solution ⇒ loss < 1e-10 |
+| ☑ T0.17 | Loss assembly (hard + soft BC) | T0.8, T0.15 | exact solution ⇒ loss < 1e-10 |
 | ☐ T0.18 | ★ Training loop (Adam → LBFGS, checkpoints) | T0.17 | `run --smoke` < 60 s, full artifact dir |
 | ☐ T0.19 | Checkpointing + provenance | T0.18 | reload reproduces `rel_l2` to 1e-12 |
 | ☐ T0.20 | Determinism test | T0.19 | two runs ⇒ bit-identical `metrics.json` |
