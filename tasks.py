@@ -64,8 +64,9 @@ def cmd_lint(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    from qapinn.config import load_config
     from qapinn.train.loop import train
+
+    from qapinn.config import load_config
 
     overrides = {}
     for kv in args.overrides:
