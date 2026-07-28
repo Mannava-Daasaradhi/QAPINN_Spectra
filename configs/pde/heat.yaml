@@ -1,0 +1,7 @@
+name: heat
+params:
+  alpha: 0.3
+  nu: 0.05
+n_collocation: 4096
+n_boundary: 512
+n_eval: 1024

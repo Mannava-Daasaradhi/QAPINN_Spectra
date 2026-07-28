@@ -1,0 +1,8 @@
+name: burgers
+# nu defaults to 0.01/pi in code (Burgers.__init__) -- left unset here so the exact
+# float64 value always matches what the reference solvers (T0.11, T0.12) compute,
+# rather than risking a hand-copied decimal mismatch.
+params: {}
+n_collocation: 4096
+n_boundary: 512
+n_eval: 1024

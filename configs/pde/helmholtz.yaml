@@ -1,0 +1,12 @@
+# Default instance: k=10 (a1=3, a2=1), the mid-range "hero" case. The k=4 and k=20
+# problem instances (helmholtz_k4, helmholtz_k20) are obtained by overriding
+# pde.params.{k,a1,a2} at the experiment level (T3.3), not via separate yaml files --
+# 01_CONVENTIONS.md §1 lists a single configs/pde/helmholtz.yaml.
+name: helmholtz
+params:
+  k: 10.0
+  a1: 3
+  a2: 1
+n_collocation: 4096
+n_boundary: 512
+n_eval: 1024
