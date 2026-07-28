@@ -24,6 +24,7 @@ from qapinn.config import ExpConfig
 from qapinn.models.base import PINNModel
 from qapinn.pdes.base import PDE
 from qapinn.seeding import set_global_seed
+from qapinn.train.checkpoint import build_provenance, save_checkpoint
 from qapinn.train.losses import pinn_loss
 
 RESULTS_ROOT = Path("results/runs")
@@ -43,6 +44,7 @@ class RunResult:
     run_id: str
     run_dir: Path
     metrics: dict[str, float]
+    cfg: ExpConfig
     history: pd.DataFrame = field(repr=False)
 
 
@@ -144,6 +146,7 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
         eval_grid = pde.eval_grid(pde_cfg.n_eval).to(device)
         m = _compute_metrics(model, pde, eval_grid, train_cfg.bc_mode)
         checkpoint_rel_l2.append((step, m["rel_l2"]))
+        save_checkpoint(model, run_dir, step)
         for hook in _XAI_HOOKS:
             hook(model, pde, eval_grid, step, run_dir)
 
@@ -238,13 +241,10 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
     with (run_dir / "design_card.json").open("w", encoding="utf-8") as f:
         json.dump(design_card, f)
 
+    provenance = build_provenance(run_id=run_id, seed=cfg.seed, device=str(device), wall_clock_s=wall_clock_s)
     with (run_dir / "provenance.json").open("w", encoding="utf-8") as f:
-        json.dump(
-            {"run_id": run_id, "seed": cfg.seed, "device": str(device), "wall_clock_s": wall_clock_s},
-            f,
-            indent=2,
-        )
+        json.dump(provenance, f, indent=2, sort_keys=True)
 
     history.to_parquet(run_dir / "history.parquet")
 
-    return RunResult(run_id=run_id, run_dir=run_dir, metrics=metrics, history=history)
+    return RunResult(run_id=run_id, run_dir=run_dir, metrics=metrics, cfg=cfg, history=history)
