@@ -27,8 +27,8 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 
 | # | Task | Depends on | DoD in one line |
 |---|---|---|---|
-| ☐ T0.1 | Init repo + directory skeleton | — | `git status` clean; tree exists |
-| ☐ T0.2 | Pin environment with `uv` (Python 3.12, torch cu128, PennyLane) | T0.1 | `torch.cuda.is_available()` is True; `ENV_RESOLVED.md` written |
+| ☑ T0.1 | Init repo + directory skeleton | — | `git status` clean; tree exists |
+| ☑ T0.2 | Pin environment with `uv` (Python 3.12, torch cu128, PennyLane) | T0.1 | `torch.cuda.is_available()` is True; `ENV_RESOLVED.md` written |
 | ☐ T0.3 | Task runner `tasks.py` + `Makefile` mirror | T0.2 | `python tasks.py test` exits 0 |
 | ☐ T0.4 | Config schema, composition, `run_id` hashing | T0.2 | key-order-invariant hash; dotted overrides work |
 | ☐ T0.5 | Determinism utils + device/dtype resolution | T0.2 | same seed ⇒ bit-identical tensors |
