@@ -46,7 +46,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T0.17 | Loss assembly (hard + soft BC) | T0.8, T0.15 | exact solution ⇒ loss < 1e-10 |
 | ☑ T0.18 | ★ Training loop (Adam → LBFGS, checkpoints) | T0.17 | `run --smoke` < 60 s, full artifact dir |
 | ☑ T0.19 | Checkpointing + provenance | T0.18 | reload reproduces `rel_l2` to 1e-12 |
-| ☐ T0.20 | Determinism test | T0.19 | two runs ⇒ bit-identical `metrics.json` |
+| ☑ T0.20 | Determinism test | T0.19 | two runs ⇒ bit-identical `metrics.json` |
 | ☐ T0.21 | ★★ **Performance spike (budget gate, D13)** | T0.18 | projection recorded; **cut matrix now if > 24 h** |
 | ☐ T0.22 | ★★ **Phase 0 gate** | T0.9, T0.11, T0.12, T0.20, T0.21 | 5 exit criteria; tag `phase0-complete` |
 
