@@ -49,3 +49,11 @@ stand-in's real gate use (T2.5, qsim vs PennyLane) and the master plan's own Pha
 (T2.18) explicitly calls for re-verifying the matrix budget once qsim.py exists, this
 spike's result is reported to the project owner for a decision rather than unilaterally
 cutting scope now on a synthetic proxy's numbers.
+
+### Owner decision (2026-07-28)
+
+**Proceed into Phase 1 without cutting scope now; re-verify the real budget at T2.18**
+(the Phase-2 gate the master plan already designates for this) once qsim.py's actual
+measured cost replaces this synthetic stand-in. If the real number is still over budget
+at that point, apply the §5 cut lines then, with much better information than a dense-
+matrix proxy can provide.
