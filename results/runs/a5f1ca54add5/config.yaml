@@ -1,0 +1,66 @@
+model:
+  activation: tanh
+  encoder: affine
+  entangler: null
+  family: c_mlp
+  ff_sigma: null
+  frequencies: null
+  n_features: null
+  n_layers: null
+  n_qubits: null
+  observable: null
+  scaling_mode: null
+  target_params: null
+  widths:
+  - 64
+  - 64
+  - 64
+pde:
+  n_boundary: 512
+  n_collocation: 4096
+  n_eval: 1024
+  name: poisson
+  params:
+    alpha: 0.05
+seed: 1
+smcd_coverage_target: null
+smcd_eps: 0.001
+tag: ''
+train:
+  bc_mode: hard
+  checkpoints:
+  - -1
+  - 0
+  - 10
+  - 15
+  - 23
+  - 35
+  - 53
+  - 81
+  - 123
+  - 187
+  - 285
+  - 433
+  - 658
+  - 1000
+  - 1259
+  - 1585
+  - 1996
+  - 2514
+  - 3165
+  - 3985
+  - 5018
+  - 6319
+  - 7956
+  - 10018
+  - 12615
+  - 15884
+  - 20000
+  lambda_bc: 1.0
+  lambda_ic: 1.0
+  lambda_residual: 1.0
+  lr: 0.001
+  lr_schedule: cosine
+  noise: none
+  steps_adam: 20000
+  steps_lbfgs: 2000

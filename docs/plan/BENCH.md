@@ -114,3 +114,80 @@ decomposition, and is `None` when the two groups' parameter counts differ.
 This is the classical baseline decay exponent that Phase 3's `ntk_spectrum` figure will
 compare `q_serial` etc. against, once Phase 2 supplies the quantum models.
 
+---
+
+# T1.5 The Spectral-Bias Staircase (Phase-1 gate)
+
+**Two independent problems surfaced and were fixed before this gate could pass: a genuine
+training-divergence bug, and a genuine measurement bug.**
+
+## 1. Training: alpha=0.3 does not converge; tuned baseline is alpha=0.05, no grad clipping
+
+The phase doc's literal instruction (`alpha=0.3`, full 20000 Adam + 2000 LBFGS steps, 3
+seeds) fails outright: `rel_l2` across seeds landed at 0.67-1.79 (vs. `alpha=0`'s 5.55e-6,
+T0.22). Loss-history inspection showed an early plateau with `grad_norm` reaching into the
+millions -- a genuine optimisation failure driven by the `(15*pi)^2 ~= 2220` forcing-term
+scale, not a code bug. This is exactly the failure mode the phase doc itself anticipates
+("alpha too large... tune the baseline until spectral bias is clearly visible, and record
+what was needed").
+
+Tried, in order: (a) Hann windowing on the error field -- irrelevant, addresses a different
+leakage issue, not optimisation; (b) gradient clipping (`max_norm=1.0`) added to both the
+Adam and LBFGS loops -- did **not** fix `alpha=0.3` (`rel_l2` still 1.77) and visibly
+interfered with LBFGS's quasi-Newton step (clipped to exactly 1.0 every iteration); (c) a
+small-scale `(alpha, lr)` sweep at 3000 steps found `alpha=0.05, lr=1e-3` (the default lr)
+far ahead of the alternatives tried.
+
+Committed to `alpha=0.05` and ran the full 3-seed pipeline with clipping still enabled
+(carried over from the troubleshooting above). One of three seeds still failed outright
+(`rel_l2=0.145`); the other two converged cleanly (`rel_l2` 4.15e-5, 1.66e-4). Diagnosing
+the failing seed exposed the real problem: a controlled single-seed A/B (clip vs. no-clip,
+same seed, same 5000-step budget) showed clipping was **actively hurting** convergence at
+this gentler `alpha` -- `rel_l2 = 0.283` with clipping vs. `0.0104` without, at identical
+step count. Combined with clipping's earlier failure to fix `alpha=0.3` in the first place,
+clipping was never actually earning its keep -- **removed entirely** from
+`src/qapinn/train/loop.py`. Re-ran the full 3-seed pipeline (`alpha=0.05`, no clipping):
+all three seeds now converge cleanly (`rel_l2`: 0.0063, 4.15e-5, 1.66e-4), run_ids
+`0280f156172b`, `a5f1ca54add5`, `5669659249e2`.
+
+## 2. Measurement: raw FFT cannot resolve pi or 15pi on this domain -- sine-mode projection added
+
+`per_frequency_error`'s FFT bin spacing on P1's domain (length 1) is `2*pi/L = 2*pi`. Both
+`omega=pi` (0.5 cycles) and `omega=15*pi` (7.5 cycles) sit at *exactly* half-integer cycle
+counts -- the worst possible spectral-leakage case, landing precisely halfway between two
+FFT bins (T0.9's own DoD already tolerates this: "peak at `15*pi +- domega/2`"). Reading
+off the nearest bin (`np.argmin`) resolves the tie arbitrarily to whichever bin sorts
+first, which for `omega=pi` is bin 0 -- the FFT's DC (mean-error) term, a physically
+different quantity from "pi-mode content." Measured directly: this bin's trajectory is
+wildly non-monotonic (e.g. one seed's DC-bin magnitude *exceeds its own initial value* at
+step 123, mid-training), making `steps_to_tolerance_per_mode` return noise -- initial dense-
+checkpoint runs gave ratios of 0.79-1.0 (no separation at all, or the wrong direction),
+regardless of tuning.
+
+Fix: added `_sine_mode_amplitudes` (`scripts/make_figures.py`) -- projects the error
+directly onto `sin(k*pi*x)` for `k=1..20`. This is *exact*, not an approximation: `P1`'s
+solution `sin(pi*x) + alpha*sin(15*pi*x)` is built from the true eigenfunctions of
+`-u''=f` on `[0,1]` with `u(0)=u(1)=0`, so the projection has zero leakage by construction
+(equivalent to a matched discrete sine transform), unlike the general-purpose FFT. Used
+only for this P1-specific gate figure/metric; `T1.4`'s `per_frequency_error` and
+`xai/specerr.npz` are untouched and remain the general-purpose (FFT-based) instrument for
+future PDEs. With this fix the `omega=pi` mode's amplitude drops from 0.98 to below 10% of
+its initial value within ~100 steps, while the `omega=15*pi` mode holds flat at its exact
+initial amplitude (0.05) through step ~300 before decaying -- a clean, close-to-monotonic
+picture matching the textbook staircase.
+
+## Result
+
+| Quantity | Value |
+|---|---|
+| tuned baseline | `alpha=0.05` (down from spec's `0.3`), no gradient clipping, `lr=1e-3` (default), 3 seeds, full 20000 Adam + 2000 LBFGS steps |
+| `steps_to_tolerance` (omega=pi) | **123** |
+| `steps_to_tolerance` (omega=15*pi) | **1996** |
+| **ratio** | **16.2** (gate: >= 10) |
+| run_ids | `0280f156172b`, `a5f1ca54add5`, `5669659249e2` |
+| figure | `paper/figures/staircase_cmlp_p1.pdf` |
+
+**Verdict: PASS.** The heatmap shows a distinct bright band at `omega ~ 47` (15pi)
+persisting far longer along the training-step axis than any other row, including the
+`omega ~ pi` row at the bottom, which fades early -- the textbook staircase.
+

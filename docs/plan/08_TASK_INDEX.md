@@ -60,7 +60,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T1.2 | ★ NTK core (Jacobians, blocks, spectrum stats) | T0.19 | linear-model check; **Prop. 4 identity to 1e-10**; PSD |
 | ☑ T1.3 | NTK reporting + `ntk_spectrum` figure | T1.2, T1.1 | classical decay exponent recorded as baseline |
 | ☑ T1.4 | ★ Per-frequency error trajectory | T0.9, T0.19 | two synthetic peaks recovered; Parseval holds |
-| ☐ T1.5 | ★★ **Spectral-bias staircase (Phase-1 gate figure)** | T1.4, T1.1 | staircase visible; **steps-to-tol ratio ≥ 10** |
+| ☑ T1.5 | ★★ **Spectral-bias staircase (Phase-1 gate figure)** | T1.4, T1.1 | staircase visible; **steps-to-tol ratio ≥ 10** |
 | ☐ T1.6 | ⚡ Integrated-gradients attribution | T0.19 | linear-model exactness; completeness < 1e-6 |
 | ☐ T1.7 | ⚡ Fisher + effective dimension | T0.19 | recovers `k` for a `k`-feature linear model |
 | ☐ T1.8 | ⚡ Encoder spectral drift (new, from D3) | T0.19 | identity ⇒ drift 0; scaling `s` ⇒ `s·Ω` |
