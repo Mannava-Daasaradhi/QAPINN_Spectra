@@ -37,7 +37,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T0.8 | ★ The four PDEs (P1–P4) with all constants | T0.7 | **exact solution satisfies its own residual to 1e-8** |
 | ☑ T0.9 | FFT convention test (D12 guard) | T0.8 | peak of `sin(15πx)` at `ω=15π`; factor-of-2 pinned |
 | ☑ T0.10 | Analytic reference solutions | T0.8 | agrees with `pde.exact` to 1e-12 |
-| ☐ T0.11 | Pseudospectral solver + MMS convergence | T0.10 | spectral in space, order ≥ 3.8 in time |
+| ☑ T0.11 | Pseudospectral solver + MMS convergence | T0.10 | spectral in space, order ≥ 3.8 in time |
 | ☐ T0.12 | ★ Cole–Hopf Burgers + cross-check | T0.11 | two independent methods agree < 1e-6 |
 | ☐ T0.13 | Reference solution cache + registry | T0.12 | second call hits cache |
 | ☐ T0.14 | `PINNModel` ABC + `match_param_count` | T0.5 | matches a 3000-param target within 10 % |
