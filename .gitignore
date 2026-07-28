@@ -1,0 +1,32 @@
+# Environments
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Results — keep small artifacts (config.yaml, metrics.json, design_card.json, xai/*.npz),
+# exclude only raw checkpoints
+results/runs/*/checkpoints/
+
+# Paper build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.synctex.gz
+
+# Claude-flow / tooling scratch
+.claude-flow/
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
