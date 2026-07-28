@@ -3,6 +3,7 @@ hits the cache on a second call with the same (pde, grid) -- checked via file mt
 from __future__ import annotations
 
 import math
+from typing import ClassVar
 
 import numpy as np
 import pytest
@@ -86,9 +87,30 @@ def test_reference_solution_different_grid_misses_cache(tmp_path):
     assert len(list(tmp_path.glob("*.npz"))) == 2
 
 
+def test_reference_solution_same_grid_different_params_does_not_collide(tmp_path):
+    """Regression test: eval_grid() geometry doesn't depend on pde.params, so two PDE
+    instances of the same type but different params (e.g. alpha=0.3 vs alpha=0.0) produce
+    an IDENTICAL grid. A cache key that only hashed (pde.name, grid) would silently return
+    one instance's exact solution for the other -- exactly the bug found during the T0.22
+    Phase 0 gate run (Poisson alpha=0.0 got back the alpha=0.3 cached values)."""
+    grid = np.linspace(0.0, 1.0, 50).reshape(-1, 1)
+
+    pde_a = Poisson(alpha=0.3)
+    pde_b = Poisson(alpha=0.0)
+
+    u_a = reference_mod.reference_solution(pde_a, grid)
+    u_b = reference_mod.reference_solution(pde_b, grid)
+
+    assert len(list(tmp_path.glob("*.npz"))) == 2
+    assert not np.allclose(u_a, u_b)
+    assert np.allclose(u_b, poisson_exact(grid[:, 0], 0.0))
+    assert np.allclose(u_a, poisson_exact(grid[:, 0], 0.3))
+
+
 def test_reference_solution_unknown_pde_raises():
     class _NotAPDE:
         name = "mystery"
+        params: ClassVar[dict] = {}
 
     with pytest.raises(TypeError):
         reference_mod.reference_solution(_NotAPDE(), np.zeros((5, 1)))

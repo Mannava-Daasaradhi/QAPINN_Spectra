@@ -1,13 +1,15 @@
 """Reference solution dispatch + caching (T0.13).
 
 Dispatches to the closed-form analytic solution where available (P1, P2, P4) or the cached
-Cole-Hopf quadrature (P3). Caches to results/reference/<pde_name>_<grid_hash>.npz -- distinct
-from colehopf.py's own fixed-name cache, which is specifically the T0.12 validation artifact;
-this one is a generic per-(pde, grid) cache for arbitrary downstream callers.
+Cole-Hopf quadrature (P3). Caches to
+results/reference/<pde_name>_<params_hash>_<grid_hash>.npz -- distinct from colehopf.py's own
+fixed-name cache, which is specifically the T0.12 validation artifact; this one is a generic
+per-(pde, grid) cache for arbitrary downstream callers.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
@@ -27,10 +29,22 @@ def _grid_hash(grid: np.ndarray) -> str:
     return hashlib.sha256(np.ascontiguousarray(grid).tobytes()).hexdigest()[:12]
 
 
+def _params_hash(params: dict[str, float]) -> str:
+    canonical = json.dumps(params, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
+
+
 def reference_solution(pde: PDE, grid: np.ndarray) -> np.ndarray:
-    """Ground truth for `pde` on `grid` ([N, d] numpy array of physical coordinates)."""
+    """Ground truth for `pde` on `grid` ([N, d] numpy array of physical coordinates).
+
+    The cache key includes pde.params (not just pde.name and the grid): two PDE instances
+    of the same type but different parameters (e.g. Poisson(alpha=0.3) vs
+    Poisson(alpha=0.0)) generally produce an IDENTICAL eval_grid (grid geometry doesn't
+    depend on params), so a params-blind cache key would silently return one instance's
+    exact solution for the other.
+    """
     grid = np.asarray(grid, dtype=np.float64)
-    cache_path = _CACHE_DIR / f"{pde.name}_{_grid_hash(grid)}.npz"
+    cache_path = _CACHE_DIR / f"{pde.name}_{_params_hash(pde.params)}_{_grid_hash(grid)}.npz"
 
     if cache_path.is_file():
         return np.load(cache_path)["u"]
