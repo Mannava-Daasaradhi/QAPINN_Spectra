@@ -14,6 +14,10 @@ htmlcov/
 # exclude only raw checkpoints
 results/runs/*/checkpoints/
 
+# Expensive-but-regenerable reference caches (T0.12+) -- deterministic from code + config,
+# regenerated on demand rather than committed as binary blobs
+results/reference/
+
 # Paper build artifacts
 paper/*.aux
 paper/*.log
