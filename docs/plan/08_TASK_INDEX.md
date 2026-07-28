@@ -41,7 +41,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T0.12 | ★ Cole–Hopf Burgers + cross-check | T0.11 | two independent methods agree < 1e-6 |
 | ☑ T0.13 | Reference solution cache + registry | T0.12 | second call hits cache |
 | ☑ T0.14 | `PINNModel` ABC + `match_param_count` | T0.5 | matches a 3000-param target within 10 % |
-| ☐ T0.15 | `c_mlp` | T0.14 | forwards `[B,d]→[B,1]`; empty quantum group |
+| ☑ T0.15 | `c_mlp` | T0.14 | forwards `[B,d]→[B,1]`; empty quantum group |
 | ☐ T0.16 | `c_ff` + `c_rff_matched` | T0.15 | matched basis fits `sin(πx)+0.3sin(15πx)` to 1e-8 |
 | ☐ T0.17 | Loss assembly (hard + soft BC) | T0.8, T0.15 | exact solution ⇒ loss < 1e-10 |
 | ☐ T0.18 | ★ Training loop (Adam → LBFGS, checkpoints) | T0.17 | `run --smoke` < 60 s, full artifact dir |
