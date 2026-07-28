@@ -64,9 +64,8 @@ def cmd_lint(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    from qapinn.train.loop import train
-
     from qapinn.config import load_config
+    from qapinn.train.loop import train
 
     overrides = {}
     for kv in args.overrides:
@@ -75,7 +74,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     cfg = load_config(args.pde, args.model, overrides=overrides or None, seed=args.seed)
     result = train(cfg, smoke=args.smoke)
-    print(f"run_id={cfg.run_id} rel_l2={result.metrics.get('rel_l2')}")
+    # result.run_id (not cfg.run_id): smoke mode overrides steps/n_collocation inside
+    # train(), so the config actually run -- and hashed for the results/ directory name --
+    # differs from the pre-override cfg computed here.
+    print(f"run_id={result.run_id} rel_l2={result.metrics.get('rel_l2')}")
     return 0
 
 
