@@ -35,7 +35,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T0.6 | `PDE` ABC + `Domain` | T0.4, T0.5 | dummy subclass instantiates; `eval_grid` shape correct |
 | ☑ T0.7 | Autograd differential operators | T0.6 | matches closed forms to 1e-10; `create_graph` verified |
 | ☑ T0.8 | ★ The four PDEs (P1–P4) with all constants | T0.7 | **exact solution satisfies its own residual to 1e-8** |
-| ☐ T0.9 | FFT convention test (D12 guard) | T0.8 | peak of `sin(15πx)` at `ω=15π`; factor-of-2 pinned |
+| ☑ T0.9 | FFT convention test (D12 guard) | T0.8 | peak of `sin(15πx)` at `ω=15π`; factor-of-2 pinned |
 | ☐ T0.10 | Analytic reference solutions | T0.8 | agrees with `pde.exact` to 1e-12 |
 | ☐ T0.11 | Pseudospectral solver + MMS convergence | T0.10 | spectral in space, order ≥ 3.8 in time |
 | ☐ T0.12 | ★ Cole–Hopf Burgers + cross-check | T0.11 | two independent methods agree < 1e-6 |
