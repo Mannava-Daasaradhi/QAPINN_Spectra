@@ -18,7 +18,16 @@ from qapinn.models.fourier_features import FourierFeatures
 from qapinn.pdes.helmholtz import Helmholtz
 from qapinn.pdes.poisson import Poisson
 from qapinn.seeding import set_global_seed
-from qapinn.xai.ntk import block_mass, jacobian, ntk, ntk_blocks, ntk_drift, spectrum_stats
+from qapinn.xai.ntk import (
+    block_mass,
+    jacobian,
+    ntk,
+    ntk_blocks,
+    ntk_drift,
+    probe_set,
+    save_ntk_report,
+    spectrum_stats,
+)
 
 
 class _LinearFeatureModel(PINNModel):
@@ -198,3 +207,39 @@ def test_jacobian_invalid_group_raises():
     x_probe = torch.rand(4, 1)
     with pytest.raises(ValueError):
         jacobian(model, pde, x_probe, output="u", group="not_a_real_group")
+
+
+def test_probe_set_deterministic_and_correct_size():
+    pde = Poisson(alpha=0.3)
+    p1 = probe_set(pde, n_probe=64)
+    p2 = probe_set(pde, n_probe=64)
+
+    assert p1.shape == (64, 1)
+    assert torch.equal(p1, p2)
+
+
+def test_probe_set_works_for_2d_pde():
+    pde = Helmholtz(k=10.0, a1=3.0, a2=1.0)
+    p = probe_set(pde, n_probe=64)
+    assert p.shape == (64, 2)
+
+
+def test_save_ntk_report_writes_npz_and_computes_drift(tmp_path):
+    model = _TwoGroupModel()
+    pde = Poisson(alpha=0.3)
+    probe_x = probe_set(pde, n_probe=32)
+
+    report_0 = save_ntk_report(model, pde, probe_x, step=0, run_dir=tmp_path)
+    assert (tmp_path / "xai" / "ntk_step0.npz").is_file()
+    assert report_0["drift"] == 0.0
+
+    with torch.no_grad():
+        model.a.weight += 0.1  # perturb so step-1's NTK differs from step-0's
+
+    report_1 = save_ntk_report(model, pde, probe_x, step=1, run_dir=tmp_path, K_0=report_0["K"])
+    assert (tmp_path / "xai" / "ntk_step1.npz").is_file()
+    assert report_1["drift"] > 0.0
+
+    saved = np.load(tmp_path / "xai" / "ntk_step1.npz")
+    assert len(saved["eigenvalues"]) == 32
+    assert float(saved["drift"]) == report_1["drift"]

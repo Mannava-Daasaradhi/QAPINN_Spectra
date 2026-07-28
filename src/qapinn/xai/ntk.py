@@ -204,3 +204,48 @@ def ntk_drift(K_t: Tensor, K_0: Tensor) -> float:
     diff_norm = torch.linalg.norm(K_t - K_0, ord="fro")
     base_norm = torch.linalg.norm(K_0, ord="fro")
     return float((diff_norm / base_norm).item())
+
+
+def probe_set(pde: PDE, n_probe: int = PROBE_SIZE) -> Tensor:
+    """Deterministic quasi-uniform set of n_probe points from pde.eval_grid(), subsampled
+    with a fixed stride. Fixed across the whole project for comparability (T1.2) --
+    the SAME probe set is used for every family/checkpoint/PDE-instance comparison."""
+    n_per_axis = max(2, int(np.ceil(n_probe ** (1.0 / pde.dim))) + 2)
+    grid = pde.eval_grid(n_per_axis)
+    total = grid.shape[0]
+    idx = torch.from_numpy(np.round(np.linspace(0, total - 1, n_probe)).astype(np.int64))
+    return grid[idx]
+
+
+def save_ntk_report(
+    model: PINNModel,
+    pde: PDE,
+    probe_x: Tensor,
+    step: int,
+    run_dir,
+    K_0: Tensor | None = None,
+) -> dict:
+    """Computes the residual NTK, saves xai/ntk_step<N>.npz with eigenvalues, condition
+    number, decay exponent, trace, effective rank, and drift-vs-step-0 (caller passes the
+    step-0 K as K_0 for later checkpoints; drift is 0.0 when K_0 is None, e.g. at step 0
+    itself). Returns the same stats dict plus 'drift' and the raw K matrix (not persisted
+    to disk -- results/ holds small summary arrays only, per 01_CONVENTIONS.md §8)."""
+    from pathlib import Path
+
+    K = ntk(model, pde, probe_x, output="residual", group="all")
+    stats = spectrum_stats(K)
+    drift = ntk_drift(K, K_0) if K_0 is not None else 0.0
+
+    out_dir = Path(run_dir) / "xai"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        out_dir / f"ntk_step{step}.npz",
+        eigenvalues=np.array(stats["eigenvalues"]),
+        decay_exponent=stats["decay_exponent"],
+        condition_number=stats["condition_number"],
+        trace=stats["trace"],
+        effective_rank=stats["effective_rank"],
+        drift=drift,
+    )
+
+    return {**stats, "drift": drift, "K": K}

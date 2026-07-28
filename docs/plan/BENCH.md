@@ -85,3 +85,32 @@ the harness genuinely solves the easy case before Phase 1 asks it to solve harde
 **Verdict: 4/5 criteria fully pass; criterion 5 explicitly waived by the project owner with
 a documented re-verification plan at T2.18. Phase 0 gate cleared.**
 
+---
+
+# T1.2/T1.3 NTK Classical Baseline
+
+**Prop. 4 correction (T1.2):** the phase doc states `Theta_hyb == Theta_cl + Theta_q +
+2*sym(Theta_cross)`. This is mathematically incorrect in general -- verified both
+analytically (index summation over a block-concatenated Jacobian: cross terms vanish
+identically in a Gram matrix, since every entry sums over parameter columns belonging to
+exactly one group) and numerically (random matrices, matched and mismatched column
+counts). The correct, tested identity is `Theta_hyb == Theta_cl + Theta_q` exactly, with no
+cross contribution. Implemented and tested the corrected version (`src/qapinn/xai/ntk.py`);
+`cross` (`J_cl @ J_q.T`) is retained purely as an optional diagnostic, not part of the
+decomposition, and is `None` when the two groups' parameter counts differ.
+
+**Classical NTK decay-exponent baseline (T1.3):** freshly-initialized `c_mlp`
+(widths=(64,64,64), tanh) on P1 (Poisson, alpha=0.3), residual-output NTK on the fixed
+512-point probe set:
+
+| Quantity | Value |
+|---|---|
+| `decay_exponent` | **-2.037** |
+| `condition_number` | 1.79e19 |
+| `trace` | 35681.6 |
+| `effective_rank` | 1.64 |
+
+`decay_exponent = -2.037` is negative and within the plausible `-1` to `-4` range (DoD met).
+This is the classical baseline decay exponent that Phase 3's `ntk_spectrum` figure will
+compare `q_serial` etc. against, once Phase 2 supplies the quantum models.
+
