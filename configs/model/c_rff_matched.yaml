@@ -1,0 +1,5 @@
+# c_rff_matched: B rows set directly to the SMCD target frequencies -- the honest baseline
+# that falsifies C1 (project.md §6). Pre-Phase-2 placeholder: P1's known target spectrum
+# {pi, 15*pi} (T2.14 wires this to the real design card instead of a hand-set list).
+family: c_rff_matched
+frequencies: [3.141592653589793, 47.12388980384690]

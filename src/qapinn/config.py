@@ -34,6 +34,9 @@ class ModelConfig:
     # Fourier-feature families
     n_features: int | None = None
     ff_sigma: float | None = None
+    frequencies: tuple[float, ...] | None = None  # c_rff_matched only, pre-Phase-2
+    # placeholder (T0.16) -- explicit target-spectrum frequencies until T2.14 wires this
+    # to the real SMCD design card
     # quantum families
     n_qubits: int | None = None
     n_layers: int | None = None

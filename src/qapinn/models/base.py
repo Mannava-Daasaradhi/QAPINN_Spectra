@@ -50,8 +50,14 @@ def match_param_count(family: str, target: int, tol: float = 0.10, **kw) -> Mode
     def _cfg_for(width: int) -> ModelConfig:
         if family == "c_mlp":
             return ModelConfig(family=family, widths=(width,) * n_hidden_layers)
-        if family in ("c_ff", "c_rff_matched"):
-            return ModelConfig(family=family, n_features=width)
+        if family == "c_ff":
+            return ModelConfig(family=family, n_features=width, ff_sigma=kw.get("ff_sigma", 1.0))
+        if family == "c_rff_matched":
+            raise ValueError(
+                "match_param_count does not apply to c_rff_matched: its frequency set (and "
+                "therefore its size) is fixed by SMCD, not a free knob to search over -- "
+                "every OTHER family is matched to it, not the reverse"
+            )
         raise ValueError(f"match_param_count: unsupported family {family!r}")
 
     def _n_params(width: int) -> int:

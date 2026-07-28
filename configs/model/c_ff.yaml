@@ -1,0 +1,6 @@
+# c_ff: the fair classical baseline (non-negotiable, project.md §6). B ~ N(0, ff_sigma^2),
+# Tancik-style random Fourier features. ff_sigma is tuned per-problem in the alpha sweep
+# (T3.3); this default is a reasonable starting scale for P1's frequency range (up to 15*pi).
+family: c_ff
+n_features: 64
+ff_sigma: 15.0
