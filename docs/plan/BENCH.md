@@ -57,3 +57,31 @@ cutting scope now on a synthetic proxy's numbers.
 measured cost replaces this synthetic stand-in. If the real number is still over budget
 at that point, apply the §5 cut lines then, with much better information than a dense-
 matrix proxy can provide.
+
+---
+
+# T0.22 Phase 0 Gate
+
+Five exit criteria (02_PHASE0_foundations.md, top of file):
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | `pytest` fully green | **PASS** -- 101 tests, `python tasks.py test --slow` (includes the Cole-Hopf cross-check, T0.12) |
+| 2 | MMS convergence test passes for the pseudospectral solver (order >= 4 in time) | **PASS** -- T0.11's `test_fourth_order_convergence_in_time` measured order ~4.0-4.01 across several dt-halving pairs |
+| 3 | `c_mlp` trains on P1 with alpha=0 (low-frequency-only) and reaches rel-L2 < 5e-3 | **PASS** -- `rel_l2 = 5.55e-06` after the full 20000 Adam + 2000 LBFGS steps (`python tasks.py run --pde poisson --model c_mlp --set pde.params.alpha=0.0`), run_id `d0c06b55d337` |
+| 4 | Burgers reference solver agrees with Cole-Hopf quadrature to < 1e-6 | **PASS** -- T0.12's cross-check measured max error ~7e-8 (n_x=2048, n_t=3201) |
+| 5 | Performance spike (T0.21) projects < 24h, or the matrix is cut | **WAIVED by owner decision** -- realistic-mix projection is 21-33h across repeated measurements, dominated by a deliberately pessimistic synthetic quantum-cost proxy (qsim.py doesn't exist until T2.3). Owner elected to proceed without cutting scope now and re-verify with real numbers at T2.18 (see decision above) |
+
+**Bug found and fixed during this gate's own verification:** criterion 3's first attempt
+returned `rel_l2 = 0.287` despite the PDE residual converging to ~3e-6 -- a real red flag,
+not a training issue. Root cause: `qapinn.reference.reference_solution`'s cache key was
+`f"{{pde.name}}_{{grid_hash}}"`, omitting `pde.params`. Since `eval_grid()`'s geometry
+doesn't depend on `alpha`, a stale `Poisson(alpha=0.3)` cache entry from earlier runs was
+silently returned for this `Poisson(alpha=0.0)` run. Fixed by folding a hash of `pde.params`
+into the cache key (commit `e36cfcb`), with a regression test covering exactly this
+same-grid-different-params scenario. Re-ran after the fix: `rel_l2 = 5.55e-06`, confirming
+the harness genuinely solves the easy case before Phase 1 asks it to solve harder ones.
+
+**Verdict: 4/5 criteria fully pass; criterion 5 explicitly waived by the project owner with
+a documented re-verification plan at T2.18. Phase 0 gate cleared.**
+
