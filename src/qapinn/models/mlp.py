@@ -22,13 +22,16 @@ class MLPPINN(PINNModel):
             nn.init.zeros_(linear.bias)
             layers.append(linear)
         self.layers = nn.ModuleList(layers)
+        # Separate hookable modules (not inline torch.tanh calls) so layer *activations*
+        # (post-nonlinearity, T1.10's linear probes) are visible to register_forward_hook.
+        self.activations = nn.ModuleList([nn.Tanh() for _ in range(len(layers) - 1)])
 
     def forward(self, x: Tensor) -> Tensor:
         h = x
         for i, layer in enumerate(self.layers):
             h = layer(h)
             if i < len(self.layers) - 1:
-                h = torch.tanh(h)
+                h = self.activations[i](h)
         return h
 
     def param_groups(self) -> dict[str, list[nn.Parameter]]:
