@@ -191,3 +191,56 @@ picture matching the textbook staircase.
 persisting far longer along the training-step axis than any other row, including the
 `omega ~ pi` row at the bottom, which fades early -- the textbook staircase.
 
+---
+
+# T1.13 Phase 1 Gate Check
+
+Four criteria (`03_PHASE1_instruments.md`):
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | `pytest` fully green (including `--slow`) | **PASS** -- 169 tests, 0 failures |
+| 2 | Staircase figure + ratio >= 10, recorded in `BENCH.md` | **PASS** -- see T1.5 section above: ratio 16.2, `paper/figures/staircase_cmlp_p1.pdf` |
+| 3 | Every instrument runs on `c_mlp`, `c_ff`, `c_rff_matched` without error on all four PDEs | **BLOCKED for `c_rff_matched`** -- see below |
+| 4 | NTK `decay_exponent` for `c_mlp` recorded as classical baseline | **PASS** -- see T1.2/T1.3 section above: `decay_exponent = -2.037` |
+
+**Criterion 3 detail.** `c_mlp` and `c_ff` both run the full instrument suite without error
+on all four PDEs (poisson, heat, burgers, helmholtz) -- verified directly via smoke runs
+(T1.12's own verification sweep, 8/8 combinations pass). `c_rff_matched` only works on
+`poisson`; on `heat`, `burgers`, and `helmholtz` it fails immediately with
+`RuntimeError: mat1 and mat2 shapes cannot be multiplied (1048576x2 and 1x2)`.
+
+Root cause, not a new bug: `configs/model/c_rff_matched.yaml` hardcodes a flat, 1-D
+frequency list (`[pi, 15*pi]`, P1's own known target spectrum), and its own comment already
+documents this as a "Pre-Phase-2 placeholder... T2.14 wires this to the real design card
+instead of a hand-set list" (T0.16). Heat/Burgers/Helmholtz all have `input_dim=2`
+(space+time or space x/y), so the resulting `B` matrix (`[2,1]`, one scalar frequency per
+row) cannot multiply a 2-D input. This is a structural consequence of `c_rff_matched`'s
+frequencies not existing in a PDE-appropriate, multi-dimensional form until SMCD (T2.10,
+T2.14) generates them from the real design card -- which is deep in Phase 2, after this
+gate. The phase doc's own task ordering makes this criterion, read completely literally,
+unsatisfiable at this point in the build.
+
+**Wall-clock cost per checkpoint of the full instrument suite** (production settings, not
+smoke mode; `c_mlp`, all 8 instruments, "final" = includes the final-checkpoint-only
+instruments `gradvar`/`landscape`):
+
+| PDE | Regular checkpoint | Final checkpoint |
+|---|---|---|
+| poisson (1-D) | 0.88 s | 2.00 s |
+| heat (2-D) | 2.06 s | 3.84 s |
+| burgers (2-D) | 2.19 s | 4.29 s |
+| helmholtz (2-D) | 2.54 s | 4.95 s |
+
+For the default 7-checkpoint schedule (`(0, 100, 500, 1000, 5000, 20000, -1)`, 6 regular +
+1 final), total instrumentation overhead is roughly 6-16 s per run depending on PDE
+dimensionality -- small relative to full training wall-clock (T0.21: ~0.005-0.01 s/step x
+20000+ steps = 100-200 s), but this scales per-checkpoint, so a denser checkpoint schedule
+(e.g. T1.5's 27-point dense schedule used for the staircase figure) multiplies accordingly.
+This is the number Phase 3's experiment-matrix budget should use.
+
+**Verdict: 3/4 criteria pass outright; criterion 3 passes for `c_mlp`/`c_ff` but is
+structurally blocked for `c_rff_matched` on 3 of 4 PDEs by a pre-existing, documented
+Phase-2 dependency (T0.16 -> T2.14), not a defect introduced in Phase 1. Not tagging
+`phase1-complete` pending the project owner's decision on how to treat this.**
+
