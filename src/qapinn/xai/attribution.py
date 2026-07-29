@@ -78,7 +78,8 @@ def integrated_gradients(
 def attribution_field(model: PINNModel, pde: PDE, grid_n: int = 128, **ig_kwargs) -> np.ndarray:
     """Sum of |attribution| across input dims on pde.eval_grid(grid_n), reshaped to the
     grid's natural [grid_n]*d shape."""
-    grid = pde.eval_grid(grid_n)
+    device = next(model.parameters()).device
+    grid = pde.eval_grid(grid_n).to(device)
     attrs = integrated_gradients(model, pde, grid, **ig_kwargs)
     field = attrs.detach().abs().sum(dim=-1).cpu().numpy()
     return field.reshape((grid_n,) * pde.dim)

@@ -59,6 +59,19 @@ class TrainConfig:
     lambda_ic: float = 1.0
     checkpoints: tuple[int, ...] = (0, 100, 500, 1000, 5000, 20000, -1)
     noise: str = "none"
+    instruments: tuple[str, ...] = (
+        "ntk",
+        "specerr",
+        "attribution",
+        "fisher",
+        "drift",
+        "gradvar",
+        "probes",
+        "landscape",
+    )
+    # T1.12: expensive instruments only run at the final checkpoint -- recorded here (a
+    # config default), not as a hardcoded set inside xai/__init__.py's run_instruments.
+    instruments_final_only: tuple[str, ...] = ("gradvar", "landscape")
 
 
 @pydantic_dataclass(config=_STRICT, frozen=True)

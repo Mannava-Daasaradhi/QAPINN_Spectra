@@ -6,10 +6,11 @@ Resolving the viscous shock that forms near t~0.5 to this tolerance requires n_x
 n_t=3201 (calibrated empirically: n_t, not n_x, turned out to be the limiting factor near
 the shock -- doubling n_t from 1601 to 3201 at fixed n_x=2048 cut the worst-case error by
 ~15x, while doubling n_x at fixed n_t changed almost nothing). Cole-Hopf quadrature is
-evaluated on a strided subsample of ~80 time slices rather than the full grid (comparing
-every point would need a [n_x*n_t, n_quad] intermediate array, several GB) -- still "a
-grid" per the DoD, and it includes the worst-case time (t~0.51, near shock formation) found
-during calibration.
+evaluated on a strided subsample of ~80 time slices rather than the full grid here, kept
+as-is for this test's own runtime -- but note `burgers_colehopf` itself is now CHUNKED
+(T1.12: `_compute_metrics`/`reference_solution` calls it on the FULL eval_grid at training
+time, e.g. 1024x1024 points for Burgers' 2-D domain, which OOM'd materialising the full
+[M, n_quad] array before chunking was added -- see `test_burgers_colehopf_chunking_matches_unchunked` below).
 """
 from __future__ import annotations
 
@@ -18,10 +19,41 @@ import math
 import numpy as np
 import pytest
 
-from qapinn.reference.colehopf import cached_burgers_colehopf
+from qapinn.reference.colehopf import burgers_colehopf, cached_burgers_colehopf
 from qapinn.reference.spectral import solve_burgers_spectral
 
 NU = 0.01 / math.pi
+
+
+def test_burgers_colehopf_chunking_matches_unchunked():
+    # M > colehopf._CHUNK_SIZE forces the chunked loop to run over >= 2 chunks; verify it
+    # gives IDENTICAL results to evaluating well below the chunk size in one shot (the
+    # underlying per-point formula is unchanged, only the loop batching is new -- T1.12).
+    import qapinn.reference.colehopf as colehopf_mod
+
+    rng = np.random.default_rng(0)
+    n = colehopf_mod._CHUNK_SIZE + 137  # spans a chunk boundary
+    x = rng.uniform(-1.0, 1.0, size=n)
+    t = rng.uniform(0.01, 1.0, size=n)
+
+    u_chunked = burgers_colehopf(x, t, NU, n_quad=64)
+    u_pointwise = np.concatenate(
+        [burgers_colehopf(x[i : i + 5000], t[i : i + 5000], NU, n_quad=64) for i in range(0, n, 5000)]
+    )
+    assert np.allclose(u_chunked, u_pointwise, atol=1e-12)
+
+
+def test_burgers_colehopf_handles_full_eval_grid_scale_without_oom():
+    # The exact scenario that OOM'd before chunking: a full 2-D eval_grid's worth of
+    # points (T1.12's smoke-test sweep across all four PDEs first surfaced this).
+    n_eval = 256  # smaller than the real n_eval=1024 (still ~65k points, well past 20k chunk)
+    x = np.linspace(-1.0, 1.0, n_eval, endpoint=False)
+    t = np.linspace(0.0, 1.0, n_eval, endpoint=False)
+    xx, tt = np.meshgrid(x, t, indexing="ij")
+
+    u = burgers_colehopf(xx.reshape(-1), tt.reshape(-1), NU, n_quad=200)
+    assert u.shape == (n_eval * n_eval,)
+    assert np.all(np.isfinite(u))
 
 
 @pytest.mark.slow

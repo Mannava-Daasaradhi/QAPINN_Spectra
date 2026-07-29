@@ -19,6 +19,13 @@ from pathlib import Path
 import numpy as np
 from scipy.special import roots_hermite
 
+# D7: never materialise the full [M, n_quad] intermediate array for M in the millions (a
+# full eval_grid(1024) on Burgers' 2-D (x,t) domain is ~1e6 points -- at n_quad=200 that's
+# several GB and OOMs). Chunked instead, matching the same pattern used for NTK Jacobians
+# and residual evaluation elsewhere. This is pure numpy (no autograd), so a much larger
+# chunk than the D7 autograd-chunking convention (e.g. 64) is fine.
+_CHUNK_SIZE = 20_000
+
 
 def burgers_colehopf(x: np.ndarray, t: np.ndarray, nu: float, n_quad: int = 200) -> np.ndarray:
     """Exact solution of u_t + u*u_x = nu*u_xx, u(x,0) = -sin(pi x), on the real line.
@@ -37,14 +44,16 @@ def burgers_colehopf(x: np.ndarray, t: np.ndarray, nu: float, n_quad: int = 200)
     nodes, weights = roots_hermite(n_quad)
 
     result = np.where(t_b <= 0.0, -np.sin(np.pi * x_b), 0.0)
-    mask = t_b > 0.0
-    if np.any(mask):
-        x_m = x_b[mask]  # [M]
-        t_m = t_b[mask]  # [M]
-        shift = np.sqrt(4.0 * nu * t_m)[:, None] * nodes[None, :]  # [M, n_quad]
-        arg = x_m[:, None] - shift  # [M, n_quad]
+    idx = np.nonzero(t_b > 0.0)[0]
 
-        exponent = -np.cos(np.pi * arg) / (2.0 * np.pi * nu)  # [M, n_quad]
+    for start in range(0, len(idx), _CHUNK_SIZE):
+        chunk_idx = idx[start : start + _CHUNK_SIZE]
+        x_m = x_b[chunk_idx]  # [m]
+        t_m = t_b[chunk_idx]  # [m]
+        shift = np.sqrt(4.0 * nu * t_m)[:, None] * nodes[None, :]  # [m, n_quad]
+        arg = x_m[:, None] - shift  # [m, n_quad]
+
+        exponent = -np.cos(np.pi * arg) / (2.0 * np.pi * nu)  # [m, n_quad]
         # subtract the per-row max before exponentiating (log-sum-exp style stabilisation);
         # this common factor cancels exactly in the numerator/denominator ratio below.
         exponent = exponent - np.max(exponent, axis=1, keepdims=True)
@@ -52,7 +61,7 @@ def burgers_colehopf(x: np.ndarray, t: np.ndarray, nu: float, n_quad: int = 200)
 
         numerator = np.sum(weights[None, :] * np.sin(np.pi * arg) * kernel, axis=1)
         denominator = np.sum(weights[None, :] * kernel, axis=1)
-        result[mask] = -numerator / denominator
+        result[chunk_idx] = -numerator / denominator
 
     return result.reshape(shape)
 

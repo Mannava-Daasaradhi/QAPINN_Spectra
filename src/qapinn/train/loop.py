@@ -6,7 +6,6 @@ from __future__ import annotations
 import dataclasses
 import json
 import time
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -20,6 +19,7 @@ import qapinn
 import qapinn.models as models_pkg
 import qapinn.pdes as pdes_pkg
 import qapinn.reference as reference_pkg
+import qapinn.xai as xai_pkg
 from qapinn.config import ExpConfig
 from qapinn.models.base import PINNModel
 from qapinn.pdes.base import PDE
@@ -28,15 +28,6 @@ from qapinn.train.checkpoint import build_provenance, save_checkpoint
 from qapinn.train.losses import pinn_loss
 
 RESULTS_ROOT = Path("results/runs")
-
-# Populated by Phase 1 (T1.12): each hook is called at every checkpoint as
-# hook(model, pde, eval_grid, step, run_dir). Empty in Phase 0 -- "for now the hook list
-# is empty" (02_PHASE0_foundations.md, T0.18).
-_XAI_HOOKS: list[Callable[[PINNModel, PDE, Tensor, int, Path], None]] = []
-
-
-def register_xai_hook(hook: Callable[[PINNModel, PDE, Tensor, int, Path], None]) -> None:
-    _XAI_HOOKS.append(hook)
 
 
 @dataclass
@@ -147,8 +138,7 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
         m = _compute_metrics(model, pde, eval_grid, train_cfg.bc_mode)
         checkpoint_rel_l2.append((step, m["rel_l2"]))
         save_checkpoint(model, run_dir, step)
-        for hook in _XAI_HOOKS:
-            hook(model, pde, eval_grid, step, run_dir)
+        xai_pkg.run_instruments(model, pde, cfg, step, run_dir, which=train_cfg.instruments)
 
     run_checkpoint(0)
 

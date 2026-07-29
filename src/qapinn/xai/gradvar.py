@@ -49,14 +49,18 @@ def gradient_variance(
     'var_per_param': [...], 'n_qubits': n, 'n_layers': L} -- n_qubits/n_layers are read
     from the model if present (quantum families, Phase 2), else None (classical)."""
     params = _select_params(model, group)
-    data_gen = torch.Generator().manual_seed(DEFAULT_BATCH_SEED)
-    x = pde.sample_collocation(DEFAULT_BATCH_SIZE, data_gen)
 
     if not params:
         return {"var_mean": 0.0, "var_per_param": [], "n_qubits": getattr(model, "n_qubits", None),
                 "n_layers": getattr(model, "n_layers", None)}
 
-    reinit_gen = torch.Generator().manual_seed(DEFAULT_BATCH_SEED + 1)
+    device = params[0].device
+    data_gen = torch.Generator().manual_seed(DEFAULT_BATCH_SEED)
+    x = pde.sample_collocation(DEFAULT_BATCH_SIZE, data_gen).to(device)
+
+    # in-place reinit (_reinit_param) needs a generator on the SAME device as the
+    # parameters it draws into (torch.Tensor.uniform_/nn.init requires this).
+    reinit_gen = torch.Generator(device=device).manual_seed(DEFAULT_BATCH_SEED + 1)
     grads_per_sample = []
     for _ in range(n_samples):
         for p in params:
@@ -69,7 +73,10 @@ def gradient_variance(
 
         grads = torch.autograd.grad(loss, params, allow_unused=True)
         flat = torch.cat(
-            [g.reshape(-1) if g is not None else torch.zeros(p.numel()) for g, p in zip(grads, params)]
+            [
+                g.reshape(-1) if g is not None else torch.zeros(p.numel(), dtype=p.dtype, device=p.device)
+                for g, p in zip(grads, params)
+            ]
         )
         grads_per_sample.append(flat)
 

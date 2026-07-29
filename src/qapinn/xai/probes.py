@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
+import qapinn.reference as reference_pkg
 from qapinn.models.base import PINNModel
 from qapinn.pdes.base import PDE
 
@@ -58,8 +59,10 @@ def _ridge_r2(X: np.ndarray, y: np.ndarray, alpha: float = DEFAULT_RIDGE_ALPHA) 
 
 def layer_probe_r2(model: PINNModel, pde: PDE, grid: Tensor, layer_outputs: dict[str, Tensor]) -> dict[str, float]:
     """Ridge-regress u* on each layer's activations; R^2 per layer answers 'how much of
-    the solution is already linearly decodable here?'"""
-    u_exact = pde.exact(grid).detach().cpu().numpy().reshape(-1)
+    the solution is already linearly decodable here?' Ground truth via
+    qapinn.reference.reference_solution, NOT pde.exact() directly -- Burgers has no closed
+    form and raises NotImplementedError from exact() by design (T0.13)."""
+    u_exact = reference_pkg.reference_solution(pde, grid.detach().cpu().numpy()).reshape(-1)
     result = {}
     for name, activ in layer_outputs.items():
         X = activ.detach().cpu().numpy().reshape(activ.shape[0], -1)
