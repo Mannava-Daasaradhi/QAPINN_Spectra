@@ -249,3 +249,49 @@ Phase-2 deliverable (T2.14, once SMCD exists) -- re-verify this specific gap onc
 lands, i.e. confirm `c_rff_matched` then runs error-free on all four PDEs. `phase1-complete`
 tagged with this caveat on record.
 
+---
+
+# T2.6 Prop. 1 Verified Numerically (hard gate) -- two real bugs found and fixed
+
+`tests/test_circuit_spectrum.py` FFT-verifies Prop. 1 directly on the actual circuit
+output (independent re-derivation of the expected Omega, not a call into
+`circuits.py`'s own `frequencies()` bookkeeping). Two genuine implementation bugs
+surfaced during verification -- neither was caught by T2.4's own tests (which only
+exercise `frequencies()`'s combinatorial bookkeeping, not the actual gate sequence) or
+T2.5's PennyLane cross-check (which mirrored `circuits.py`'s exact gate sequence,
+including both bugs, so it matched itself rather than catching them).
+
+**1. Exact-`pi/2` prep-angle degeneracy.** `ReuploadCircuit` prepends `RY(phi_prep)` to
+every wire before the first encoding gate, per T2.4's spec (`phi_prep = pi/2`, an equal
+superposition, avoiding the "RZ on |0> is a global phase" bug). Verified directly via the
+FFT check: with `phi_prep = pi/2` **exactly**, every ternary-scaled frequency whose
+balanced-ternary digit `m_1 = 0` (docs/derivations/07_circuit_fourier_spectrum.md's
+Section 4) -- exactly 1/3 of Omega -- has **identically zero** amplitude for *every*
+theta, confirmed independent of trainable-gate generality (tested with the spec's 2-gate
+`RY`-then-`RZ` trainable block, a full 3-parameter Euler block, and a 4-parameter
+`RX`-`RY`-`RZ` block -- same result every time; only perturbing `phi_prep` itself away
+from `pi/2` fixed it). This is not merely a test-threshold problem: Prop. 3
+(`project.md` Section 5.2) would be **false** for any target spectrum touching one of
+those dead frequencies under the literal `pi/2` prescription. Fixed: `circuits.py` now
+uses `PREP_ANGLE = pi/3` (any value other than `{0, pi/2, pi} mod pi` works; `pi/3` was
+verified to give zero dead frequencies).
+
+**2. `n_qubits == 2` ring-CZ double-application bug.** The `ring_cz` entangler loops
+`for q in range(n_qubits): CZ(q, (q+1) % n_qubits)`. For `n_qubits == 2` this applies
+`CZ(0,1)` then `CZ(1,0)` -- the SAME pair twice (CZ is symmetric in its two wires) -- and
+since CZ is diagonal with `+-1` entries, `CZ @ CZ == I`, so the two applications cancel
+**exactly**, silently disabling entanglement entirely for the most common (2-wire) case.
+Verified directly: `<Z_0>` showed *zero* variation (std ~2e-16) as the other wire's input
+was swept, with `entangler='ring_cz'` set. For `n_qubits >= 3` every cyclic pair is
+distinct, so this only affects `n_qubits == 2`. Fixed: apply only 1 CZ pair when
+`n_qubits == 2` (both in `circuits.py` and in `tests/test_qsim_vs_pennylane.py`'s
+PennyLane mirror, re-verified to still match at 1e-10 after the fix).
+
+**Result:** all 7 `test_circuit_spectrum.py` cases pass (ternary L=1..4 single-wire exact
+support; linear-scaling support; 2-wire no-entangler shows only axis-aligned frequencies;
+2-wire `ring_cz` now genuinely shows `omega_x +- omega_y` cross terms). T2.4's 13 tests
+and T2.5's 18 PennyLane cross-check cases (still matching to ~1e-15) both re-verified
+green after both fixes. Full suite: 213 passed.
+
+**Verdict: PASS.** Commit tagged `prop1-verified`.
+

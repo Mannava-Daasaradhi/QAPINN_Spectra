@@ -12,9 +12,14 @@ S(\omega x) \;=\; \exp\!\left(-\,i\,\omega x\, \frac{Z}{2}\right) \;=\;
 \quad\text{(diagonal in the } Z \text{ eigenbasis).}
 $$
 This is `RZ(ωx)` in the codebase's convention (`01_CONVENTIONS.md` §2). All trainable
-gates are collected into single-qubit unitaries $W_l \in SU(2)$ (compositions of `RY`,
-`RZ` are always expressible this way, so there is no loss of generality in treating $W_l$
-as an arbitrary $2\times 2$ unitary matrix for this derivation).
+gates are collected into single-qubit unitaries $W_l \in SU(2)$ (a *general* single-qubit
+unitary needs three real parameters, e.g. the Euler decomposition $RZ(\alpha)RY(\beta)RZ(\gamma)$
+— two gates, `RY` then `RZ` alone, span only a 2-parameter subset of the 3-parameter
+group $SU(2)$, not all of it; §6 below shows this restriction is not actually what causes
+the practical issue found in T2.6, but it is worth stating correctly regardless). Treating
+$W_l$ below as an arbitrary $2\times 2$ unitary matrix is the general derivation; §6 notes
+where the *specific* circuit implementation (T2.4) departs from full genericity in
+practice.
 
 ---
 
@@ -265,3 +270,33 @@ structure above is accounted for. `tests/test_fft_convention.py` (T0.9) and
 `tests/test_circuit_spectrum.py` (T2.6) both test this numerically, on the actual FFT of
 a circuit's output, so this note is not merely a warning — it is a claim with a
 machine-checked witness.
+
+---
+
+## 6. A practical corollary found while verifying this proposition (T2.6)
+
+Prop. 1 states which frequencies $\omega\in\Omega$ *can* appear — it does not, by itself,
+guarantee every $\omega\in\Omega$ appears with *nonzero* amplitude $c_\omega(\theta)$ for
+every circuit implementation and every $\theta$. `T2.4`'s circuit prepends a fixed
+$RY(\phi_{\text{prep}})$ to move the qubit off $\lvert 0\rangle$ before the first encoding
+gate (§1's derivation needs $a\ne 0\ne b$; $RZ$ on $\lvert 0\rangle$ is only a global
+phase). Verified directly against `tests/test_circuit_spectrum.py`'s FFT check (and cross-
+checked bit-for-bit against the PennyLane oracle, T2.5, so this is not a simulator
+artifact): choosing $\phi_{\text{prep}}=\pi/2$ **exactly** ($a=b=1/\sqrt2$, an equal
+superposition) makes every ternary-scaled frequency whose balanced-ternary digit $m_1=0$
+— exactly one third of $\Omega$ — have **identically zero** amplitude, for *every*
+$\theta$, independent of how general the trainable block is (checked with the 2-parameter
+`RY`-then-`RZ` block T2.4 specifies, a full 3-parameter Euler block, and a 4-parameter
+`RX`-`RY`-`RZ` block — same result each time). A perturbation of $\phi_{\text{prep}}$ by
+as little as $0.1$ rad away from $\pi/2$ (or, more simply, any other value such as
+$\pi/3$) removes the degeneracy entirely.
+
+This matters beyond a test threshold: Prop. 3 (`project.md` §5.2, "if $S_\varepsilon
+\subseteq \Omega$ the hybrid can represent the solution with a linear head") would be
+**false** for any target spectrum touching one of these dead frequencies under the
+literal $\phi_{\text{prep}}=\pi/2$ prescription — a genuine gap in the constructive
+guarantee, not merely a numerical inconvenience. `src/qapinn/models/circuits.py` now uses
+$\phi_{\text{prep}}=\pi/3$ (`PREP_ANGLE`), which was verified to have zero such dead
+frequencies. The exact value $\pi/3$ is not special beyond avoiding the two known
+degenerate points ($\phi_{\text{prep}}\in\{0,\pi/2,\pi\} \pmod \pi$); any other choice
+away from those would work equally well.

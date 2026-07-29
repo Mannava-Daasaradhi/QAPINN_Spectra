@@ -15,7 +15,7 @@ import pennylane as qml
 import pytest
 import torch
 
-from qapinn.models.circuits import ReuploadCircuit
+from qapinn.models.circuits import PREP_ANGLE, ReuploadCircuit
 
 TOLERANCE = 1e-10
 
@@ -26,7 +26,7 @@ def _pennylane_qnode(n_qubits, n_layers, scalings, wire_to_dim, entangler, obser
     @qml.qnode(dev, interface="torch")
     def circuit(z_sample, theta):
         for q in range(n_qubits):
-            qml.RY(math.pi / 2, wires=q)
+            qml.RY(PREP_ANGLE, wires=q)
         for l in range(n_layers):
             for q in range(n_qubits):
                 angle = scalings[l, q] * z_sample[wire_to_dim[q]]
@@ -35,7 +35,10 @@ def _pennylane_qnode(n_qubits, n_layers, scalings, wire_to_dim, entangler, obser
                 qml.RY(theta[l, q, 0], wires=q)
                 qml.RZ(theta[l, q, 1], wires=q)
             if entangler == "ring_cz" and n_qubits >= 2:
-                for q in range(n_qubits):
+                # mirrors circuits.py's ReuploadCircuit.forward() exactly, including the
+                # n_qubits==2 special case (CZ(0,1) then CZ(1,0) would cancel, T2.6).
+                n_cz_pairs = 1 if n_qubits == 2 else n_qubits
+                for q in range(n_cz_pairs):
                     qml.CZ(wires=[q, (q + 1) % n_qubits])
         for q in range(n_qubits):
             qml.RY(theta[n_layers, q, 0], wires=q)

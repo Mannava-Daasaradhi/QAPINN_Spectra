@@ -1,6 +1,20 @@
 """Data-re-uploading circuit module (T2.4). Layer structure and frequencies() implement
 docs/derivations/07_circuit_fourier_spectrum.md's Prop. 1 directly -- do not vary the
 layer structure without updating tests/test_circuit_spectrum.py (T2.6).
+
+PREP_ANGLE correction (found during T2.6's own verification, not a T2.4 bug): the phase
+doc prescribes RY(pi/2) exactly (equal superposition, a=b=1/sqrt(2)) to avoid the "RZ on
+|0> is a global phase" degeneracy. That avoids ONE degeneracy but, verified directly
+against the PennyLane oracle (T2.5) and independent of trainable-gate generality (tested
+with a full RZ-RY-RZ and even RX-RY-RZ trainable block -- same result both times),
+introduces a DIFFERENT one: with a=b EXACTLY, every ternary-scaled frequency whose
+balanced-ternary digit m_1=0 (docs/derivations/07_circuit_fourier_spectrum.md Section 4)
+-- exactly 1/3 of Omega -- has IDENTICALLY ZERO amplitude for every theta. Perturbing the
+prep angle by even 0.1 rad away from pi/2 (or using pi/3) removes the degeneracy entirely
+(0 structurally-zero bins, verified numerically). This matters beyond a test threshold:
+Prop. 3 ("S_eps subset Omega => representable by a linear head") would be FALSE for any
+target spectrum touching one of those dead frequencies under the literal pi/2 prep, so
+this is fixed at the source rather than worked around in the test.
 """
 from __future__ import annotations
 
@@ -14,6 +28,9 @@ from torch import Tensor, nn
 from qapinn.models.qsim import StateVectorSim, ry, rz
 
 _SIGNS = (-1, 0, 1)
+# NOT pi/2 -- see module docstring. Any angle other than {0, pi/2, pi} (mod pi) avoids
+# both known degeneracies; pi/3 is a clean, well away from all three.
+PREP_ANGLE = math.pi / 3
 
 
 class ReuploadCircuit(nn.Module):
@@ -23,7 +40,7 @@ class ReuploadCircuit(nn.Module):
             for q in range(n): RY(theta[l,q,0]); RZ(theta[l,q,1])        # trainable
             if entangler == "ring_cz": CZ(q, (q+1) % n) for all q
         final: RY(theta[L,q,0]); RZ(theta[L,q,1]) for all q, then measure the observable
-    A RY(pi/2) is prepended on every wire before the first encoding gate -- an RZ on
+    A RY(PREP_ANGLE) is prepended on every wire before the first encoding gate -- an RZ on
     |0> is a global phase and would produce a constant (x-independent) output, the single
     most common "my circuit has no frequency content" bug (T2.4 phase doc note).
     """
@@ -74,8 +91,7 @@ class ReuploadCircuit(nn.Module):
         device = z.device
         state = StateVectorSim.zeros_state(batch, self.n_qubits, device=device)
 
-        half_pi = torch.tensor(math.pi / 2, device=device)
-        prep = ry(half_pi)
+        prep = ry(torch.tensor(PREP_ANGLE, device=device))
         for q in range(self.n_qubits):
             state = StateVectorSim.apply_1q(state, prep, q)
 
@@ -87,7 +103,14 @@ class ReuploadCircuit(nn.Module):
                 state = StateVectorSim.apply_1q(state, ry(self.theta[l, q, 0]), q)
                 state = StateVectorSim.apply_1q(state, rz(self.theta[l, q, 1]), q)
             if self.entangler == "ring_cz" and self.n_qubits >= 2:
-                for q in range(self.n_qubits):
+                # For n_qubits==2, "ring" over range(n) applies CZ(0,1) then CZ(1,0) --
+                # the SAME pair twice (CZ is symmetric in its two wires), and CZ*CZ=I
+                # (diagonal +-1 matrix), so the two calls cancel exactly, silently
+                # disabling entanglement entirely (found via T2.6's FFT-based check: no
+                # design-level or PennyLane-mirror test catches this, since both replicate
+                # the same loop). n>=3 has n distinct cyclic pairs, no such collision.
+                n_cz_pairs = 1 if self.n_qubits == 2 else self.n_qubits
+                for q in range(n_cz_pairs):
                     state = StateVectorSim.apply_cz(state, q, (q + 1) % self.n_qubits)
 
         for q in range(self.n_qubits):

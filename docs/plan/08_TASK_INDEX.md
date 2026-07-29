@@ -81,7 +81,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T2.3 | ★ Batched statevector simulator `qsim.py` | T1.13 | norm preserved; **second derivatives flow** |
 | ☑ T2.4 | ★ Re-uploading circuit module | T2.3 | `frequencies()` returns exactly 27 values for `L=3` ternary |
 | ☑ T2.5 | ★★ **`qsim` vs PennyLane oracle** | T2.4 | **max diff < 1e-10 — never loosen** |
-| ☐ T2.6 | ★★ **`test_circuit_spectrum.py` (Prop. 1 verified)** | T2.5 | FFT peaks land on `Ω` to 1e-8; tag `prop1-verified` |
+| ☑ T2.6 | ★★ **`test_circuit_spectrum.py` (Prop. 1 verified)** | T2.5 | FFT peaks land on `Ω` to 1e-8; tag `prop1-verified` |
 | ☐ T2.7 | Parameter-shift derivatives (`∂_θ`, `∂_x`, `∂²_x`) | T2.4 | agrees with autodiff to 1e-9 |
 | ☐ T2.8 | ★ SMCD target spectrum (Prop. 2) | T2.6 | P1/P4 supports exact; **P2 high-mode weight ≈ 0.025** |
 | ☐ T2.9 | ★ SMCD Algorithm 1 (with D5 correction) | T2.8 | P1⇒`L=4,n=1`; P4⇒`n=3`,`ring_cz`; deterministic |
