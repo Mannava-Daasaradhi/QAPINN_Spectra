@@ -78,7 +78,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 |---|---|---|---|
 | ☑ T2.1 | ★ **Prop. 1 derivation, by hand, FIRST** | T1.13 | 5 required items incl. corrected depth rule (D5) |
 | ☑ T2.2 | ⚡ Remaining §3 derivations (10 files) | T2.1 | ten files, each a derivation not a summary |
-| ☐ T2.3 | ★ Batched statevector simulator `qsim.py` | T1.13 | norm preserved; **second derivatives flow** |
+| ☑ T2.3 | ★ Batched statevector simulator `qsim.py` | T1.13 | norm preserved; **second derivatives flow** |
 | ☐ T2.4 | ★ Re-uploading circuit module | T2.3 | `frequencies()` returns exactly 27 values for `L=3` ternary |
 | ☐ T2.5 | ★★ **`qsim` vs PennyLane oracle** | T2.4 | **max diff < 1e-10 — never loosen** |
 | ☐ T2.6 | ★★ **`test_circuit_spectrum.py` (Prop. 1 verified)** | T2.5 | FFT peaks land on `Ω` to 1e-8; tag `prop1-verified` |
