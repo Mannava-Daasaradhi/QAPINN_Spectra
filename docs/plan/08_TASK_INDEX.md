@@ -64,7 +64,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T1.6 | ⚡ Integrated-gradients attribution | T0.19 | linear-model exactness; completeness < 1e-6 |
 | ☑ T1.7 | ⚡ Fisher + effective dimension | T0.19 | recovers `k` for a `k`-feature linear model |
 | ☑ T1.8 | ⚡ Encoder spectral drift (new, from D3) | T0.19 | identity ⇒ drift 0; scaling `s` ⇒ `s·Ω` |
-| ☐ T1.9 | ⚡ Gradient variance / barren-plateau tracking | T0.19 | classical MLP shows slope ≈ 0 |
+| ☑ T1.9 | ⚡ Gradient variance / barren-plateau tracking | T0.19 | classical MLP shows slope ≈ 0 |
 | ☐ T1.10 | ⚡ Layerwise probes + CKA | T0.19 | input-layer `R²` low, final-layer high |
 | ☐ T1.11 | ⚡ Loss-landscape slices | T0.19 | minimum at centre for a converged model |
 | ☐ T1.12 | XAI hook registry wired into training loop | T1.2–T1.11 | smoke run with all instruments < 120 s |
