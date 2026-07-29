@@ -241,6 +241,11 @@ This is the number Phase 3's experiment-matrix budget should use.
 
 **Verdict: 3/4 criteria pass outright; criterion 3 passes for `c_mlp`/`c_ff` but is
 structurally blocked for `c_rff_matched` on 3 of 4 PDEs by a pre-existing, documented
-Phase-2 dependency (T0.16 -> T2.14), not a defect introduced in Phase 1. Not tagging
-`phase1-complete` pending the project owner's decision on how to treat this.**
+Phase-2 dependency (T0.16 -> T2.14), not a defect introduced in Phase 1.**
+
+**Owner decision:** waive criterion 3's `c_rff_matched` gap (same pattern as the T0.21
+gate) and proceed. `c_rff_matched`'s multi-dimensional frequency support is genuinely a
+Phase-2 deliverable (T2.14, once SMCD exists) -- re-verify this specific gap once T2.14
+lands, i.e. confirm `c_rff_matched` then runs error-free on all four PDEs. `phase1-complete`
+tagged with this caveat on record.
 
