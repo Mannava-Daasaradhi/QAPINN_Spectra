@@ -76,7 +76,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 
 | # | Task | Depends on | DoD in one line |
 |---|---|---|---|
-| ☐ T2.1 | ★ **Prop. 1 derivation, by hand, FIRST** | T1.13 | 5 required items incl. corrected depth rule (D5) |
+| ☑ T2.1 | ★ **Prop. 1 derivation, by hand, FIRST** | T1.13 | 5 required items incl. corrected depth rule (D5) |
 | ☐ T2.2 | ⚡ Remaining §3 derivations (10 files) | T2.1 | ten files, each a derivation not a summary |
 | ☐ T2.3 | ★ Batched statevector simulator `qsim.py` | T1.13 | norm preserved; **second derivatives flow** |
 | ☐ T2.4 | ★ Re-uploading circuit module | T2.3 | `frequencies()` returns exactly 27 values for `L=3` ternary |
