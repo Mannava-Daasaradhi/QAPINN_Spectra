@@ -87,6 +87,26 @@ class ReuploadCircuit(nn.Module):
         self.theta = nn.Parameter(theta)
 
     def forward(self, z: Tensor) -> Tensor:
+        return self.evaluate(z)
+
+    def evaluate(
+        self,
+        z: Tensor,
+        theta: Tensor | None = None,
+        shifts: dict[tuple[int, int], float] | None = None,
+    ) -> Tensor:
+        """The circuit evaluation shared by forward() and pshift.py's exact
+        parameter-shift derivatives (T2.7). `theta` defaults to self.theta (this is what
+        forward() uses); passing a different tensor evaluates the SAME circuit structure
+        at different trainable angles without mutating self.theta (used by
+        psr_grad_theta). `shifts` adds a raw phase offset to specific encoding-gate
+        INSTANCES, keyed by `(layer, wire)` -- needed because z is shared across every
+        re-uploading layer, so shifting z itself would shift every encoding gate that
+        reads it at once, not the single gate instance the shift rule needs held fixed
+        (used by psr_grad_input / psr_grad2_input).
+        """
+        if theta is None:
+            theta = self.theta
         batch = z.shape[0]
         device = z.device
         state = StateVectorSim.zeros_state(batch, self.n_qubits, device=device)
@@ -98,10 +118,12 @@ class ReuploadCircuit(nn.Module):
         for l in range(self.n_layers):
             for q in range(self.n_qubits):
                 angle = self.scalings[l, q] * z[:, self.wire_to_dim[q]]
+                if shifts is not None and (l, q) in shifts:
+                    angle = angle + shifts[(l, q)]
                 state = StateVectorSim.apply_1q(state, rz(angle), q)
             for q in range(self.n_qubits):
-                state = StateVectorSim.apply_1q(state, ry(self.theta[l, q, 0]), q)
-                state = StateVectorSim.apply_1q(state, rz(self.theta[l, q, 1]), q)
+                state = StateVectorSim.apply_1q(state, ry(theta[l, q, 0]), q)
+                state = StateVectorSim.apply_1q(state, rz(theta[l, q, 1]), q)
             if self.entangler == "ring_cz" and self.n_qubits >= 2:
                 # For n_qubits==2, "ring" over range(n) applies CZ(0,1) then CZ(1,0) --
                 # the SAME pair twice (CZ is symmetric in its two wires), and CZ*CZ=I
@@ -114,8 +136,8 @@ class ReuploadCircuit(nn.Module):
                     state = StateVectorSim.apply_cz(state, q, (q + 1) % self.n_qubits)
 
         for q in range(self.n_qubits):
-            state = StateVectorSim.apply_1q(state, ry(self.theta[self.n_layers, q, 0]), q)
-            state = StateVectorSim.apply_1q(state, rz(self.theta[self.n_layers, q, 1]), q)
+            state = StateVectorSim.apply_1q(state, ry(theta[self.n_layers, q, 0]), q)
+            state = StateVectorSim.apply_1q(state, rz(theta[self.n_layers, q, 1]), q)
 
         out = StateVectorSim.expval_z(state, 0) if self.observable == "z0" else StateVectorSim.expval_z_mean(state)
         return out.unsqueeze(-1)

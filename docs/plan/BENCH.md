@@ -295,3 +295,51 @@ green after both fixes. Full suite: 213 passed.
 
 **Verdict: PASS.** Commit tagged `prop1-verified`.
 
+# T2.7 Parameter-Shift Derivatives -- one real math bug found in the phase doc's own formula
+
+`tests/test_pshift.py` checks `pshift.py`'s `psr_grad_theta`, `psr_grad_input`,
+`psr_grad2_input` against autodiff (double backward through `circuit(z)`) across 5
+circuit configs (`n_qubits` in `{2,4}`, `n_layers` in `{1,3}`, both entanglers), 20 random
+draws each, 2 input dims each. Max observed disagreement: **1.2e-14** (theta: 3.5e-16, x:
+1.6e-15, x2: 1.2e-14) -- machine precision, not a threshold-scraping pass, confirming the
+formulas are exact rather than approximately-close.
+
+**Bug found: `04_PHASE2_theory_smcd.md`'s literal second-order shift-rule formula is off
+by an exact factor of 2.** The phase doc states
+`d^2f/dx^2 = (omega^2/2)*[f(x+pi/omega) - 2f(x) + f(x-pi/omega)]` (shift `pi/omega`).
+Re-derived from scratch in `docs/derivations/08_parameter_shift.md`'s new T2.7 section:
+solving for the coefficients that make `a*[f(phi+s)+f(phi-s)] + b*f(phi)` equal `f''(phi)`
+for *every* `A,B,C` (not just one lucky case) forces `a = 1/(2*(1-cos s))`; at `s=pi`
+(what "shift `pi/omega`" means in `phi`-space) that is `a=1/4`, not `1/2` -- so the correct
+formula needs shift `pi/(2*omega)` (the *same* magnitude as the first-order rule), not
+`pi/omega`. Verified numerically before writing any code (random `A,B,C,omega`): the
+phase doc's literal formula returns exactly `2x` the true second derivative, every draw,
+every seed. This is the same failure pattern as T1.7's `effective_dimension` bug -- a
+plausible closed form in the phase doc that doesn't survive being checked against the
+thing it claims to compute. `pshift.py` implements the corrected formula
+(`omega^2/2 * [f(x+pi/(2*omega)) - 2f(x) + f(x-pi/(2*omega))]`); using the literal
+phase-doc formula instead would have failed the 1e-9 DoD by roughly 50%, not a rounding
+margin.
+
+**A second, structural subtlety (not a bug, but easy to get wrong): mixed/cross terms
+at second order.** Under re-uploading, a given input dimension typically feeds *multiple*
+encoding-gate instances (one per layer, times one per wire assigned to that dimension).
+The multivariable chain rule for `phi_i = omega_i*x` (each linear in `x`) gives
+`d^2f/dx^2 = sum_i omega_i^2 * d^2f/dphi_i^2 + sum_{i!=j} omega_i*omega_j * d^2f/(dphi_i dphi_j)`
+-- a diagonal term per gate *plus* a mixed term per distinct pair of gates sharing that
+dimension. First order has no such cross terms (derivative of a sum is the sum of
+derivatives), which is why the phase doc's "apply the rule per-gate and sum" guidance is
+correct for `psr_grad_input` but would silently under-count `psr_grad2_input` if applied
+the same way for `n_layers > 1`. Verified directly: a diagonal-only variant (sum the
+single-gate 3-point rule over every encoding gate, no mixed terms) was run against the
+same autodiff cross-check -- `n_layers=1` matched exactly (rel. err. 0.0000, as expected:
+at most one encoding gate per dimension, no cross terms exist), but `n_layers=3` was off
+by **66% relative error** (true `d^2f/dx^2 = -0.9124`, diagonal-only gives `-0.3110`) --
+large and unambiguous, not a rounding-level discrepancy. `tests/test_pshift.py`
+deliberately includes `n_layers=3` configs (not just the trivial `n_layers=1` case)
+specifically so a missing-cross-terms bug could not pass silently.
+
+**Result:** 3/3 `test_pshift.py` cases pass; full suite (`pytest`, no `--slow` needed for
+this task) 217 passed. This verifies `project.md` section 3.8's "PINN residual is exactly
+computable on hardware" claim (D1/D2's whole point) rather than merely asserting it.
+

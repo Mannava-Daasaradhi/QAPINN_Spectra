@@ -85,3 +85,79 @@ falls back to finite differences or simulator-only autodiff for $\partial_x$ (ne
 PINN's *residual*, not just its loss gradient) — but the input angle is not
 mathematically different from a trainable angle in this respect, so the exact rule
 applies to both, and `pshift.py`'s `psr_grad_input` (T2.7) implements exactly this.
+
+## T2.7 extension: the second-order rule for a single gate
+
+We want $f''(\phi)$ where $f(\phi) = A + B\cos\phi + C\sin\phi$ (exact, from §1). Evaluate
+$f$ at $\phi \pm s$ for a shift $s$ to be chosen, and use $\cos(\phi\pm s) + \cos(\phi\mp
+s)$-type sum identities — concretely, $\cos(\phi+s)+\cos(\phi-s)=2\cos\phi\cos s$ and
+$\sin(\phi+s)+\sin(\phi-s)=2\sin\phi\cos s$ — to get
+$$
+f(\phi+s) + f(\phi-s) = 2A + 2\cos(s)\big(B\cos\phi + C\sin\phi\big) = 2A(1-\cos s) + 2\cos(s)\, f(\phi).
+$$
+We also have $f''(\phi) = -B\cos\phi - C\sin\phi = A - f(\phi)$ directly (since $f$ solves
+the SHM-type identity $f''+f=A$ for a pure single-frequency-plus-constant sinusoid). We
+want to write $f''(\phi)$ as a fixed linear combination $a\big[f(\phi+s)+f(\phi-s)\big] +
+b\, f(\phi)$ that holds for **every** $A,B,C$ (i.e. for any state/observable, not just
+this one) — matching coefficients of the (fixed, $\phi$-independent) constant $A$ and of
+the $\phi$-varying part $f(\phi)$ separately:
+$$
+2a(1-\cos s) = 1, \qquad 2a\cos s + b = -1.
+$$
+Choosing $s=\pi/2$ (the **same** shift as the first-order rule) gives $\cos s = 0$, so
+$a = 1/2$ and $b=-1$:
+$$
+\boxed{f''(\phi) = \tfrac12\big[f(\phi+\tfrac\pi2) - 2f(\phi) + f(\phi-\tfrac\pi2)\big].}
+$$
+This is the standard exact "diagonal" second-derivative shift rule for a two-eigenvalue
+generator (it reuses the *same* $\pi/2$ shift already needed for $\partial_\phi f$, not a
+different one).
+
+**Correcting `04_PHASE2_theory_smcd.md`'s literal T2.7 formula.** The phase doc states
+$\partial_x^2 f = (\omega^2/2)[f(x+\pi/\omega) - 2f(x) + f(x-\pi/\omega)]$ — shift
+$\pi/\omega$ (i.e. $s=\pi$ in $\phi$-space), same coefficient $\omega^2/2$. Substituting
+$s=\pi$ into the two matching-coefficient equations above gives $a = 1/(2(1-\cos\pi)) =
+1/4$, **not** $1/2$ — the phase doc's formula is off by an exact factor of 2, confirmed
+numerically (`A,B,C,\omega` drawn at random: literal formula returns exactly `2x` the true
+$\partial_x^2 f$ every time). This is the same class of bug as T1.7's
+`effective_dimension` formula (`10_effective_dimension.md`): a plausible-looking closed
+form in the phase doc that doesn't survive being checked against the thing it claims to
+compute. The correct rule, with $\phi=\omega x$ and $d^2\phi/dx^2=0$ so
+$\partial_x^2 f = \omega^2 \partial_\phi^2 f$:
+$$
+\partial_x^2 f = \frac{\omega^2}{2}\Big[f\big(x+\tfrac{\pi}{2\omega}\big) - 2f(x) + f\big(x-\tfrac{\pi}{2\omega}\big)\Big]
+$$
+— shift $\pi/(2\omega)$, the *same magnitude* as the first-order rule's shift, not
+$\pi/\omega$. `pshift.py`'s `psr_grad2_input` implements this corrected form.
+
+## The multi-gate case: re-uploading introduces cross terms at second order
+
+Section "Extending to $\partial_\theta$" showed the *first*-order rule composes additively
+across gates with no cross terms — that's just linearity of the derivative. Second order
+is different. Under re-uploading, $x$ (via a fixed dimension) typically feeds **several**
+encoding gates $\phi_1,\dots,\phi_k$ (one per layer that re-encodes it, times one per wire
+assigned to that dimension), each $\phi_i = \omega_i x$ linear in $x$. By Prop. 1
+(`07_circuit_fourier_spectrum.md`), $f$ as a function of $(\phi_1,\dots,\phi_k)$ jointly is
+an exact multivariate trigonometric polynomial with frequency components in
+$\{-1,0,1\}^k$ — which means **mixed** partials $\partial^2 f/\partial\phi_i\partial\phi_j$
+($i\neq j$) need not vanish. Since each $\phi_i$ is linear in $x$ ($d^2\phi_i/dx^2=0$),
+the multivariable chain rule gives exactly
+$$
+\frac{d^2f}{dx^2} = \sum_i \omega_i^2\,\frac{\partial^2 f}{\partial\phi_i^2} + \sum_{i\neq j}\omega_i\omega_j\,\frac{\partial^2 f}{\partial\phi_i\,\partial\phi_j}.
+$$
+The diagonal terms are the single-gate rule above. The mixed terms are exact too, by the
+same composability argument used for $\partial_\theta$: since $f(\phi_i,\cdot)$ (for fixed
+$\phi_j$) is of the single-frequency form in $\phi_i$, the first-order shift rule applies
+to it for *any* fixed $\phi_j$; applying it again in $\phi_j$ to the resulting function
+(itself single-frequency in $\phi_j$, since it's a linear combination of two such
+functions) gives the exact four-point rule
+$$
+\frac{\partial^2 f}{\partial\phi_i\,\partial\phi_j} = \tfrac14\Big[f_{++} - f_{+-} - f_{-+} + f_{--}\Big],
+$$
+where $f_{\pm\pm}$ shifts $\phi_i,\phi_j$ independently by $\pm\pi/2$, all other gates
+held fixed. **Dropping the mixed terms is wrong whenever more than one encoding-gate
+instance reads the same input dimension** — i.e. essentially always for $L>1$, since
+re-uploading re-encodes $x$ every layer by construction. `pshift.py`'s `psr_grad2_input`
+sums both the diagonal and the mixed terms over all pairs of encoding gates reading the
+requested dimension; `tests/test_pshift.py` exercises `n_layers>1` specifically so this
+isn't silently untested.
