@@ -101,6 +101,32 @@ def test_prop4_identity_corrected():
     assert torch.allclose(blocks["hyb"], blocks["cl"] + blocks["q"], atol=1e-10)
 
 
+def test_prop4_identity_real_hybrid_model():
+    """T2.18 gate: this identity was only ever exercised against _TwoGroupModel above (a
+    dummy stand-in noted at T1.2 as "the real hybrid model arrives in Phase 2") --
+    re-run now that SerialHybrid exists. This is not purely definitional the way it looks
+    (theta_hyb = theta_cl + theta_q by construction in ntk_blocks): the dummy model's
+    "quantum" group was plain nn.Linear, exercised by ordinary autograd only. A real
+    SerialHybrid's quantum group backpropagates through ReuploadCircuit's parameter-shift
+    custom backward (pshift.py, T2.7) -- this confirms jacobian()'s per-group
+    autograd.grad extraction still produces correctly shaped, non-degenerate rows through
+    that different differentiation path, not just that the addition is self-consistent."""
+    from qapinn.models.hybrid import SerialHybrid
+
+    model = SerialHybrid(n_qubits=2, n_layers=1, scalings=[[1.0, 2.0]], wire_to_dim=(0, 0), input_dim=1)
+    pde = Poisson(alpha=0.3)
+    gen = set_global_seed(7)
+    x_probe = pde.sample_collocation(16, gen)
+    x_probe.requires_grad_(False)
+
+    blocks = ntk_blocks(model, pde, x_probe)
+
+    assert torch.allclose(blocks["hyb"], blocks["cl"] + blocks["q"], atol=1e-10)
+    assert blocks["cl"].shape == (16, 16) and blocks["q"].shape == (16, 16)
+    assert blocks["cl"].abs().sum() > 0  # encoder + head params actually contribute
+    assert blocks["q"].abs().sum() > 0  # quantum circuit params actually contribute
+
+
 def test_ntk_blocks_psd():
     model = _TwoGroupModel()
     pde = Poisson(alpha=0.3)

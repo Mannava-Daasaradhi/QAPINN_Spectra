@@ -745,3 +745,83 @@ smoke` (subprocess-isolated) in 354.5s -- both far inside the 20-minute budget. 
 measured VRAM across every verification run: <1GB. Full fast suite (`tasks.py test`,
 excludes `@pytest.mark.slow`): 265 passed.
 
+# T2.18 Phase 2 Gate -- real q_serial timing REPLACES T0.21's estimate and the matrix
+# budget still does not fit; a second, independent feasibility problem also surfaced
+
+**All 6 checklist items:**
+1. `tests/test_circuit_spectrum.py` -- green (7 passed).
+2. `tests/test_qsim_vs_pennylane.py` at `1e-10` -- green (18 passed, `TOLERANCE = 1e-10`
+   in the test file itself).
+3. Prop. 4 identity (T1.2) on a REAL hybrid model -- previously only ever exercised
+   against `_TwoGroupModel`, a dummy stand-in explicitly noted at T1.2 as "the real hybrid
+   model arrives in Phase 2." Added `test_prop4_identity_real_hybrid_model` (real
+   `SerialHybrid`, `atol=1e-10`) -- green, and non-trivially so: the dummy model's
+   "quantum" group was plain `nn.Linear` under ordinary autograd, while `SerialHybrid`'s
+   quantum group backpropagates through `ReuploadCircuit`'s parameter-shift custom
+   backward (T2.7) -- a genuinely different differentiation path that had never been
+   exercised through `xai/ntk.py`'s per-group Jacobian extraction before now.
+4. Parameter-shift <-> autodiff agreement -- `tests/test_pshift.py` green (3 passed).
+5. All 42 smoke combinations pass -- T2.17, verified via both harnesses.
+6. Design cards for all six problem instances -- `scripts/make_design_cards.py` (new,
+   mirrors `scripts/bench_step.py`'s existing pattern) computes `smcd(pde)` directly for
+   each of `tasks.SMOKE_PDE_INSTANCES` and writes `results/design_cards.json`
+   (committed). All 6 land at `coverage=1.0`.
+
+**Real `q_serial` s/step** (same methodology as T0.21's `_bench_adam_step`: 5 warmup + 20
+measured Adam steps, `n_collocation=4096`), measured via a one-off script (not committed --
+`scripts/bench_step.py`'s own `_write_bench_md` does a full destructive overwrite of this
+file, so it was deliberately NOT reused/modified to avoid wiping every section since T0.21):
+
+| Benchmark | s/step | n_params |
+|---|---|---|
+| `q_serial` on P1 (Poisson, 1-D) | 0.035713 | 14 |
+| `q_serial` on P4 (Helmholtz, 2-D, k=10) | 0.101923 | 20 |
+
+**This does NOT resolve T0.21's budget FAIL -- it confirms it, and slightly worsens it.**
+T0.21's synthetic dense-matrix stand-in (0.084905 s/step) was hypothesized to be a
+"deliberately conservative (pessimistic) upper bound" that the real qsim.py would beat.
+It did not, on P4: the real `q_serial` circuit there (SMCD-designed for Helmholtz k=10,
+genuinely deeper than the stand-in's assumed `L=4,n=6`) costs MORE per step than the
+synthetic proxy, not less -- plausibly because parameter-shift gradients require 2 extra
+circuit evaluations per quantum parameter per backward pass, a real cost the dense-matrix
+stand-in never modeled. Re-running T0.21's exact realistic-mix projection (138
+classical-family runs + 243 quantum-family runs, worst-of-P1/P4 `s_hybrid`, `n_parallel=6`,
+`steps_per_run=22000`) with the real number:
+
+| Scenario | s_per_step | Projected wall-clock |
+|---|---|---|
+| T0.21 (synthetic stand-in) | 0.094911 | 24.90 h |
+| T2.18 (real `q_serial`, worst of P1/P4) | 0.101923 | **26.63 h** |
+
+Still **FAIL** against the 24h budget, now with a real measurement instead of a synthetic
+proxy -- there is no more pessimism to blame this on.
+
+**A second, independent feasibility problem surfaced during T2.17 that the `n_parallel=6`
+assumption itself does not survive on this hardware.** The master plan's projection
+assumes 6-way parallelism ("6 parallel workers," `00_MASTER_PLAN.md` SS5); T2.17 directly
+measured that running just 4 concurrent CUDA-using Python processes on this laptop
+produces a cascade of driver/OS-level failures (`CUBLAS_STATUS_EXECUTION_FAILED`, access
+violations, Windows `WinError 1450`) across 36/42 combos -- this is the ONLY machine this
+project has run on. If Phase 3 cannot safely parallelize on this hardware and must run
+sequentially instead, the realistic-mix projection becomes **~159.8 h (~6.7 days)** against
+a "Phase 3 budgeted 2 days" allowance -- not a 7% miss but roughly 3x over. Neither this
+nor the 26.63h number has been resolved by this task; both are reported for a project-owner
+decision (mirroring T0.21's own precedent of surfacing rather than unilaterally cutting
+scope), not resolved unilaterally here.
+
+**Options for the owner to weigh** (not decided here): (a) reduce matrix scope further
+than 00_MASTER_PLAN.md SS5's already-listed cuts (fewer seeds, fewer families, fewer PDE
+instances), (b) run Phase 3 on different/cloud hardware where multi-process CUDA
+concurrency is safe, (c) investigate and fix the concurrency failure on this laptop
+specifically (untried: driver update, larger page file, `MPS`/`CUDA_VISIBLE_DEVICES`-based
+isolation) before committing to a parallelism assumption, or (d) accept a longer sequential
+Phase 3 timeline than originally budgeted.
+
+**Result:** T2.18's own mechanical DoD (6 checks green, real numbers recorded, budget
+re-checked) is satisfied and the commit is tagged `phase2-complete` -- Phase 2's technical
+deliverables are genuinely done and verified. The budget/parallelism findings above are
+NOT a reason to withhold the tag (T0.21 set this precedent: a failing performance
+sub-check does not block a phase gate, it informs the next one) but ARE a reason Phase 3
+should not simply start on the original assumptions without the project owner deciding
+among the options above first.
+

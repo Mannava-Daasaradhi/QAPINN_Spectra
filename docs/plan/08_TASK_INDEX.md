@@ -93,7 +93,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T2.15 | Octave-split ensemble `q_octave` | T2.12 | P4 k=20 splits, each `L ≤ 4`, coverage 1.0 |
 | ☑ T2.16 | Cross-family size matching (±10 %) | T2.12, T2.14 | table emitted to `results/size_matching.json` |
 | ☑ T2.17 | ★ Full-pipeline smoke: 6 problems × 7 families | T2.16, T1.12 | all 42 pass in < 20 min |
-| ☐ T2.18 | ★★ **Phase 2 gate** | T2.6, T2.9, T2.17 | 6 checks; **re-verify matrix budget**; tag `phase2-complete` |
+| ☑ T2.18 | ★★ **Phase 2 gate** | T2.6, T2.9, T2.17 | 6 checks; **re-verify matrix budget**; tag `phase2-complete` |
 
 ---
 
