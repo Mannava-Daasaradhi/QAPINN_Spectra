@@ -458,3 +458,17 @@ empirical fallback, wasn't in the literal DoD but was added as a smoke test sinc
 the first task to actually exercise the "no analytic spectrum" branch end-to-end). Full
 suite: 235 passed.
 
+# T2.11 Noise Models -- straightforward, no bugs found
+
+`noise.py`'s `ShotNoise` (`expval -> expval + detach(N(0, (1-expval^2)/n_shots))`,
+straight-through) and `GlobalDepolarizing` (`expval -> (1-p)^m * expval`, exact/closed-
+form) both implemented per D8. Empirical variance verified across 4 different `expval`
+values (0.0, 0.5, -0.7, 0.95) at `n_shots=1024`, 10 000 draws each, all within 5% of the
+closed-form `(1-expval^2)/n_shots` prediction. `p=0` identity, gradient flow (straight-
+through for shot noise: `d(out)/d(expval)==1` exactly, since the noise term is detached;
+constant-scale for depolarizing) both verified exactly (`torch.testing.assert_close`, not
+just "close enough"). Both classes' docstrings state they are surrogates, per the
+honest-labelling DoD requirement.
+
+**Result:** all 8 `tests/test_noise.py` cases pass. Full suite: 243 passed.
+
