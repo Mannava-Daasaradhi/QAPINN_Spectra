@@ -31,29 +31,40 @@ class AffineEncoder(nn.Module):
         return x @ self.A.T + self.b
 
 
-def _realised_frequencies(circuit: ReuploadCircuit, encoder: AffineEncoder) -> np.ndarray:
-    """Omega @ A in physical coordinates (D3) -- shared by every hybrid family below.
-    Omega has one column per dimension the CIRCUIT itself encodes (circuit_dim, from
-    wire_to_dim); the encoder's own dimension can be LARGER (input_dim = pde.dim, for a
-    time-dependent PDE whose TargetSpectrum omits the time axis, T2.8/T2.12) -- pad Omega
-    with trailing zero columns to match A's own dimension before the matmul. This
-    project's time-dependent PDEs (Heat, Burgers) always list their time axis LAST in
+def _pad_omega(Omega: np.ndarray, target_dim: int) -> np.ndarray:
+    """Zero-pad Omega's trailing columns up to target_dim. Omega has one column per
+    dimension the CIRCUIT itself encodes (circuit_dim, from wire_to_dim); the encoder's
+    own dimension can be LARGER (input_dim = pde.dim, for a time-dependent PDE whose
+    TargetSpectrum omits the time axis, T2.8/T2.12) -- shared by realised_frequencies()
+    AND encoder_omega below so xai/drift.py's encoder_drift (which multiplies
+    model.encoder_omega @ model.encoder_A directly, not through realised_frequencies())
+    sees the same padded shape instead of shape-mismatching against A (T2.17 finding:
+    encoder_omega returned the raw unpadded circuit Omega, crashing the drift instrument
+    outright on every time-dependent PDE for every quantum family). This project's
+    time-dependent PDEs (Heat, Burgers) always list their time axis LAST in
     domain.names, so "trailing" zero columns correctly land on the time axis without
     needing to know pde.domain.time_axis here."""
+    if Omega.shape[1] < target_dim:
+        pad = np.zeros((Omega.shape[0], target_dim - Omega.shape[1]))
+        Omega = np.concatenate([Omega, pad], axis=1)
+    return Omega
+
+
+def _realised_frequencies(circuit: ReuploadCircuit, encoder: AffineEncoder) -> np.ndarray:
+    """Omega @ A in physical coordinates (D3) -- shared by every hybrid family below."""
     Omega = circuit.frequencies()
     if Omega.ndim == 1:
         Omega = Omega.reshape(-1, 1)
     A = encoder.A.detach().cpu().numpy()
-    if Omega.shape[1] < A.shape[0]:
-        pad = np.zeros((Omega.shape[0], A.shape[0] - Omega.shape[1]))
-        Omega = np.concatenate([Omega, pad], axis=1)
+    Omega = _pad_omega(Omega, A.shape[0])
     return Omega @ A
 
 
-def _omega_buffer(circuit: ReuploadCircuit) -> Tensor:
+def _omega_buffer(circuit: ReuploadCircuit, target_dim: int) -> Tensor:
     Omega = circuit.frequencies()
     if Omega.ndim == 1:
         Omega = Omega.reshape(-1, 1)
+    Omega = _pad_omega(Omega, target_dim)
     return torch.as_tensor(Omega, dtype=torch.get_default_dtype())
 
 
@@ -115,7 +126,7 @@ class SerialHybrid(PINNModel):
 
     @property
     def encoder_omega(self) -> Tensor:
-        return _omega_buffer(self.circuit)
+        return _omega_buffer(self.circuit, self.encoder.A.shape[0])
 
 
 class ParallelHybrid(PINNModel):
@@ -169,7 +180,7 @@ class ParallelHybrid(PINNModel):
 
     @property
     def encoder_omega(self) -> Tensor:
-        return _omega_buffer(self.circuit)
+        return _omega_buffer(self.circuit, self.encoder.A.shape[0])
 
 
 class OctaveEnsemble(PINNModel):

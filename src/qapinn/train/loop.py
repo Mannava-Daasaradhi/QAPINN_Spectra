@@ -124,8 +124,22 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
     t_start = time.time()
 
     if smoke:
-        pde_cfg = dataclasses.replace(cfg.pde, n_collocation=256)
-        train_cfg = dataclasses.replace(cfg.train, steps_adam=50, steps_lbfgs=10, checkpoints=(0, -1))
+        # 01_CONVENTIONS.md SS10: --smoke reduces steps/POINTS, not just steps. n_eval is a
+        # PER-AXIS resolution (pde.eval_grid(n) -> n**dim points): leaving it at its
+        # unreduced default (1024) meant every 2-D/time-dependent checkpoint still ran the
+        # specerr/ntk/attribution instruments over up to ~1e6 points, 42 times in one
+        # process -- the actual driver behind the T2.17 smoke-sweep memory blowups (matches
+        # the observed `MemoryError((1024, 1024), dtype('float64'))` exactly).
+        # steps_adam/steps_lbfgs (originally 50/10, T0.18) were calibrated against the
+        # single classical family that existed at T0.18 -- quantum families' parameter-
+        # shift gradients (multiple forward evals per trainable param per step) make the
+        # same step count noticeably more expensive per step, and with 4/7 families now
+        # quantum this pushed both a single heavy combo (T0.18's own <60s/run contract)
+        # and the 42-combo matrix (T2.17's <20min contract) over budget. Cut to keep both:
+        # 25 steps is still enough to exercise Adam -> LBFGS -> checkpoint -> all 8 XAI
+        # instruments meaningfully for an integration/smoke check, just not to converge.
+        pde_cfg = dataclasses.replace(cfg.pde, n_collocation=256, n_boundary=64, n_eval=32)
+        train_cfg = dataclasses.replace(cfg.train, steps_adam=20, steps_lbfgs=5, checkpoints=(0, -1))
         cfg = dataclasses.replace(cfg, pde=pde_cfg, train=train_cfg)
 
     pde_cfg = cfg.pde
@@ -175,7 +189,7 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
         m = _compute_metrics(model, pde, eval_grid, train_cfg.bc_mode)
         checkpoint_rel_l2.append((step, m["rel_l2"]))
         save_checkpoint(model, run_dir, step)
-        xai_pkg.run_instruments(model, pde, cfg, step, run_dir, which=train_cfg.instruments)
+        xai_pkg.run_instruments(model, pde, cfg, step, run_dir, which=train_cfg.instruments, smoke=smoke)
 
     run_checkpoint(0)
 

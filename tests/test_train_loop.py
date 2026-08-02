@@ -52,7 +52,7 @@ def test_smoke_run_completes_quickly_and_writes_full_artifact_dir():
     assert set(result.metrics.keys()) == _EXPECTED_METRIC_KEYS
 
     history = pd.read_parquet(run_dir / "history.parquet")
-    assert len(history) == 60  # steps_adam=50 + steps_lbfgs=10, the smoke override
+    assert len(history) == 25  # steps_adam=20 + steps_lbfgs=5 (T2.17: cut from 50+10), the smoke override
     assert list(history.columns) == ["step", "loss", "lr", "grad_norm"]
 
 

@@ -54,7 +54,7 @@ def test_checkpoints_saved_at_every_requested_step():
     ckpt_dir = result.run_dir / "checkpoints"
     steps = sorted(int(p.stem.split("_")[1]) for p in ckpt_dir.glob("step_*.pt"))
     assert steps[0] == 0
-    assert steps[-1] == 60  # steps_adam=50 + steps_lbfgs=10
+    assert steps[-1] == 25  # steps_adam=20 + steps_lbfgs=5 (T2.17: cut from 50+10)
 
 
 def test_provenance_has_git_sha_and_versions():

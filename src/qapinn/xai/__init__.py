@@ -38,6 +38,19 @@ _LANDSCAPE_BATCH = 128
 _GRADVAR_N_SAMPLES = 20
 _PROBES_GRID_N = 32
 
+# 01_CONVENTIONS.md SS10: --smoke reduces steps/POINTS, not just steps -- these budgets are
+# themselves "points" (probe/grid sizes) and were left at their full-run values regardless
+# of smoke=True until T2.17, which made NTK/Fisher's parameter-shift Jacobians (quadratic-
+# ish in probe size x quantum-param count) the dominant fixed per-checkpoint cost across
+# the 42-combo smoke matrix even after steps_adam/steps_lbfgs were already cut.
+_PROBE_SIZE_SMOKE = 16
+_ATTRIBUTION_GRID_N_SMOKE = 8
+_ATTRIBUTION_N_STEPS_SMOKE = 4
+_LANDSCAPE_GRID_N_SMOKE = 9
+_LANDSCAPE_BATCH_SMOKE = 32
+_GRADVAR_N_SAMPLES_SMOKE = 5
+_PROBES_GRID_N_SMOKE = 8
+
 _NTK_K0_CACHE: dict[str, torch.Tensor] = {}
 
 
@@ -50,8 +63,8 @@ def _device(model: PINNModel) -> torch.device:
     return next(model.parameters()).device
 
 
-def _run_ntk(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
-    probe_x = probe_set(pde, n_probe=_PROBE_SIZE).to(_device(model))
+def _run_ntk(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
+    probe_x = probe_set(pde, n_probe=_PROBE_SIZE_SMOKE if smoke else _PROBE_SIZE).to(_device(model))
     key = str(run_dir)
     K_0 = _NTK_K0_CACHE.get(key)
     result = save_ntk_report(model, pde, probe_x, step, run_dir, K_0=K_0)
@@ -59,7 +72,7 @@ def _run_ntk(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> 
         _NTK_K0_CACHE[key] = result["K"].detach().clone()
 
 
-def _run_specerr(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
+def _run_specerr(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
     n_eval = cfg.pde.n_eval
     eval_grid = pde.eval_grid(n_eval).to(_device(model))
     with torch.no_grad():
@@ -75,9 +88,11 @@ def _run_specerr(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir)
     save_spectral_error_checkpoint(u_pred_np, u_ref, grid_shape=grid_shape, dx=dx, step=step, run_dir=run_dir)
 
 
-def _run_attribution(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
-    grid = pde.eval_grid(_ATTRIBUTION_GRID_N).to(_device(model))
-    attrs = integrated_gradients(model, pde, grid, n_steps=_ATTRIBUTION_N_STEPS, target="residual")
+def _run_attribution(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
+    grid_n = _ATTRIBUTION_GRID_N_SMOKE if smoke else _ATTRIBUTION_GRID_N
+    n_steps = _ATTRIBUTION_N_STEPS_SMOKE if smoke else _ATTRIBUTION_N_STEPS
+    grid = pde.eval_grid(grid_n).to(_device(model))
+    attrs = integrated_gradients(model, pde, grid, n_steps=n_steps, target="residual")
     field = attrs.detach().abs().sum(dim=-1).cpu().numpy()
 
     probe_n = min(32, grid.shape[0])
@@ -98,8 +113,9 @@ def _run_attribution(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_
     )
 
 
-def _run_fisher(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
-    x = pde.sample_collocation(_PROBE_SIZE, torch.Generator().manual_seed(0)).to(_device(model))
+def _run_fisher(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
+    probe_size = _PROBE_SIZE_SMOKE if smoke else _PROBE_SIZE
+    x = pde.sample_collocation(probe_size, torch.Generator().manual_seed(0)).to(_device(model))
     F = empirical_fisher(model, pde, x, group="all", output="residual")
     F_np = F.detach().cpu().numpy()
     eigs = np.linalg.eigvalsh(F_np) if F_np.ndim == 2 else F_np
@@ -111,7 +127,7 @@ def _run_fisher(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) 
     np.savez(out_dir / f"fisher_step{step}.npz", eigenvalues=eigs, effective_dimension=d_eff)
 
 
-def _run_drift(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
+def _run_drift(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
     report = encoder_drift(model)
     if not report:
         return  # c_mlp has no frequency structure at all -- nothing to report (xai/drift.py)
@@ -126,8 +142,9 @@ def _run_drift(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -
     )
 
 
-def _run_gradvar(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
-    gv = gradient_variance(model, pde, n_samples=_GRADVAR_N_SAMPLES, group="quantum")
+def _run_gradvar(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
+    n_samples = _GRADVAR_N_SAMPLES_SMOKE if smoke else _GRADVAR_N_SAMPLES
+    gv = gradient_variance(model, pde, n_samples=n_samples, group="quantum")
 
     out_dir = Path(run_dir) / "xai"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -140,8 +157,8 @@ def _run_gradvar(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir)
     )
 
 
-def _run_probes(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
-    grid = pde.eval_grid(_PROBES_GRID_N).to(_device(model))
+def _run_probes(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
+    grid = pde.eval_grid(_PROBES_GRID_N_SMOKE if smoke else _PROBES_GRID_N).to(_device(model))
     layer_outputs = collect_layer_outputs(model, grid)
     r2 = layer_probe_r2(model, pde, grid, layer_outputs)
 
@@ -150,12 +167,14 @@ def _run_probes(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) 
     np.savez(out_dir / f"probes_step{step}.npz", **r2)
 
 
-def _run_landscape(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir) -> None:
+def _run_landscape(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
     device = _device(model)
+    batch_size = _LANDSCAPE_BATCH_SMOKE if smoke else _LANDSCAPE_BATCH
+    grid_n = _LANDSCAPE_GRID_N_SMOKE if smoke else _LANDSCAPE_GRID_N
     gen = torch.Generator().manual_seed(step)
-    batch = {"x_r": pde.sample_collocation(_LANDSCAPE_BATCH, gen).to(device)}
+    batch = {"x_r": pde.sample_collocation(batch_size, gen).to(device)}
     landscape_gen = torch.Generator(device=device).manual_seed(step)
-    grid = loss_landscape_slice(model, pde, batch, cfg.train, grid_n=_LANDSCAPE_GRID_N, span=1.0, gen=landscape_gen)
+    grid = loss_landscape_slice(model, pde, batch, cfg.train, grid_n=grid_n, span=1.0, gen=landscape_gen)
 
     out_dir = Path(run_dir) / "xai"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -181,12 +200,15 @@ def run_instruments(
     step: int,
     out_dir,
     which: tuple[str, ...] | None = None,
+    smoke: bool = False,
 ) -> None:
     """Runs each named instrument in `which` (default `cfg.train.instruments`) at this
     checkpoint. `out_dir` is the RUN directory (each instrument writes into its own
     `out_dir/xai/<name>_step<N>.npz`, except 'specerr'; see module docstring). Instruments
     listed in `cfg.train.instruments_final_only` only actually run when this is the LAST
-    checkpoint of the run (`step >= steps_adam + steps_lbfgs`)."""
+    checkpoint of the run (`step >= steps_adam + steps_lbfgs`). `smoke=True` shrinks each
+    instrument's own probe/grid size (01_CONVENTIONS.md SS10: smoke reduces steps/points);
+    default False preserves every existing caller's exact behaviour unchanged."""
     if which is None:
         which = cfg.train.instruments
 
@@ -197,4 +219,4 @@ def run_instruments(
             raise ValueError(f"unknown instrument {name!r}; expected one of {sorted(INSTRUMENTS)}")
         if name in cfg.train.instruments_final_only and not is_final:
             continue
-        INSTRUMENTS[name](model, pde, cfg, step, out_dir)
+        INSTRUMENTS[name](model, pde, cfg, step, out_dir, smoke=smoke)

@@ -1,6 +1,7 @@
 """Determinism utilities (01_CONVENTIONS.md §9)."""
 from __future__ import annotations
 
+import os
 import random
 
 import numpy as np
@@ -30,7 +31,14 @@ def set_global_seed(seed: int) -> torch.Generator:
 
 
 def resolve_device(prefer: str = "auto") -> torch.device:
-    """Resolve the compute device once. prefer: "auto" | "cpu" | "cuda"."""
+    """Resolve the compute device once. prefer: "auto" | "cpu" | "cuda".
+
+    QAPINN_DEVICE env var (checked only when prefer="auto") overrides autodetection --
+    lets process-isolated batch runs (e.g. tasks.py smoke) force CPU without touching
+    call sites, since qapinn.device is resolved once at import time (01_CONVENTIONS.md §3).
+    """
+    if prefer == "auto" and os.environ.get("QAPINN_DEVICE"):
+        prefer = os.environ["QAPINN_DEVICE"]
     if prefer == "cpu":
         return torch.device("cpu")
     if prefer == "cuda":

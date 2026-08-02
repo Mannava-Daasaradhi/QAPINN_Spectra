@@ -669,3 +669,79 @@ within +-10% except the two documented exceptions above (asserted explicitly, wi
 guard against silent drift if either gets meaningfully worse), and writes
 `results/size_matching.json`. Full suite: 266 passed.
 
+# T2.17 Full-pipeline smoke -- crashed the host machine outright; three real bugs found,
+# concurrency found unsafe on this hardware, final result comfortably inside budget
+
+**The naive first attempt (all 42 combos in one process, no cleanup) crashed the physical
+host machine** (CUDA "Memory allocation failure"/"unknown error", Python segfaults, a
+stuck 11.77GB python.exe requiring a manual `taskkill`). Root-caused to three separate,
+independently-real bugs, not one:
+
+1. **`smoke=True` never reduced `n_eval`** (01_CONVENTIONS.md SS10 says smoke reduces
+   steps/POINTS, not just steps -- `n_collocation` was cut but `n_eval` stayed at its
+   1024-per-axis default). `pde.eval_grid(n)` returns `n**dim` points, so every
+   2-D/time-dependent checkpoint still ran `specerr`/`ntk`/`attribution` over up to ~1e6
+   points -- the exact allocation seen in the crash log
+   (`MemoryError((1024, 1024), dtype('float64'))`). Fixed: smoke now also sets
+   `n_boundary=64, n_eval=32`.
+2. **`xai/drift.py`'s `encoder_drift` crashed outright on EVERY quantum family for EVERY
+   time-dependent PDE** (Heat, Burgers) -- not a memory issue, a real shape bug masked
+   by (1) never having been exercised for a full 42-combo matrix before and (2) the
+   memory crash above hitting first in earlier attempts. `models/hybrid.py`'s
+   `_realised_frequencies()` already zero-pads `Omega` to the encoder's dimension before
+   `Omega @ A` (the T2.16 fix), but `drift.py` calls `Omega @ A` directly against
+   `model.encoder_omega`, which returned the RAW unpadded circuit `Omega` -- a second,
+   independent instance of the same "circuit_dim vs pde.dim for time-dependent PDEs"
+   bug class, this time in the XAI layer instead of the model layer. Fixed by sharing
+   the same `_pad_omega` helper for `encoder_omega` as `realised_frequencies()` already
+   used, parameterized by the encoder's own dimension.
+3. **XAI instrument probe/grid sizes were also never reduced under `smoke=True`**
+   (`_PROBE_SIZE=128` for NTK/Fisher, `_ATTRIBUTION_GRID_N=32`, etc.) -- the same SS10 gap
+   as (1), one layer down. NTK's parameter-shift Jacobian over 128 probes x the quantum
+   circuit's own param count, computed at BOTH smoke checkpoints, was measured as the
+   dominant fixed per-combo cost: cutting `steps_adam/steps_lbfgs` from 50+10 to 20+5
+   (also needed, see below) only cut total sweep time 1389s -> 1296s (7%), but adding
+   smoke-specific instrument budgets (`_PROBE_SIZE_SMOKE=16`, proportionally smaller
+   grids/sample counts elsewhere) cut it to 354.5s (74% further reduction) -- confirming
+   the instrument budgets, not the step count, were the real cost driver. `run_instruments`
+   gained a `smoke: bool = False` parameter (default preserves every existing caller's
+   exact behavior; only `train()` passes `smoke=True` through).
+
+**`steps_adam=50, steps_lbfgs=10` (T0.18) also needed cutting to 20+5.** Those numbers were
+calibrated when only classical families existed; quantum families' parameter-shift
+gradients make the same step count meaningfully more expensive per step. Cut to keep both
+T0.18's own single-run <60s contract and T2.17's 42-combo <20min contract (2 pre-existing
+tests hardcoded the old exact step count, `test_checkpoint.py` and `test_train_loop.py`,
+and were updated to match -- they test the smoke CONTRACT's own numbers, not an external
+invariant, so updating them alongside a deliberate contract change is correct, not DoD-
+weakening).
+
+**Made `tasks.py smoke` process-isolate every combo** (spawns `tasks.py _smoke-one` as a
+subprocess per combo, via a new hidden subcommand) rather than looping in-process with
+`gc.collect()`/`torch.cuda.empty_cache()` -- the latter was tried first and did NOT
+prevent the original crash; full OS-level process teardown between combos does. Defaults
+to CUDA capped at `torch.cuda.set_per_process_memory_fraction(0.75)` (opt-out via `--cpu`)
+per explicit user instruction after the crash, rather than uncapped access to the whole
+card.
+
+**Tried bounded concurrency (`--workers`) to close a remaining ~8% time-budget gap and
+found it UNSAFE on this specific laptop.** Measured peak VRAM for the single heaviest
+combo (`helmholtz_k20/q_parallel`) is only ~900MB of 17GB -- capacity was never the
+constraint -- but running 4 combos concurrently (each in its own subprocess, each with
+its own CUDA context) produced a cascade of failures across 36/42 combos:
+`CUBLAS_STATUS_EXECUTION_FAILED`, raw access violations (exit `0xC0000005`), Windows
+`WinError 1450` ("insufficient system resources"), and DLL-load failures citing an
+undersized page file. This points to contention over a shared OS/driver resource (page
+file, handle table, desktop heap) under concurrent CUDA context creation on this machine,
+not VRAM capacity. No crash and no orphaned processes resulted (subprocess isolation
+contained the damage to clean subprocess failures), but `--workers` defaults back to `1`
+and is left in the code as an investigated, explicitly-not-recommended option rather than
+removed outright.
+
+**Result:** all 42 combinations pass, verified via BOTH harnesses:
+`tests/test_pipeline_smoke.py::test_full_matrix_smoke` (the literal DoD file, in-process,
+per-combo `gc.collect()`/`empty_cache()` added defensively) in 169.6s, and `tasks.py
+smoke` (subprocess-isolated) in 354.5s -- both far inside the 20-minute budget. Peak
+measured VRAM across every verification run: <1GB. Full fast suite (`tasks.py test`,
+excludes `@pytest.mark.slow`): 265 passed.
+
