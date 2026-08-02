@@ -825,3 +825,66 @@ sub-check does not block a phase gate, it informs the next one) but ARE a reason
 should not simply start on the original assumptions without the project owner deciding
 among the options above first.
 
+# Post-T2.18 Owner Decisions -- Phase 3 budget resolved, before any T3.x work starts
+
+Follow-up investigation (same session, immediately after T2.18) found the depth/qubit
+sweep block specifically to be the dominant, previously-unquantified cost -- far larger
+than the "worst of P1/P4" approximation used for T2.18's 26.63h number, since that block
+deliberately explores circuits LARGER than anything SMCD would ever design (`n_qubits` up
+to 8, `n_layers` up to 6, vs. the core matrix's SMCD-designed `n<=3, L<=4`).
+
+**Real measured s/step across the full depth/qubit sweep grid** (`Helmholtz k=10`, same
+5-warmup/20-measured-step methodology, `n_collocation=4096`):
+
+| n_qubits \ n_layers | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|
+| 4 | 0.348 | 0.633 | 0.854 | 1.063 | 0.938 |
+| 6 | 0.989 | 1.494 | 1.840 | 2.118 | 2.627 |
+
+`n_qubits=8` was also tried and **does not fit in VRAM at the plan's default
+`n_collocation=4096`** (`torch.OutOfMemoryError`, even under the 75%-of-17GB cap) -- it
+only ran after cutting the batch to <=1024, where it still cost 2.0-3.7 s/step depending
+on batch size. This means the master plan's own cut-line #2 ("drop the `n=4` row") does
+NOT target the real cost driver: `n=4` is the CHEAPEST row measured, `n=6`/`n=8` are the
+expensive/infeasible ones -- the plan's cut-line ordering predates any real per-circuit-
+size cost data and turns out to be backwards for this specific block.
+
+**Owner decisions (this session, via AskUserQuestion):**
+1. **Cap the depth/qubit sweep at `n_qubits in {4,6}`, drop the `n=8` row entirely**
+   (was `{4,6,8}`) -- avoids the literal OOM and removes the single most expensive row.
+   Sweep shrinks from 45 to 30 runs (5 `L` values x 2 `n` values x 3 seeds).
+2. **Give the depth/qubit sweep its own reduced step budget (~5000 steps, not the full
+   `steps_adam=20000 + steps_lbfgs=2000`)**, as a documented exception scoped to this ONE
+   block -- its purpose is showing a scaling TREND across `(L, n_qubits)`, not achieving
+   publication-quality convergence at every individual grid point, so it does not need the
+   same step budget as the core matrix's headline results. Same pattern already
+   established for `smoke=True` (T2.17): a documented, scope-limited reduction, not a
+   silent global one.
+
+**Resulting full-matrix projection** (366 runs = 138 classical + 198 "SMCD-scale" quantum
++ 30 depth/qubit-sweep runs; classical 0.010007 s/step, SMCD-scale quantum 0.101923 s/step
+worst-of-P1/P4, depth/qubit sweep mean 1.2904 s/step across the capped grid at its reduced
+step budget):
+
+| Scenario | Full 22000 steps everywhere | Depth/qubit sweep at ~5000 steps |
+|---|---|---|
+| Sequential (`n_parallel=1`, the only mode PROVEN safe on this hardware, T2.17) | ~368 h (~15.3 days) | **~110 h (~4.6 days)** |
+| 6-way parallel (`n_parallel=6`, UNVERIFIED safe here -- T2.17 found 4-way unsafe) | ~61.4 h (~2.6 days) | ~18.4 h |
+
+**Decision:** proceed with the reduced-step depth/qubit sweep. `n_parallel` is NOT
+resolved here -- T2.17 directly demonstrated 4-way CUDA concurrency failing on this exact
+machine, so Phase 3 defaults to sequential execution (~4.6 days) until/unless the
+concurrency problem is separately diagnosed and fixed, or different hardware is used. This
+remains over the master plan's original "2 days" framing; per 00_MASTER_PLAN.md SS5's own
+cut-line #4 ("Report the reduction explicitly in FINDINGS"), this gap should be reported
+rather than silently absorbed, and further cuts from the plan's ordered list (seeds 5->3,
+drop P4@k=4, etc.) remain available if Phase 3's actual observed overhead (reruns,
+debugging) makes ~4.6 days insufficient in practice.
+
+**Not yet implemented:** the actual Phase 3 experiment configs (T3.x) need to encode both
+decisions above -- the depth/qubit sweep's own `configs/exp/*.yaml` should list
+`n_qubits: [4, 6]` (not `[4, 6, 8]`) and a scoped `steps_adam`/`steps_lbfgs` override
+(~4500/500, keeping the same 10:1 ratio as the full-budget default), distinct from every
+other block's full step budget. This is recorded here so it lands correctly when T3.x
+actually builds that experiment config, not re-derived from scratch.
+
