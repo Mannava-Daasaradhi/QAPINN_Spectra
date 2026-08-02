@@ -88,7 +88,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T2.10 | Design card + coverage metric | T2.9 | depth formula pinned for 6 cases; JSON round-trips |
 | ☑ T2.11 | Noise models (shot, depolarizing surrogates) | T2.4 | correct empirical variance; gradients flow |
 | ☑ T2.12 | ★ Hybrid models (serial / parallel; 4 q-families) | T2.4, T2.10 | `realised_frequencies() == Ω` at init |
-| ☐ T2.13 | ⚡ Reference [4] re-positioning | owner input | one differentiation paragraph written |
+| ☑ T2.13 | ⚡ Reference [4] re-positioning | owner input | one differentiation paragraph written |
 | ☑ T2.14 | ★ Wire `c_rff_matched` to the design card | T2.10, T0.16 | contains `{π,15π}` for P1; size-matched |
 | ☑ T2.15 | Octave-split ensemble `q_octave` | T2.12 | P4 k=20 splits, each `L ≤ 4`, coverage 1.0 |
 | ☑ T2.16 | Cross-family size matching (±10 %) | T2.12, T2.14 | table emitted to `results/size_matching.json` |
