@@ -59,14 +59,15 @@ def _gcd_like(vals: np.ndarray, tol: float = _GCD_TOL) -> float:
     return max(result, tol)
 
 
-def _per_dim_band(S: TargetSpectrum, d: int) -> tuple[np.ndarray, np.ndarray]:
+def _per_dim_band(omega_supp: np.ndarray, d: int) -> tuple[np.ndarray, np.ndarray]:
     """Per-dimension (K_i, Delta_i) -- step 3 BAND, computed PER SPATIAL DIMENSION (not
     radially): Algorithm 1's circuit assigns one or more WIRES to each dimension
     independently (circuits.py's wire_to_dim), and D5's depth rule must be applied per
     dimension's own reachable band, not to a single global radial statistic (which would
     be wrong for d>1: P4's four support points all share the SAME radial magnitude
-    pi*sqrt(10), which says nothing about the two axes' independent pi and 3*pi scales)."""
-    omega_supp = S.omega[S.support]
+    pi*sqrt(10), which says nothing about the two axes' independent pi and 3*pi scales).
+    Takes an explicit set of support ROWS (not a TargetSpectrum) so the same function
+    designs both the full (unsplit) circuit and each per-octave sub-circuit (T2.15)."""
     K = np.zeros(d)
     delta = np.zeros(d)
     for i in range(d):
@@ -79,15 +80,106 @@ def _per_dim_band(S: TargetSpectrum, d: int) -> tuple[np.ndarray, np.ndarray]:
     return K, delta
 
 
-def _has_cross_terms(S: TargetSpectrum) -> bool:
+def _has_cross_terms(omega_supp: np.ndarray) -> bool:
     """True iff some support frequency has >= 2 nonzero components -- "genuine
-    mixed-frequency terms" (step 5's condition), e.g. P4's (+-3*pi, +-1*pi) points. P1
-    (d=1) can never have cross terms by construction."""
-    omega_supp = S.omega[S.support]
+    mixed-frequency terms" (step 5's condition), e.g. P4's (+-3*pi, +-1*pi) points. A
+    single spatial dimension can never have cross terms by construction."""
     if omega_supp.shape[1] < 2:
         return False
     nonzero_counts = np.sum(np.abs(omega_supp) > _ZERO_TOL, axis=1)
     return bool(np.any(nonzero_counts >= 2))
+
+
+def _design_circuit(omega_supp: np.ndarray, d: int) -> dict:
+    """Steps 3-8 (BAND, DEPTH, WIDTH, ENTANGLER, OBSERVABLE, scalings/wire_to_dim), given
+    an explicit set of support rows -- the piece shared between the main (unsplit) design
+    and each per-octave circuit (T2.15), so the two paths can never silently drift apart.
+    """
+    K_dim, delta_dim = _per_dim_band(omega_supp, d)
+
+    L_dim = np.array([d5_depth(K_dim[i], delta_dim[i]) if delta_dim[i] > 0 else 1 for i in range(d)])
+    L = int(L_dim.max()) if L_dim.size else 1
+
+    cross_terms = _has_cross_terms(omega_supp)
+    n_cross = 1 if cross_terms else 0
+    n = d + n_cross
+    entangler = "ring_cz" if cross_terms else "none"
+
+    # wire assignment: round-robin across dims, so any "extra" (n_cross) wire lands on
+    # dim 0 -- gives that dimension a second, independently-trainable wire at the SAME
+    # ternary scaling (redundant frequency reach, independent amplitude parameters).
+    wire_to_dim = tuple(i % d for i in range(n))
+    scalings = np.zeros((L, n))
+    for q in range(n):
+        dim = wire_to_dim[q]
+        base = delta_dim[dim] if delta_dim[dim] > 0 else 1.0
+        scalings[:, q] = base * (3.0 ** np.arange(L))
+
+    return {
+        "K_dim": K_dim,
+        "delta_dim": delta_dim,
+        "L": L,
+        "n": n,
+        "wire_to_dim": wire_to_dim,
+        "entangler": entangler,
+        "observable": "z0",
+        "scalings": scalings,
+    }
+
+
+def _circuit_frequencies(cfg: dict) -> np.ndarray:
+    circuit = ReuploadCircuit(
+        n_qubits=cfg["n_qubits"],
+        n_layers=cfg["n_layers"],
+        scalings=cfg["scalings"],
+        wire_to_dim=tuple(cfg["wire_to_dim"]),
+        entangler=cfg["entangler"],
+        observable=cfg["observable"],
+    )
+    omega = circuit.frequencies()
+    return omega.reshape(-1, 1) if omega.ndim == 1 else omega
+
+
+def _octave_index(mag: float, base_delta: float) -> int:
+    """j such that mag falls in the octave band [2^j * base_delta, 2^{j+1} * base_delta)
+    (project.md Section 5.4). -1 for a (numerically) zero component, which belongs to no
+    band and is left at 0 by every circuit regardless of split."""
+    if mag <= _ZERO_TOL or base_delta <= 0:
+        return -1
+    return max(0, int(math.floor(math.log(mag / base_delta, 2.0) + 1e-9)))
+
+
+def _build_octave_configs(omega_supp: np.ndarray, d: int, delta_dim_global: np.ndarray, L_max: int, n_max: int) -> list[dict] | None:
+    """Splits `omega_supp` into groups by octave SIGNATURE (one octave index per
+    dimension), designs one shallow circuit per non-empty group via `_design_circuit`
+    (project.md Section 5.4: "split S_hat into octaves [2^j*Delta, 2^{j+1}*Delta); design
+    one circuit per non-empty octave; each stays shallow and trainable"). Returns None if
+    some group's OWN minimal circuit still exceeds the budget -- splitting further at this
+    granularity can't help (each octave band already only spans one factor of 2 in K/Delta,
+    so this should not happen for any of this project's actual PDEs, but the caller must
+    not silently claim a split that doesn't actually fit).
+    """
+    base_delta = np.where(delta_dim_global > 0, delta_dim_global, 1.0)
+    signatures = [tuple(_octave_index(abs(row[i]), base_delta[i]) for i in range(d)) for row in omega_supp]
+    unique_sigs = sorted(set(signatures))
+
+    configs = []
+    for sig in unique_sigs:
+        mask = np.array([s == sig for s in signatures])
+        sub = _design_circuit(omega_supp[mask], d)
+        if sub["L"] > L_max or sub["n"] > n_max:
+            return None
+        configs.append(
+            {
+                "n_qubits": sub["n"],
+                "n_layers": sub["L"],
+                "scalings": sub["scalings"].tolist(),
+                "wire_to_dim": list(sub["wire_to_dim"]),
+                "entangler": sub["entangler"],
+                "observable": sub["observable"],
+            }
+        )
+    return configs
 
 
 def _symbol_and_target(pde: PDE, eps: float) -> tuple[TargetSpectrum, str]:
@@ -132,67 +224,59 @@ def smcd(
     # --- steps 1-2: SYMBOL, TARGET ------------------------------------------------
     S, symbol_notes = _symbol_and_target(pde, eps)
     d = S.omega.shape[1]
+    omega_supp = S.omega[S.support]
 
-    # --- step 3: BAND (per dimension) ----------------------------------------------
-    K_dim, delta_dim = _per_dim_band(S, d)
-
-    # --- step 4: DEPTH (D5, corrected) ----------------------------------------------
-    L_dim = np.array(
-        [d5_depth(K_dim[i], delta_dim[i]) if delta_dim[i] > 0 else 1 for i in range(d)]
+    # --- steps 3-8: BAND, DEPTH, WIDTH, ENTANGLER, OBSERVABLE, scalings -------------
+    design = _design_circuit(omega_supp, d)
+    K_dim, delta_dim = design["K_dim"], design["delta_dim"]
+    L, n = design["L"], design["n"]
+    wire_to_dim, entangler, observable, scalings = (
+        design["wire_to_dim"],
+        design["entangler"],
+        design["observable"],
+        design["scalings"],
     )
-    L = int(L_dim.max()) if L_dim.size else 1
 
-    # --- step 5: WIDTH ---------------------------------------------------------------
-    cross_terms = _has_cross_terms(S)
-    n_cross = 1 if cross_terms else 0
-    n = d + n_cross
+    Omega = _circuit_frequencies(
+        {"n_qubits": n, "n_layers": L, "scalings": scalings, "wire_to_dim": wire_to_dim, "entangler": entangler, "observable": observable}
+    )
 
-    # --- step 6: CHECK (octave split trigger, T2.15 not yet implemented) ------------
+    # --- step 6: CHECK (octave split, T2.15) -----------------------------------------
     octave_split = n > n_max or L > L_max
+    octave_configs = None
     check_notes = ""
     if octave_split:
-        check_notes = (
-            f"n={n} > n_max={n_max} or L={L} > L_max={L_max}: octave split needed "
-            f"(T2.15, not yet implemented) -- card reports the UNSPLIT design."
-        )
-
-    # --- steps 7-8: ENTANGLER, OBSERVABLE --------------------------------------------
-    entangler = "ring_cz" if cross_terms else "none"
-    observable = "z0"
-
-    # wire assignment: round-robin across dims, so any "extra" (n_cross) wire lands on
-    # dim 0 -- gives that dimension a second, independently-trainable wire at the SAME
-    # ternary scaling (redundant frequency reach, independent amplitude parameters).
-    wire_to_dim = tuple(i % d for i in range(n))
-
-    scalings = np.zeros((L, n))
-    for q in range(n):
-        dim = wire_to_dim[q]
-        base = delta_dim[dim] if delta_dim[dim] > 0 else 1.0
-        scalings[:, q] = base * (3.0 ** np.arange(L))
-
-    circuit = ReuploadCircuit(
-        n_qubits=n,
-        n_layers=L,
-        scalings=scalings,
-        wire_to_dim=wire_to_dim,
-        entangler=entangler,
-        observable=observable,
-    )
-    Omega = circuit.frequencies()
-    if Omega.ndim == 1:
-        Omega = Omega.reshape(-1, 1)
+        octave_configs = _build_octave_configs(omega_supp, d, delta_dim, L_max, n_max)
+        if octave_configs is not None:
+            check_notes = (
+                f"n={n} > n_max={n_max} or L={L} > L_max={L_max}: octave split into "
+                f"{len(octave_configs)} circuits (T2.15). coverage/predicted_benefit "
+                f"below are computed against the UNION of the split circuits' own Omega, "
+                f"which is what would actually be built and trained -- the n_qubits/"
+                f"n_layers/scalings/wire_to_dim/entangler/observable fields above still "
+                f"describe the single OVER-BUDGET (unsplit) design; use octave_configs "
+                f"for the real, buildable circuits."
+            )
+        else:
+            check_notes = (
+                f"n={n} > n_max={n_max} or L={L} > L_max={L_max}: octave split needed "
+                f"but even a per-octave circuit still exceeds the budget -- card reports "
+                f"the UNSPLIT (over-budget) design; octave_configs is None."
+            )
 
     # --- steps 9-10: ANSATZ, INIT (recorded as notes; consumed by T2.12's hybrid model
     # construction, not by the card's own fields) -------------------------------------
     ansatz_notes = "ansatz=hard-BC (D6 default); theta~N(0,0.1^2), encoder A=I (D3)."
 
-    # --- coverage / predicted_benefit, on the UNSPLIT design --------------------------
-    cov_count, cov_weighted = coverage(S, Omega)
-    benefit = predicted_benefit(S, Omega)
+    # --- coverage / predicted_benefit -------------------------------------------------
+    scoring_omega = Omega
+    if octave_configs is not None:
+        scoring_omega = np.concatenate([_circuit_frequencies(cfg) for cfg in octave_configs], axis=0)
+    cov_count, cov_weighted = coverage(S, scoring_omega)
+    benefit = predicted_benefit(S, scoring_omega)
 
     if coverage_target is not None:
-        L, scalings, circuit, Omega, cov_count, cov_weighted = _detune_to_target(
+        L, scalings, _circuit, Omega, cov_count, cov_weighted = _detune_to_target(
             S, L, n, wire_to_dim, entangler, observable, delta_dim, coverage_target
         )
         benefit = predicted_benefit(S, Omega)
@@ -226,6 +310,7 @@ def smcd(
         predicted_ntk_band=(delta_overall, K_overall),
         octave_split=octave_split,
         notes=notes,
+        octave_configs=octave_configs,
     )
 
 

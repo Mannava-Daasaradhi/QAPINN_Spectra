@@ -72,6 +72,13 @@ class DesignCard:
     predicted_ntk_band: tuple[float, float]
     octave_split: bool
     notes: str
+    # T2.15: when octave_split is True, the n_qubits/n_layers/scalings/wire_to_dim/
+    # entangler/observable fields above still describe the single OVER-BUDGET design
+    # (kept for backward compatibility / documentation), while octave_configs holds the
+    # REAL list of per-octave circuit configs (each directly consumable by
+    # hybrid.OctaveEnsemble) that should actually be built and trained. None when no
+    # split was needed.
+    octave_configs: list | None = None
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)

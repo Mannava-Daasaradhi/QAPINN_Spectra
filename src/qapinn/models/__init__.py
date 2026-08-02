@@ -146,12 +146,30 @@ def build(
             )
 
     if cfg.family == "q_octave":
-        raise NotImplementedError(
-            "q_octave needs T2.15's octave-split design (partitioning a target spectrum "
-            "into octaves and constructing per-octave scalings) -- OctaveEnsemble itself "
-            "is implemented (T2.12) and directly constructible from a hand-built "
-            "circuit_configs list, but build() has nothing to wire it to yet."
-        )
+        if pde is None:
+            raise ValueError("'q_octave' requires `pde` (SMCD designs against the actual PDE)")
+        from qapinn.smcd.design import smcd  # local import: avoids a models <-> smcd cycle
+
+        card = smcd(pde, eps=smcd_eps, coverage_target=smcd_coverage_target)
+        if card.octave_configs is not None:
+            configs = card.octave_configs
+        else:
+            # No split was needed for this PDE's own SMCD design (T2.15: none of this
+            # project's four PDEs naturally trigger a split at the default n_max/L_max --
+            # see BENCH.md's T2.15 section) -- degenerate to a single-circuit ensemble,
+            # which is mathematically equivalent to q_serial but built through
+            # OctaveEnsemble's own API so q_octave is always constructible.
+            configs = [
+                {
+                    "n_qubits": card.n_qubits,
+                    "n_layers": card.n_layers,
+                    "scalings": card.scalings,
+                    "wire_to_dim": card.wire_to_dim,
+                    "entangler": card.entangler,
+                    "observable": card.observable,
+                }
+            ]
+        return OctaveEnsemble(configs)
 
     raise ValueError(f"unknown/unregistered model family {cfg.family!r}; registered: {sorted(_REGISTRY)}")
 

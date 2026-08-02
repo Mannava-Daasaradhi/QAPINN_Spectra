@@ -1,0 +1,6 @@
+# q_octave: OctaveEnsemble -- u = sum_m w_m * Circuit_m(Enc_m(x)), each circuit matched
+# to one octave of the target spectrum (project.md Section 5.4, T2.15). Degenerates to a
+# single-circuit ensemble (mathematically equivalent to q_serial) when the PDE's own SMCD
+# design doesn't need a split at the default n_max/L_max (true for all four of this
+# project's PDEs at their default configs -- see BENCH.md's T2.15 section).
+family: q_octave

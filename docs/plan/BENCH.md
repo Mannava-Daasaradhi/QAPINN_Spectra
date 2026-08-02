@@ -557,3 +557,53 @@ the pre-Phase-2 explicit-`cfg.frequencies` path, T0.16, which is unmodified and 
 passes its own original 5 tests). **T1.13's waived criterion 3 is now closed**: `c_rff_matched`
 runs error-free on all four PDEs. Full suite: 258 passed.
 
+# T2.15 Octave-Split Ensemble (`q_octave`) -- the literal DoD scenario is mathematically
+# unreachable with this project's actual Helmholtz PDE; owner chose a substituted demo
+
+**Structural finding, surfaced and confirmed BEFORE writing any implementation code, then
+put to the owner rather than silently substituted:** T2.15's DoD requires "on P4 `k=20`,
+`smcd(..., L_max=4)` triggers the split." Helmholtz's `exact()` (T0.x) is always exactly
+`sin(a1*pi*x)*sin(a2*pi*y)` -- a single product-of-sines mode -- so its target spectrum
+always has exactly ONE nonzero frequency magnitude per axis. `_gcd_like` of a single value
+returns that value itself, so `Delta` always exactly equals `K` per axis (`K/Delta = 1`),
+and `d5_depth` always returns `L=1` -- for ANY `(k, a1, a2)`, not just `k=20`. Verified
+directly across all three matrix configs actually used in this project
+(`tests/test_octave_split.py::test_p4_k20_never_needs_a_split`): `k=4,10,20` all give
+`L=1`. There is no way to make Helmholtz, as currently defined, ever need `L>4` -- the
+octave-split trigger condition in the literal DoD text cannot occur.
+
+Presented to the owner (`AskUserQuestion`) before proceeding, with three options
+(implement + substitute a working demo; stop and investigate a richer Helmholtz variant;
+implement + leave the P4 scenario explicitly unverified). **Owner chose: implement the
+real, general algorithm, and substitute P1 for the demo** (P1's actual `{pi, 15*pi}`
+target genuinely spans multiple octaves of `pi`, unlike Helmholtz's single-point-per-axis
+target) **with an artificially lowered `L_max=3`** (P1's own natural unsplit depth is
+exactly `L=4`) to force the split condition Helmholtz structurally cannot produce. This is
+noted here for paper-writing awareness: the octave-split feature, as things currently
+stand, has no real (non-artificial) trigger case among this project's four PDEs.
+
+**Implementation.** `design.py` refactored steps 3-8 (BAND/DEPTH/WIDTH/ENTANGLER/
+OBSERVABLE/scalings) into a shared `_design_circuit(omega_supp, d)` helper, used both for
+the main (unsplit) design and for each per-octave sub-circuit -- so the two paths can
+never silently drift apart. `_build_octave_configs` buckets target-support rows by
+"octave signature" (per-dimension octave index, `project.md` Section 5.4's
+`[2^j*Delta, 2^{j+1}*Delta)` bands) and designs one shallow circuit per non-empty bucket,
+returning `None` (falling back to the unsplit, over-budget design, not silently claiming
+success) if even a single octave's own minimal circuit still exceeds the budget.
+`DesignCard` gained an `octave_configs: list | None = None` field (backward-compatible
+default -- every existing DesignCard-construction call site, including
+`tests/test_smcd_depth.py`'s hand-built sample card, is unaffected); when populated,
+`coverage`/`coverage_weighted`/`predicted_benefit` are computed against the UNION of the
+split circuits' own reachable sets (what would actually be built and trained), not the
+hypothetical unsplit design. `models/__init__.py` wires `q_octave` through `build()`:
+when SMCD's own design doesn't need a split (true for all four PDEs at their default
+`n_max`/`L_max`), it degenerates to a single-circuit `OctaveEnsemble` -- mathematically
+equivalent to `q_serial`, but exercised through `OctaveEnsemble`'s own API so `q_octave`
+is always constructible.
+
+**Result:** P1 at `L_max=3` correctly splits into exactly 2 circuits (one per target
+frequency, each `L=1 <= 3`), union coverage `1.0`. `OctaveEnsemble` built from the REAL
+`octave_configs` (not T2.12's hand-built fixture) forwards correctly and reduces loss over
+50 training steps on P1. All 4 `tests/test_octave_split.py` cases pass. Full suite: 262
+passed.
+
