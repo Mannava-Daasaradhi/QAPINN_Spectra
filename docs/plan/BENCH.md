@@ -343,3 +343,49 @@ specifically so a missing-cross-terms bug could not pass silently.
 this task) 217 passed. This verifies `project.md` section 3.8's "PINN residual is exactly
 computable on hardware" claim (D1/D2's whole point) rather than merely asserting it.
 
+# T2.8 SMCD Target Spectrum (Prop. 2) -- found a real quadrature-resolution bug in the
+# empirical (FFT/sine-projection) cross-check path, not in the analytic formulas
+
+`symbol.py` implements two independent paths to a `TargetSpectrum`: `analytic_spectrum`
+(closed-form, from each PDE's own `exact()`) for P1/P2/P4, and `empirical_spectrum`
+(FFT / sine-projection of the reference solution, T0.13) for all four -- the only path
+available for P3 (Burgers, nonlinear).
+
+**P1 (Poisson).** `u* = sin(pi x) + alpha sin(15 pi x)` is exactly a 2-term sine series,
+so `analytic_spectrum` reads the support/weights straight off: `{pi, 15*pi}` with weights
+`{1, alpha}` -- verified exactly matching `tests/test_symbol.py`'s DoD item 1. The
+empirical path uses an EXACT sine-basis projection (reusing the T1.5 lesson: P1's domain
+has length 1, so `omega=pi` sits exactly halfway between FFT bins -- the same leakage tie
+found in T1.5's staircase gate -- so a raw FFT would silently fail here too). Empirical
+and analytic weights match to `<1e-6` relative error.
+
+**P4 (Helmholtz, k=10, a1=3, a2=1).** `u* = sin(3 pi x) sin(pi y)` expands via
+`sin(A)sin(B) = -(1/4)[e^{i(A+B)}+e^{-i(A+B)}] + (1/4)[e^{i(A-B)}+e^{-i(A-B)}]` into
+EXACTLY four equal-magnitude (`0.25`) complex modes at `(+-3*pi, +-1*pi)` -- derived by
+hand before writing any code, matching the DoD's "four points" exactly. The domain
+`[-1,1]^2` (length 2) makes `3*pi` and `pi` land exactly on FFT bins (bin spacing `pi`),
+so unlike P1, a plain `fft2` (normalized by grid size to recover the continuous Fourier
+coefficient) resolves this with no leakage-tie issue. Empirical and analytic weights
+match to `<1e-9`.
+
+**P2 (Heat) -- the real bug.** The energy weight for a time-dependent PDE is
+`w(omega) = ||u_hat(omega, .)||_{L2(0,T)}` (project.md Section 5's definition that makes
+this a quantitative negative control). The analytic path integrates the known exponential
+decay in closed form. The FIRST empirical implementation used a UNIFORM time grid
+(`n_grid=256` points over `[0,1)`) with rectangle-rule integration -- and was **wrong by
+22% relative error** on the high mode's weight. Root cause: `k=15*pi`'s decay rate is
+`nu*(15*pi)^2 ~= 111`, giving an L2-integrand decay TIMESCALE of `~0.0045` -- comparable
+to the `256`-point grid's own spacing (`~0.0039`), so the fast initial transient was
+badly under-resolved (confirmed: `n_grid=4096` uniform still gave 1.36% error, still
+failing the 1% DoD; only `n_grid=16384` uniform got under 1%, which is expensive for
+every future PDE evaluation including P3's actual solver call). **Fixed** with a graded
+(quadratic-near-`t=0`) time grid, `t_j = lo_t + (hi_t-lo_t)*(j/(n-1))^2`, plus trapezoidal
+(not rectangle) integration -- a standard technique for resolving fast initial-layer
+transients, chosen specifically because it does NOT assume a known (e.g. exponential)
+decay law, so it applies unchanged to P3 (Burgers) later. With the graded grid,
+`n_grid=256` gives `0.057%` relative error on the high mode (vs. `22%` uniform) --
+verified by direct comparison against the closed-form analytic integral before trusting
+the fix. Support sets and the `~=0.025` weight-ratio DoD both verified afterward.
+
+**Result:** all 7 `tests/test_symbol.py` cases pass. Full suite: 224 passed.
+
