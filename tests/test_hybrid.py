@@ -170,3 +170,24 @@ def test_octave_ensemble_forward_and_param_groups():
 def test_octave_ensemble_rejects_empty_config():
     with pytest.raises(ValueError):
         OctaveEnsemble([])
+
+
+def test_build_q_serial_respects_n_qubits_n_layers_override():
+    """T3.3: models.build() must thread ModelConfig.n_qubits/n_layers through to smcd()
+    (test_smcd_design.py's test_n_qubits_n_layers_override covers smcd() itself) -- this
+    is the end-to-end check that the actually-CONSTRUCTED circuit reflects the override,
+    not just the DesignCard. Without it, the depth/qubit sweep's whole point (circuit
+    sizes SMCD would never auto-choose) would silently build the SAME auto-sized circuit
+    for every point in the sweep."""
+    from qapinn.pdes.helmholtz import Helmholtz
+
+    pde = Helmholtz(k=10.0, a1=3.0, a2=1.0)
+
+    auto = models_pkg.build(ModelConfig(family="q_serial"), input_dim=pde.dim, pde=pde)
+    assert (auto.circuit.n_qubits, auto.circuit.n_layers) == (3, 1)
+
+    overridden = models_pkg.build(
+        ModelConfig(family="q_serial", n_qubits=6, n_layers=4), input_dim=pde.dim, pde=pde
+    )
+    assert overridden.circuit.n_qubits == 6
+    assert overridden.circuit.n_layers == 4

@@ -1,0 +1,27 @@
+# Barren-plateau frontier (project.md §7.5, T4.5).
+#
+# n_qubits capped at {4, 6} -- the phase doc originally specified {4, 6, 8}, but n=8
+# measured to NOT FIT in VRAM at the default batch size (torch.OutOfMemoryError, even
+# under a 75%-of-VRAM cap) and dominates the entire Phase 3 wall-clock budget by itself.
+# steps_adam/steps_lbfgs reduced to 4500/500 (from the default 20000/2000, same 10:1
+# ratio): this block shows a scaling TREND across (L, n_qubits), not per-point
+# convergence, so it doesn't need the core matrix's full step budget. Both decisions were
+# made with the project owner after real measurement -- see BENCH.md's "Post-T2.18 Owner
+# Decisions" section for the full (n, L) timing grid and reasoning.
+#
+# model.n_layers / model.n_qubits override smcd()'s own auto-computed circuit size (T3.3,
+# models/__init__.py's build() threads ModelConfig.n_qubits/n_layers through to smcd()) --
+# without this, every point in this sweep would silently build the SAME SMCD-auto-sized
+# circuit (n=3, L=1 for helmholtz_k10) regardless of the axis values.
+problems: [helmholtz_k10]
+families: [q_serial]
+seeds: [0, 1, 2]
+train:
+  steps_adam: 4500
+  steps_lbfgs: 500
+axes:
+  - key: model.n_layers
+    values: [2, 3, 4, 5, 6]
+  - key: model.n_qubits
+    values: [4, 6]
+# 1 x 1 x 3 x 5 x 2 = 30 runs (45 in the original, uncapped phase-doc spec)

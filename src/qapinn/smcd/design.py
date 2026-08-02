@@ -90,19 +90,29 @@ def _has_cross_terms(omega_supp: np.ndarray) -> bool:
     return bool(np.any(nonzero_counts >= 2))
 
 
-def _design_circuit(omega_supp: np.ndarray, d: int) -> dict:
+def _design_circuit(
+    omega_supp: np.ndarray, d: int, *, n_layers: int | None = None, n_qubits: int | None = None
+) -> dict:
     """Steps 3-8 (BAND, DEPTH, WIDTH, ENTANGLER, OBSERVABLE, scalings/wire_to_dim), given
     an explicit set of support rows -- the piece shared between the main (unsplit) design
     and each per-octave circuit (T2.15), so the two paths can never silently drift apart.
+
+    `n_layers`/`n_qubits` (T3.3): explicit overrides for the depth/qubit sweep
+    (project.md SS7.5's barren-plateau frontier), which needs circuits at ARBITRARY sizes
+    to study gradient variance vs. capacity -- including sizes SMCD would never choose on
+    its own. None (default) preserves the auto-computed D5-depth-rule / cross-term-driven
+    values for every other caller.
     """
     K_dim, delta_dim = _per_dim_band(omega_supp, d)
 
     L_dim = np.array([d5_depth(K_dim[i], delta_dim[i]) if delta_dim[i] > 0 else 1 for i in range(d)])
-    L = int(L_dim.max()) if L_dim.size else 1
+    L = n_layers if n_layers is not None else (int(L_dim.max()) if L_dim.size else 1)
 
     cross_terms = _has_cross_terms(omega_supp)
     n_cross = 1 if cross_terms else 0
-    n = d + n_cross
+    n = n_qubits if n_qubits is not None else (d + n_cross)
+    if n < d:
+        raise ValueError(f"n_qubits override ({n}) must be >= the PDE's own dimensionality ({d})")
     entangler = "ring_cz" if cross_terms else "none"
 
     # wire assignment: round-robin across dims, so any "extra" (n_cross) wire lands on
@@ -213,7 +223,12 @@ def smcd(
     L_max: int = 6,
     scaling_mode: str = "ternary",
     coverage_target: float | None = None,
+    n_qubits: int | None = None,
+    n_layers: int | None = None,
 ) -> DesignCard:
+    """`n_qubits`/`n_layers` (T3.3): force an explicit circuit size instead of the
+    auto-computed D5-depth-rule one -- see `_design_circuit`'s docstring. None (default,
+    every caller before T3.3) is unaffected."""
     if scaling_mode != "ternary":
         raise NotImplementedError(
             f"smcd: only scaling_mode='ternary' is implemented (linear-scaling fallback "
@@ -227,7 +242,7 @@ def smcd(
     omega_supp = S.omega[S.support]
 
     # --- steps 3-8: BAND, DEPTH, WIDTH, ENTANGLER, OBSERVABLE, scalings -------------
-    design = _design_circuit(omega_supp, d)
+    design = _design_circuit(omega_supp, d, n_layers=n_layers, n_qubits=n_qubits)
     K_dim, delta_dim = design["K_dim"], design["delta_dim"]
     L, n = design["L"], design["n"]
     wire_to_dim, entangler, observable, scalings = (
@@ -285,7 +300,14 @@ def smcd(
     K_overall = float(S.K)
     delta_overall = float(delta_dim[delta_dim > 0].min()) if np.any(delta_dim > 0) else 0.0
 
-    notes = " ".join(part for part in (symbol_notes, check_notes, ansatz_notes) if part)
+    override_notes = ""
+    if n_qubits is not None or n_layers is not None:
+        override_notes = (
+            f"n_qubits/n_layers EXPLICITLY OVERRIDDEN (n={n}, L={L}), not the auto D5-"
+            f"depth-rule choice -- used by the depth/qubit sweep (T3.3) to probe sizes "
+            f"SMCD would not choose on its own."
+        )
+    notes = " ".join(part for part in (symbol_notes, check_notes, ansatz_notes, override_notes) if part)
 
     return DesignCard(
         pde=pde.name,

@@ -103,7 +103,7 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 |---|---|---|---|
 | ☑ T3.1 | ★★ **Pre-registration — BLOCKING, no runs before this commit** | T2.18 | 12 predictions with thresholds + falsifiers, committed |
 | ☑ T3.2 | Run orchestration (parallel, resumable, fault-isolated) | T3.1 | smoke sweep runs, second invocation skips all |
-| ☐ T3.3 | Experiment config files (5 files) | T3.2 | enumerates 210/36/45/54/36 unique runs |
+| ☑ T3.3 | Experiment config files (5 files) | T3.2 | enumerates 210/36/**30**/54/36 unique runs (depth_sweep capped, see BENCH.md) |
 | ☐ T3.4 | Launch core matrix (210 runs) | T3.3 | 210 `metrics.json`; wall-clock recorded |
 | ☐ T3.5 | Sweeps: coverage → depth → α → noise | T3.4 | all complete, or cuts recorded |
 | ☐ T3.6 | Soft-BC NTK block-imbalance study (D6) | T3.4 | per-block eigenvalue mass recorded |

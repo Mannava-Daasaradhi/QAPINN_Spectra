@@ -1,0 +1,9 @@
+# Where does quantum start winning? Sweeps Poisson's forcing sharpness (alpha) across the
+# three families that best isolate the effect (project.md).
+problems: [poisson]
+families: [c_mlp, c_ff, q_serial]
+seeds: [0, 1, 2]
+axes:
+  - key: pde.params.alpha
+    values: [0.0, 0.05, 0.1, 0.2, 0.4, 0.8]
+# 1 x 3 x 3 x 6 = 54 runs

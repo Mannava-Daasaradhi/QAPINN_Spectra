@@ -924,3 +924,45 @@ skipped them even on a supposedly "first" run, a good real-world confirmation) i
 minutes with 0 failures; second invocation: `0 ok, 210 skipped, 0 failed`. Full fast suite
 (`tasks.py test`): 272 passed.
 
+# T3.3 Experiment Config Files -- one real bug found and fixed (would have made the
+# depth/qubit sweep silently meaningless), one gap found and documented (not fixed)
+
+**Real bug found and fixed:** `models/__init__.py`'s `build()` always used `smcd()`'s own
+auto-computed `n_qubits`/`n_layers` for `q_serial`/`q_random`/`q_parallel`, completely
+ignoring `ModelConfig.n_qubits`/`n_layers` -- fields that already existed on the config
+schema (pre-placed, same pattern as `smcd_eps`/`smcd_coverage_target` before T2.12) but
+were never consumed. Since `depth_sweep.yaml`'s entire purpose is to vary circuit size
+directly (`n_qubits`, `n_layers` are its two sweep axes), writing that config file without
+this fix would have produced 30 *syntactically distinct* `ExpConfig`s (satisfying
+`enumerate_runs`'s own DoD: distinct run_ids, correct count) that all silently build the
+IDENTICAL SMCD-auto-sized circuit (`n=3, L=1` for helmholtz_k10) -- the sweep would look
+correct at the config level and be scientifically meaningless at the training level.
+Fixed: `smcd()` gained `n_qubits`/`n_layers` override parameters (threaded through
+`_design_circuit`, which still computes the SMCD-principled scalings/band for the PDE,
+just at the given size rather than the D5-depth-rule-computed one), `build()` passes
+`cfg.n_qubits`/`cfg.n_layers` through for every quantum family. Verified end-to-end (not
+just at the `smcd()` level): `models.build(ModelConfig(family="q_serial", n_qubits=6,
+n_layers=4), ...)` now actually constructs a `[6, 4]` circuit, not `[3, 1]`.
+
+**Gap found and documented, deliberately NOT fixed (out of this task's scope):**
+`train/loop.py` never reads `cfg.train.noise` -- T2.11 built `ShotNoise`/
+`GlobalDepolarizing` but nothing wires them into the training loop. Unlike the
+`n_qubits`/`n_layers` case, this does NOT block `noise_study.yaml`'s own DoD
+(`train.noise` still produces distinct, correctly-counted `ExpConfig`s/run_ids), so
+`noise_study.yaml` is written and enumerates correctly -- but running it for real (T3.5)
+would currently silently train every "noisy" row identically to the noiseless one. Called
+out directly in `noise_study.yaml`'s own header comment: must be wired into `train()`
+before T3.5 launches this sweep.
+
+**`depth_sweep.yaml` is 30 runs, not the phase doc's literal 45** -- `n_qubits: [4, 6]`
+(dropped `8`) and `steps_adam: 4500, steps_lbfgs: 500` (down from the 20000/2000
+default), both per the T2.18 post-gate owner decisions already recorded above. Every
+other file (`coverage_sweep`, `alpha_sweep`, `noise_study`) matches the phase doc's exact
+counts and axes.
+
+**Result:** `tests/test_experiment_configs.py` (9 tests) verifies all 5 files against
+their expected counts (210/36/30/54/36), all-distinct run_ids, and the specific axis
+values each sweep is supposed to cover. `tests/test_smcd_design.py` and
+`tests/test_hybrid.py` gained tests for the `n_qubits`/`n_layers` override at both the
+`smcd()` and `models.build()` levels. Full fast suite: 284 passed.
+

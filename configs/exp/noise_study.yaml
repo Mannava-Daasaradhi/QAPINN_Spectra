@@ -1,0 +1,17 @@
+# Noise study: shot-noise and depolarizing surrogates (T2.11's ShotNoise/
+# GlobalDepolarizing) on classical-FF vs. the two quantum families.
+#
+# KNOWN GAP (T3.3 finding, documented rather than silently fixed -- see BENCH.md):
+# `train.noise` enumerates into a distinct ExpConfig/run_id per value, satisfying this
+# task's own DoD, but nothing in train/loop.py currently READS cfg.train.noise to
+# actually wrap the model with ShotNoise/GlobalDepolarizing during training -- T2.11
+# built the noise classes but never wired them into the training loop. Running this sweep
+# as-is (T3.5) would silently train every "noisy" row identically to the noiseless one.
+# Must be wired into train() before T3.5 launches this sweep for real.
+problems: [poisson, helmholtz_k10]
+families: [c_ff, q_serial, q_random]
+seeds: [0, 1, 2]
+axes:
+  - key: train.noise
+    values: [shot_1024, depol_1e-3]
+# 2 x 3 x 3 x 2 = 36 runs

@@ -18,6 +18,8 @@ IS achieved.
 """
 from __future__ import annotations
 
+import pytest
+
 from qapinn.pdes.burgers import Burgers
 from qapinn.pdes.heat import Heat
 from qapinn.pdes.helmholtz import Helmholtz
@@ -65,3 +67,27 @@ def test_burgers_runs_via_empirical_fallback():
     assert card.n_qubits >= 1
     assert card.n_layers >= 1
     assert "empirical" in card.notes or "viscous" in card.notes
+
+
+def test_n_qubits_n_layers_override():
+    """T3.3: the depth/qubit sweep needs circuit sizes SMCD would never auto-choose.
+    Without this override, models.build()'s q_serial branch always uses smcd()'s own
+    auto-computed n_qubits/n_layers -- ModelConfig.n_qubits/n_layers (pre-placed fields)
+    would silently have NO effect on the actual circuit, making a depth/qubit sweep over
+    those fields build 30 identical circuits."""
+    pde = Helmholtz(k=10.0, a1=3.0, a2=1.0)
+    card_auto = smcd(pde)
+    assert (card_auto.n_qubits, card_auto.n_layers) == (3, 1)
+
+    card_override = smcd(pde, n_qubits=6, n_layers=4)
+    assert card_override.n_qubits == 6
+    assert card_override.n_layers == 4
+    assert len(card_override.scalings) == 4  # L rows
+    assert len(card_override.scalings[0]) == 6  # n columns
+    assert "OVERRIDDEN" in card_override.notes
+
+
+def test_n_qubits_override_below_pde_dim_raises():
+    pde = Helmholtz(k=10.0, a1=3.0, a2=1.0)  # d=2
+    with pytest.raises(ValueError):
+        smcd(pde, n_qubits=1)

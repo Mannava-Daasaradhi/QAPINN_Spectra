@@ -1,0 +1,8 @@
+# THE validation of C1 -- never cut (00_MASTER_PLAN.md §5).
+problems: [poisson, helmholtz_k10]
+families: [q_serial]
+seeds: [0, 1, 2]
+axes:
+  - key: smcd_coverage_target
+    values: [0.2, 0.4, 0.6, 0.8, 0.9, 1.0]
+# 2 x 1 x 3 x 6 = 36 runs

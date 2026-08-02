@@ -113,7 +113,17 @@ def build(
             raise ValueError(f"{cfg.family!r} requires `pde` (SMCD designs against the actual PDE)")
         from qapinn.smcd.design import smcd  # local import: avoids a models <-> smcd cycle
 
-        card = smcd(pde, eps=smcd_eps, coverage_target=smcd_coverage_target)
+        # cfg.n_qubits/n_layers (ModelConfig fields, pre-placed but unused before T3.3):
+        # explicit overrides for the depth/qubit sweep, which needs circuit sizes SMCD
+        # would never choose on its own (barren-plateau frontier, project.md SS7.5). None
+        # for every other config -- smcd() falls back to its own auto D5-depth-rule choice.
+        card = smcd(
+            pde,
+            eps=smcd_eps,
+            coverage_target=smcd_coverage_target,
+            n_qubits=cfg.n_qubits,
+            n_layers=cfg.n_layers,
+        )
         wire_to_dim = tuple(card.wire_to_dim)
         if cfg.family == "q_serial":
             return SerialHybrid(
