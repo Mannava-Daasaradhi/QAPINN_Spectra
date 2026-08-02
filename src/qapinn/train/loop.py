@@ -120,27 +120,36 @@ def _compute_metrics(model: PINNModel, pde: PDE, eval_grid: Tensor, bc_mode: str
     return {"rel_l2": rel_l2, "l_inf": l_inf, "residual_norm": residual_norm}
 
 
+def apply_smoke_overrides(cfg: ExpConfig) -> ExpConfig:
+    """01_CONVENTIONS.md SS10: --smoke reduces steps/POINTS, not just steps. n_eval is a
+    PER-AXIS resolution (pde.eval_grid(n) -> n**dim points): leaving it at its unreduced
+    default (1024) meant every 2-D/time-dependent checkpoint still ran the
+    specerr/ntk/attribution instruments over up to ~1e6 points, 42 times in one process --
+    the actual driver behind the T2.17 smoke-sweep memory blowups (matches the observed
+    `MemoryError((1024, 1024), dtype('float64'))` exactly).
+    steps_adam/steps_lbfgs (originally 50/10, T0.18) were calibrated against the single
+    classical family that existed at T0.18 -- quantum families' parameter-shift gradients
+    (multiple forward evals per trainable param per step) make the same step count
+    noticeably more expensive per step, and with 4/7 families now quantum this pushed both
+    a single heavy combo (T0.18's own <60s/run contract) and the 42-combo matrix (T2.17's
+    <20min contract) over budget. Cut to keep both: 25 steps is still enough to exercise
+    Adam -> LBFGS -> checkpoint -> all 8 XAI instruments meaningfully for an
+    integration/smoke check, just not to converge.
+
+    Pulled out of `train()` as its own function (T3.2) so callers that need to know a
+    smoke run's ACTUAL run_id/run_dir before calling `train()` -- e.g. `runner.run_all`'s
+    resume check and per-run error reporting -- can compute the same post-override config
+    `train()` will use internally, rather than checking the wrong (pre-override) run_id."""
+    pde_cfg = dataclasses.replace(cfg.pde, n_collocation=256, n_boundary=64, n_eval=32)
+    train_cfg = dataclasses.replace(cfg.train, steps_adam=20, steps_lbfgs=5, checkpoints=(0, -1))
+    return dataclasses.replace(cfg, pde=pde_cfg, train=train_cfg)
+
+
 def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
     t_start = time.time()
 
     if smoke:
-        # 01_CONVENTIONS.md SS10: --smoke reduces steps/POINTS, not just steps. n_eval is a
-        # PER-AXIS resolution (pde.eval_grid(n) -> n**dim points): leaving it at its
-        # unreduced default (1024) meant every 2-D/time-dependent checkpoint still ran the
-        # specerr/ntk/attribution instruments over up to ~1e6 points, 42 times in one
-        # process -- the actual driver behind the T2.17 smoke-sweep memory blowups (matches
-        # the observed `MemoryError((1024, 1024), dtype('float64'))` exactly).
-        # steps_adam/steps_lbfgs (originally 50/10, T0.18) were calibrated against the
-        # single classical family that existed at T0.18 -- quantum families' parameter-
-        # shift gradients (multiple forward evals per trainable param per step) make the
-        # same step count noticeably more expensive per step, and with 4/7 families now
-        # quantum this pushed both a single heavy combo (T0.18's own <60s/run contract)
-        # and the 42-combo matrix (T2.17's <20min contract) over budget. Cut to keep both:
-        # 25 steps is still enough to exercise Adam -> LBFGS -> checkpoint -> all 8 XAI
-        # instruments meaningfully for an integration/smoke check, just not to converge.
-        pde_cfg = dataclasses.replace(cfg.pde, n_collocation=256, n_boundary=64, n_eval=32)
-        train_cfg = dataclasses.replace(cfg.train, steps_adam=20, steps_lbfgs=5, checkpoints=(0, -1))
-        cfg = dataclasses.replace(cfg, pde=pde_cfg, train=train_cfg)
+        cfg = apply_smoke_overrides(cfg)
 
     pde_cfg = cfg.pde
     train_cfg = cfg.train

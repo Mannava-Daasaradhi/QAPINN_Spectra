@@ -82,12 +82,40 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_sweep(args: argparse.Namespace) -> int:
-    return _not_yet_implemented("sweep", "T3.2")
+    """T3.2: expand configs/exp/<args.exp>.yaml (via qapinn.runner.enumerate_runs) and
+    execute it (qapinn.runner.run_all) -- process-isolated per run, resumable."""
+    from pathlib import Path
+
+    os.environ["QAPINN_DEVICE"] = "cpu" if args.cpu else "cuda"
+    if not args.cpu:
+        os.environ["QAPINN_CUDA_MEM_FRACTION"] = str(args.mem_fraction)
+
+    from qapinn.runner import enumerate_runs, run_all
+
+    exp_path = Path(REPO_ROOT) / "configs" / "exp" / f"{args.exp}.yaml"
+    cfgs = enumerate_runs(exp_path)
+    print(f"Enumerated {len(cfgs)} runs from {exp_path}")
+
+    result = run_all(cfgs, n_workers=args.workers, resume=not args.no_resume, smoke=args.smoke)
+    print(
+        f"{result.n_ok} ok, {result.n_skipped} skipped, {result.n_failed} failed "
+        f"(of {result.n_total} total)"
+    )
+    if result.failures:
+        print(f"{len(result.failures)} FAILURES:", file=sys.stderr)
+        for run_id, message in result.failures:
+            print(f"  {run_id}: {message}", file=sys.stderr)
+        return 1
+    return 0
 
 
-# T2.17: the 6 problem instances x 7 model families matrix. Module-level (not inline in
-# cmd_smoke) so tests/test_pipeline_smoke.py can import the SAME list rather than
-# maintaining a second copy that could silently drift out of sync.
+# T2.17/T3.2: the 6 problem instances shared by the smoke matrix and every T3.x sweep.
+# Kept as its own literal (NOT `from qapinn.runner import PROBLEM_INSTANCES`) so that
+# cheap tasks.py commands (lint, clean, --help) don't pay for importing qapinn -- and
+# thus resolving qapinn.device / creating a CUDA context -- just from importing this
+# module. qapinn.runner.PROBLEM_INSTANCES is the canonical definition;
+# tests/test_runner.py asserts this list stays identical to it so the two can't silently
+# drift apart.
 SMOKE_PDE_INSTANCES = [
     ("poisson", "poisson", None),
     ("heat", "heat", None),
@@ -301,7 +329,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_run)
 
     p = sub.add_parser("sweep", help="Run an experiment sweep config (configs/exp/*.yaml)")
-    p.add_argument("--config", required=True)
+    p.add_argument("--exp", required=True, help="configs/exp/<name>.yaml")
+    p.add_argument("--smoke", action="store_true", help="reduced steps/points per run, <60s each")
+    p.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="concurrent runs -- DANGEROUS on this hardware above 1, see qapinn.runner.run_all",
+    )
+    p.add_argument("--cpu", action="store_true", help="run on CPU instead of the CUDA default")
+    p.add_argument(
+        "--mem-fraction", type=float, default=0.75, help="max fraction of total VRAM CUDA may claim"
+    )
+    p.add_argument("--no-resume", action="store_true", help="re-run everything, ignoring existing metrics.json")
     p.set_defaults(func=cmd_sweep)
 
     p = sub.add_parser("figures", help="Regenerate all figures from results/")

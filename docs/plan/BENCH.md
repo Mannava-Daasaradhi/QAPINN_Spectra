@@ -888,3 +888,39 @@ decisions above -- the depth/qubit sweep's own `configs/exp/*.yaml` should list
 other block's full step budget. This is recorded here so it lands correctly when T3.x
 actually builds that experiment config, not re-derived from scratch.
 
+# T3.2 Run Orchestration -- one deliberate spec deviation, one real bug found
+
+**`n_workers` defaults to 1, not the phase doc's specified 6.** `run_all`'s signature and
+`--workers` flag still accept any value, but T2.17 already measured 4-way concurrent CUDA
+directly crashing on this hardware -- defaulting to the phase doc's "6 parallel workers"
+here would just reproduce that failure the first time `tasks.py sweep` is actually used.
+Matches the Phase 3 budget decision already recorded above (sequential is the only mode
+proven safe on this machine). Each run still gets its own OS process
+(`ProcessPoolExecutor(max_tasks_per_child=1)`), not just a `gc.collect()` between runs in
+one process -- the pattern T2.17 found necessary.
+
+**Real bug found and fixed before this task's own DoD would have silently failed:**
+`train()`'s `smoke=True` branch mutates the config internally (`n_collocation`,
+`steps_adam`, etc.) BEFORE hashing it into `run_id` -- the run directory a smoke run
+actually writes to is NOT `cfg.run_id` computed by the caller, it's the run_id of the
+POST-override config. `run_all`'s first draft used `cfg.run_id` directly for both the
+resume check and `error.json` placement, which would have made resume silently never work
+for any smoke run (always re-running, defeating this task's entire "second invocation
+skips everything" DoD) and misplaced `error.json` on a failure. Caught by this task's own
+test (`test_run_all_second_invocation_skips_everything`), not by inspection. Fixed by
+extracting the override into `apply_smoke_overrides(cfg) -> ExpConfig`
+(`train/loop.py`) and computing the effective run_id through it wherever `run_all` needs
+to know a smoke run's real directory, rather than duplicating the override logic a second
+time (which would drift the moment `train()`'s own smoke behavior changes).
+
+**Result:** `tests/test_runner.py` (8 tests: `enumerate_runs`'s cartesian-product schema
+including the generalized `axes` mechanism, resume-skip, failure isolation without losing
+the good run, and a real second-invocation-skips-everything check) all pass. The literal
+DoD command run for real, not just unit-tested: `configs/exp/core_matrix.yaml` (pulled
+forward from T3.3, same precedent as T0.14/T0.15 and T2.9/T2.10 -- this task's own DoD
+needs it to exist) enumerates 210 runs; first invocation completed 169 (41 already existed
+from earlier T2.17 smoke testing at the same seed=0 configs -- resume correctly found and
+skipped them even on a supposedly "first" run, a good real-world confirmation) in 61
+minutes with 0 failures; second invocation: `0 ok, 210 skipped, 0 failed`. Full fast suite
+(`tasks.py test`): 272 passed.
+
