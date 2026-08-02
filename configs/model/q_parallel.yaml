@@ -1,0 +1,6 @@
+# q_parallel: ParallelHybrid, the HQPINN form from the literature --
+# u = MLP(x) + w * Circuit(AffineEncoder(x)). Circuit design comes from the SMCD design
+# card (T2.9); widths/activation configure the classical MLP branch.
+family: q_parallel
+widths: [32, 32]
+activation: tanh

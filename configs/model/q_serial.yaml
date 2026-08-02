@@ -1,0 +1,4 @@
+# q_serial: SerialHybrid, scaling_mode="ternary", scalings straight from the SMCD design
+# card (T2.9) -- x -> AffineEncoder -> ReuploadCircuit -> Linear head -> u.
+family: q_serial
+scaling_mode: ternary

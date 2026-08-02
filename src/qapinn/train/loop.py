@@ -39,6 +39,36 @@ class RunResult:
     history: pd.DataFrame = field(repr=False)
 
 
+_QUANTUM_FAMILIES = ("q_serial", "q_random", "q_parallel")
+
+
+def _design_card_summary(model: PINNModel, family: str, pde: PDE) -> dict | None:
+    """Records the ACTUAL built circuit's design (n_qubits/n_layers/scalings/...), read
+    straight off `model.circuit`, rather than re-running smcd(pde) -- q_random's whole
+    point (T2.12) is that its scalings deliberately ignore the SMCD design, so re-deriving
+    the design here would silently record the WRONG (q_serial) card for it. None for
+    classical families and for q_octave (T2.15 not yet implemented)."""
+    if family not in _QUANTUM_FAMILIES:
+        return None
+    circuit = getattr(model, "circuit", None)
+    if circuit is None:
+        return None
+    omega = circuit.frequencies()
+    if omega.ndim == 1:
+        omega = omega.reshape(-1, 1)
+    return {
+        "pde": pde.name,
+        "family": family,
+        "n_qubits": circuit.n_qubits,
+        "n_layers": circuit.n_layers,
+        "scalings": circuit.scalings.detach().cpu().tolist(),
+        "wire_to_dim": list(circuit.wire_to_dim),
+        "entangler": circuit.entangler,
+        "observable": circuit.observable,
+        "omega_set": omega.tolist(),
+    }
+
+
 def _grad_norm(model: PINNModel) -> float:
     total = 0.0
     for p in model.parameters():
@@ -105,9 +135,16 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
     device = qapinn.device
 
     pde = pdes_pkg.build(pde_cfg)
-    model = models_pkg.build(cfg.model, input_dim=pde.dim, gen=gen).to(device)
+    model = models_pkg.build(
+        cfg.model,
+        input_dim=pde.dim,
+        gen=gen,
+        pde=pde,
+        smcd_eps=cfg.smcd_eps,
+        smcd_coverage_target=cfg.smcd_coverage_target,
+    ).to(device)
 
-    design_card = None  # Phase 2 (T2.9) builds this for quantum families
+    design_card = _design_card_summary(model, cfg.model.family, pde)
 
     run_id = cfg.run_id
     run_dir = RESULTS_ROOT / run_id

@@ -1,0 +1,6 @@
+# q_random: SerialHybrid with the SAME n_qubits/n_layers/param_count as q_serial's own
+# SMCD design, but scalings drawn randomly (ignoring the design entirely). Ablates the
+# design while keeping the quantum -- C1's falsifier (project.md Section 6): if q_random
+# performs as well as q_serial, the SMCD design itself contributed nothing.
+family: q_random
+scaling_mode: random

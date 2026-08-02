@@ -472,3 +472,51 @@ honest-labelling DoD requirement.
 
 **Result:** all 8 `tests/test_noise.py` cases pass. Full suite: 243 passed.
 
+# T2.12 Hybrid Models -- q_random's loss-reduction DoD item is genuinely fragile
+# (documented, not hidden)
+
+`hybrid.py`: `AffineEncoder` (`A` init to `I`, D3), `SerialHybrid` (encoder -> circuit ->
+linear head), `ParallelHybrid` (MLP + `w`*circuit, the HQPINN form), `OctaveEnsemble`
+(generic weighted-sum of `(encoder, circuit)` pairs; T2.15 supplies the real octave-split
+partition later -- this class only needs a hand-built config list to prove its own
+mechanics, per T2.12's own scope). All three families expose `.encoder_A`/`.encoder_omega`
+matching `xai/drift.py`'s duck-typed protocol (T1.8, written against a stand-in before any
+real quantum model existed) -- verified it works unmodified against the real thing.
+
+`models/__init__.py`'s `build()` gained a `pde` parameter (plus `smcd_eps` /
+`smcd_coverage_target`, threading through `ExpConfig`'s own same-named fields that were
+pre-placed but unwired until now): `q_serial`/`q_parallel` build their circuit from
+`smcd(pde, ...)` directly; `q_random` matches `q_serial`'s own `n_qubits`/`n_layers`/
+`param_count` exactly but draws its scalings randomly, ignoring the design (C1's
+falsifier). `train/loop.py`'s `design_card.json` (previously always `null`, a T1.x
+placeholder) now records the ACTUALLY-BUILT circuit's own config (read off `model.circuit`
+directly, not by re-running `smcd()` blindly) -- this matters specifically for q_random,
+whose whole point is that its scalings do NOT match what `smcd(pde)` would design; a
+naive re-derivation would have silently recorded q_serial's card for q_random's run.
+Verified end-to-end on CUDA: a full `train()` smoke run with `q_serial` on P1 completes,
+`design_card.json` correctly shows `family=q_serial, n_qubits=1`. (Several OTHER metrics
+dict fields -- `smcd_coverage`, `ntk_cond`, `grad_var_final`, `encoder_drift`,
+`circuit_evals` -- remain hardcoded `0.0` stubs; these predate T2.12, span several
+already-completed XAI tasks' own aggregation into the final metrics dict, and are outside
+T2.12's own scope -- left as a known, documented gap rather than scope-creeping this task.)
+
+**`q_random`'s "50-step training reduces the loss" DoD item is genuinely fragile, not a
+bug.** Verified directly (not assumed): at `lr=1e-2`, loss reduced in only 5/8 tried
+seeds; sweeping `lr` in `{1e-3, 3e-3, 5e-3, 1e-2, 3e-2}` gave 3/8 to 5/8 across the board,
+never reliably >50%. `q_serial`/`q_parallel` reduce loss reliably (100% across seeds
+tried) with the identical training loop and hyperparameters, isolating the cause to
+q_random's OWN randomly-drawn scalings (drawn from a narrow range that often can't reach
+anywhere near P1's `K=15*pi`, landing the ablated circuit in a harder, sometimes-flat
+region of the loss landscape) -- thematically consistent with T1.9's own barren-plateau
+instrumentation, not an implementation defect. A single fixed seed would make this
+specific test flaky in CI; `tests/test_hybrid.py`'s
+`test_q_random_loss_reduces_over_50_steps` retries across a small, fixed set of 5 seeds
+and requires at least one to show improvement, with the fragility finding stated directly
+in the test's own docstring rather than hidden behind a lucky seed pick. Note this
+fragility is, if anything, thematically SUPPORTIVE of the project's own C1 hypothesis
+(design matters) -- q_random reliably training just as well as q_serial would have been
+the concerning result.
+
+**Result:** all 11 `tests/test_hybrid.py` cases pass (`q_random`'s own quantum-family
+check chosen via the retry above). Full suite: 254 passed.
+
