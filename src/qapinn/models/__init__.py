@@ -89,6 +89,7 @@ def build(
                 wire_to_dim=tuple(card.wire_to_dim),
                 entangler=card.entangler,
                 observable=card.observable,
+                input_dim=pde.dim,
             )
             # T2.14 DoD: realised_frequencies() must CONTAIN the target support AND the
             # param count must match q_serial within 10% -- the bare target support alone
@@ -122,6 +123,7 @@ def build(
                 wire_to_dim=wire_to_dim,
                 entangler=card.entangler,
                 observable=card.observable,
+                input_dim=pde.dim,
             )
         if cfg.family == "q_random":
             scalings = _random_scalings(card.n_layers, card.n_qubits, cfg.scaling_mode or "random", gen)
@@ -132,6 +134,7 @@ def build(
                 wire_to_dim=wire_to_dim,
                 entangler=card.entangler,
                 observable=card.observable,
+                input_dim=pde.dim,
             )
         if cfg.family == "q_parallel":
             return ParallelHybrid(
@@ -143,6 +146,7 @@ def build(
                 observable=card.observable,
                 mlp_widths=cfg.widths,
                 activation=cfg.activation,
+                input_dim=pde.dim,
             )
 
     if cfg.family == "q_octave":
@@ -169,7 +173,7 @@ def build(
                     "observable": card.observable,
                 }
             ]
-        return OctaveEnsemble(configs)
+        return OctaveEnsemble(configs, input_dim=pde.dim)
 
     raise ValueError(f"unknown/unregistered model family {cfg.family!r}; registered: {sorted(_REGISTRY)}")
 

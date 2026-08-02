@@ -607,3 +607,65 @@ frequency, each `L=1 <= 3`), union coverage `1.0`. `OctaveEnsemble` built from t
 50 training steps on P1. All 4 `tests/test_octave_split.py` cases pass. Full suite: 262
 passed.
 
+# T2.16 Cross-Family Size Matching -- found a real T2.12-era bug that broke every quantum
+# family on time-dependent PDEs, plus two smaller, genuinely structural size-matching gaps
+
+**Bug found and fixed (pre-existing since T2.12, not introduced by this task):**
+`SerialHybrid`/`ParallelHybrid`/`OctaveEnsemble` sized their `AffineEncoder` from the
+CIRCUIT's own dimensionality (`_circuit_dim(wire_to_dim)`), not `pde.dim`. For a
+steady PDE (P1, P4) these are equal, so it never surfaced. For a time-dependent PDE
+(Heat, Burgers), `TargetSpectrum` deliberately omits the time axis (T2.8: its weight
+already encodes the time-integrated amplitude), so the circuit's own `d` is smaller than
+`pde.dim` -- and `q_serial` (along with `q_random`/`q_parallel`/`q_octave`) crashed
+OUTRIGHT with a matmul shape mismatch the moment it was called with real `[batch,
+pde.dim]` collocation points, exactly as the REAL training pipeline (`train/loop.py`)
+would call it. T2.12's own DoD tests never caught this because they only ever exercised
+P1 (steady). **Every quantum family was unusable on 2 of this project's 4 PDEs until
+now.** Fixed: `SerialHybrid`/`ParallelHybrid`/`OctaveEnsemble` gained an explicit
+`input_dim` constructor parameter (defaulting to the old, still-correct-for-steady-PDEs
+behavior for backward compatibility); `models/__init__.py`'s `build()` now always passes
+`pde.dim` explicitly for every quantum family, including the internal `q_serial`
+reference `c_rff_matched`'s own build path constructs (a second instance of the exact
+same oversight, caught by directly comparing two supposedly-equivalent computations of
+the same q_serial's `n_params()` and finding they disagreed). `realised_frequencies()`
+now zero-pads `Omega` to the encoder's own (possibly larger) dimension before the `Omega
+@ A` matmul -- this project's two time-dependent PDEs both list time LAST in
+`domain.names`, so trailing-zero padding lands correctly on the time axis without needing
+`pde.domain.time_axis` inside `hybrid.py` (which is deliberately PDE-agnostic). Re-
+verified `realised_frequencies()` still exactly equals the (now correctly padded) `Omega`
+at init (`A=I`), and all of T2.12/T2.15's existing tests still pass unchanged.
+
+**Real (measured, not estimated) FLOPs and wall-clock**, via `torch.utils.flop_counter.
+FlopCounterMode` -- matches `match_param_count`'s own "measure the real thing" principle,
+and works unmodified for the quantum families' complex128 einsum-based statevector
+simulation (`qsim.py`) since it counts whatever ATen ops the forward pass actually
+dispatches, not a family-specific estimate.
+
+**`c_mlp`'s default 3-hidden-layer width granularity is too coarse for these tiny
+SMCD-designed targets.** For P1 (target 14 params), `width=1` gives 8 and `width=2`
+gives 19 -- nothing achievable in the `[12.6, 15.4]` band at all. Fixed with a
+finer-granularity retry (`n_hidden_layers` in `{3,2,1}`, falling back to a bare
+`Linear(d,1)` with zero hidden layers as the last resort) -- the SAME shallow-MLP family,
+sized finely enough to reach a small target, not a different architecture.
+
+**Two genuine, examined size-matching gaps remain (documented, not hidden):**
+1. `c_rff_matched` on Burgers (83% off) -- already found and documented in T2.14:
+   Burgers' own empirical target support (16 points) needs more capacity (33 params) than
+   `q_serial`'s entire circuit there (14). "Contains the target support" wins over
+   "matches the size" when they structurally conflict.
+2. `q_parallel` on Heat/Burgers (11.11% off, just over the line) -- new finding.
+   `ParallelHybrid`'s own FIXED overhead (encoder + quantum circuit + scalar weight) for
+   a time-dependent PDE (whose encoder must now correctly size to `pde.dim=2`, per the
+   bug fix above) is already so close to `q_serial`'s own tiny budget that even the
+   mathematically SMALLEST possible MLP branch (`Linear(2,1)`, zero hidden layers, 3
+   params) still slightly overshoots. Verified this is the actual minimum, not a search
+   artifact: no smaller MLP construction exists. All 3 Helmholtz instances (2-D but
+   STEADY, so the encoder is the same size either way) land at exactly 10.00%, right at
+   the tolerance boundary, confirming the margin is genuinely thin here even without the
+   time-axis complication.
+
+**Result:** `tests/test_size_matching.py` verifies all 7 families x 6 instances land
+within +-10% except the two documented exceptions above (asserted explicitly, with a
+guard against silent drift if either gets meaningfully worse), and writes
+`results/size_matching.json`. Full suite: 266 passed.
+
