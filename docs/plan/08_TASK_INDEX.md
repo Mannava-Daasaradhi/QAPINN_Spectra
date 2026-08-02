@@ -84,8 +84,8 @@ truth for progress. Re-read `00_MASTER_PLAN.md` §3 and `01_CONVENTIONS.md` befo
 | ☑ T2.6 | ★★ **`test_circuit_spectrum.py` (Prop. 1 verified)** | T2.5 | FFT peaks land on `Ω` to 1e-8; tag `prop1-verified` |
 | ☑ T2.7 | Parameter-shift derivatives (`∂_θ`, `∂_x`, `∂²_x`) | T2.4 | agrees with autodiff to 1e-9 |
 | ☑ T2.8 | ★ SMCD target spectrum (Prop. 2) | T2.6 | P1/P4 supports exact; **P2 high-mode weight ≈ 0.025** |
-| ☐ T2.9 | ★ SMCD Algorithm 1 (with D5 correction) | T2.8 | P1⇒`L=4,n=1`; P4⇒`n=3`,`ring_cz`; deterministic |
-| ☐ T2.10 | Design card + coverage metric | T2.9 | depth formula pinned for 6 cases; JSON round-trips |
+| ☑ T2.9 | ★ SMCD Algorithm 1 (with D5 correction) | T2.8 | P1⇒`L=4,n=1`; P4⇒`n=3`,`ring_cz`; deterministic |
+| ☑ T2.10 | Design card + coverage metric | T2.9 | depth formula pinned for 6 cases; JSON round-trips |
 | ☐ T2.11 | Noise models (shot, depolarizing surrogates) | T2.4 | correct empirical variance; gradients flow |
 | ☐ T2.12 | ★ Hybrid models (serial / parallel; 4 q-families) | T2.4, T2.10 | `realised_frequencies() == Ω` at init |
 | ☐ T2.13 | ⚡ Reference [4] re-positioning | owner input | one differentiation paragraph written |

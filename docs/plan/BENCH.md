@@ -389,3 +389,72 @@ the fix. Support sets and the `~=0.025` weight-ratio DoD both verified afterward
 
 **Result:** all 7 `tests/test_symbol.py` cases pass. Full suite: 224 passed.
 
+# T2.10 Design Card & Coverage Metric -- built ahead of T2.9 (same pull-forward pattern as
+# T0.14/T0.15)
+
+`card.py` defines `DesignCard`, `coverage(S, Omega, rtol)`, `predicted_benefit(...)`, and
+`d5_depth(K, delta)` (Algorithm 1 step 4 as its own standalone, independently-testable
+function). Built before T2.9's `design.py` despite the phase doc's listed order, because
+Algorithm 1's own DoD (weighted coverage = 1.0 for P1/P4) needs `coverage()` to score its
+own output -- functionally identical to why T0.14 pulled T0.15's `c_mlp` forward.
+
+`d5_depth` implements the ALREADY-CORRECTED T2.9 phase-doc formula directly (`L =
+ceil(log_3(2K/delta + 1))`) -- unlike T1.7/T2.7, the phase doc's own T2.9 table already
+states the fixed D5 form, so there was no new formula bug to find here. Pinned table (6
+cases) and the `max|Omega| >= K` invariant both verified exactly.
+
+`OMEGA_KNEE` (the "classical reach frequency" for `predicted_benefit`) is set to the
+geometric mean of P1's own two frequencies (`pi*sqrt(15) ~= 12.17`), grounded in T1.5's
+actual measured evidence (16.2x steps-to-tolerance separation between `pi` and `15*pi`)
+but explicitly marked PROVISIONAL -- a proper NTK-eigenvalue-crossing estimate needs a
+fresh training run (T1.5's saved runs only kept per-frequency error trajectories, not NTK
+eigenspectra) and is deferred to before Phase 3, per the phase doc's own language.
+
+**Result:** all 5 `tests/test_smcd_depth.py` cases pass.
+
+# T2.9 SMCD Algorithm 1 (D5-corrected) -- found a real floating-point precision bug in
+# the per-dimension GCD helper
+
+`design.py` implements all 11 steps of Algorithm 1. Two design decisions worth recording:
+
+**Per-dimension BAND, not radial.** Step 3 (BAND) computes `(K_i, Delta_i)` PER SPATIAL
+DIMENSION, not as a single radial statistic of `TargetSpectrum.K`/`.delta` -- P4's four
+support points all share the SAME radial magnitude `pi*sqrt(10)`, which says nothing
+about the two axes' genuinely different `3*pi` and `pi` scales. Using `TargetSpectrum`'s
+own `.delta` (nearest-neighbor spacing across the whole support, `14*pi` for P1) instead
+of the correct per-dimension GCD-like base (`pi` for P1) was flagged as a live risk in
+T2.8's own code comments and confirmed here: using `14*pi` as Algorithm 1's Delta would
+give `L=2` for P1, not `4`, and would make neither `pi` nor `15*pi` exactly reachable on a
+`14*pi`-spaced lattice at all -- completely failing the design's purpose.
+
+**Bug found: `_gcd_like`'s `np.round`-for-dedup silently corrupted the returned value.**
+The first implementation deduplicated near-identical floats (e.g. P4's four support
+points all sharing `|omega_x|=3*pi` exactly) via `np.unique(np.round(vals, 8))` -- and
+then returned that ROUNDED value as Delta, not the original full-precision one. For P4
+this shifted `Delta_x` by ~1e-8 away from `K_x`, so `K_x/Delta_x` came out as
+`1.0000000000495` instead of exactly `1.0`. `d5_depth`'s `ceil()` then rounded THAT up to
+`L=2` instead of the correct `L=1` -- P4's design still passed `coverage=1.0` (extra depth
+is harmless, just unnecessary), so this would NOT have been caught by the DoD's own
+coverage/entangler/n assertions alone; it was caught by printing and inspecting the actual
+`L` value during manual verification before trusting the result. Fixed by clustering
+near-duplicates via a tolerance comparison on the SORTED, UNROUNDED array, returning a
+value straight from the original data -- P4 now correctly gives `L=1`.
+
+**`coverage_target` de-tuning targets the COUNT metric, not the weighted one.** This
+project's four PDEs' target supports are small, exact point sets (P1/P2: 2 points; P4: 4
+points, symmetric under independent per-axis sign flips, so the reachable-set
+construction can only ever include all 4 points or none -- verified directly, no
+`(L, Delta-factor)` combination gives 2-of-4). Weighted coverage for a 2-point target can
+therefore only take 4 discrete values fixed by the physical weights (P1: `{0, 0.231,
+0.769, 1.0}`), which can never land in a generic band like `[0.4, 0.6]` -- a fact about
+these PDEs' spectra, not an implementation gap. The COUNT metric (`|target intersect
+Omega| / |target|`) CAN hit exactly `0.5` for a 2-point target (cover 1 of 2), and is what
+`tests/test_smcd_design.py`'s DoD item 4 actually exercises (P1, `coverage_target=0.5` ->
+achieved `card.coverage=0.5`). Both `coverage` and `coverage_weighted` in the returned
+card always reflect whatever was ACTUALLY achieved, never the requested target.
+
+**Result:** all 6 `tests/test_smcd_design.py` cases pass (the 6th, Burgers via the
+empirical fallback, wasn't in the literal DoD but was added as a smoke test since T2.9 is
+the first task to actually exercise the "no analytic spectrum" branch end-to-end). Full
+suite: 235 passed.
+
