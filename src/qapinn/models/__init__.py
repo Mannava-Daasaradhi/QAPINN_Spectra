@@ -1,6 +1,7 @@
 """Model registry / factory (01_CONVENTIONS.md §7)."""
 from __future__ import annotations
 
+import numpy as np
 import torch
 
 from qapinn.config import ModelConfig
@@ -20,6 +21,28 @@ _REGISTRY: dict[str, type[PINNModel]] = {
 }
 
 _QUANTUM_FAMILIES = ("q_serial", "q_random", "q_parallel")
+
+
+def _pad_time_column(frequencies: np.ndarray, pde) -> np.ndarray:
+    """`qapinn.smcd.symbol.TargetSpectrum` deliberately omits the time axis for
+    time-dependent PDEs (P2/P3): its weight is already the TIME-INTEGRATED
+    ||u_hat(omega,.)||_{L2(0,T)} amplitude (T2.8), so `omega` only has one column per
+    SPATIAL dimension. `FourierFeaturePINN`'s `B` must have one column per input
+    dimension (`pde.dim`, including time), or `x @ B.T` shape-mismatches (the exact bug
+    T1.13 deferred to this task: c_rff_matched previously failed on heat/burgers/
+    helmholtz with a 2-D input against a 1-D frequency list). Insert a zero column at
+    `pde.domain.time_axis` -- a genuinely zero TEMPORAL frequency for a feature whose
+    amplitude already encodes the time dependence some other way, not a placeholder."""
+    if frequencies.shape[1] >= pde.dim:
+        return frequencies
+    time_axis = pde.domain.time_axis
+    if time_axis is None:
+        raise ValueError(
+            f"_pad_time_column: frequencies has {frequencies.shape[1]} columns but "
+            f"pde.dim={pde.dim} and the PDE has no time axis to pad -- unexpected "
+            f"dimensionality mismatch, not something padding can fix"
+        )
+    return np.insert(frequencies, time_axis, 0.0, axis=1)
 
 
 def _random_scalings(n_layers: int, n_qubits: int, mode: str, gen: torch.Generator | None) -> torch.Tensor:
@@ -54,10 +77,33 @@ def build(
     if cfg.family == "c_ff":
         return make_c_ff(input_dim=input_dim, n_features=cfg.n_features, ff_sigma=cfg.ff_sigma, gen=gen)
     if cfg.family == "c_rff_matched":
+        if pde is not None:
+            from qapinn.smcd.card import matched_and_padded_frequencies  # avoids a models <-> smcd cycle
+            from qapinn.smcd.design import smcd
+
+            card = smcd(pde, eps=smcd_eps, coverage_target=smcd_coverage_target)
+            q_serial = SerialHybrid(
+                n_qubits=card.n_qubits,
+                n_layers=card.n_layers,
+                scalings=card.scalings,
+                wire_to_dim=tuple(card.wire_to_dim),
+                entangler=card.entangler,
+                observable=card.observable,
+            )
+            # T2.14 DoD: realised_frequencies() must CONTAIN the target support AND the
+            # param count must match q_serial within 10% -- the bare target support alone
+            # is typically far too small (P1: 2 frequencies -> 5 params vs q_serial's 14),
+            # so pad with additional (nearest-to-DC) Omega rows up to q_serial's actual
+            # measured n_params(), not an estimated formula (match_param_count's own
+            # established principle).
+            frequencies = matched_and_padded_frequencies(card, target_param_count=q_serial.n_params())
+            frequencies = _pad_time_column(frequencies, pde)
+            return make_c_rff_matched(frequencies)
         if cfg.frequencies is None:
             raise ValueError(
-                "c_rff_matched requires cfg.frequencies to be set (pre-Phase-2 placeholder, "
-                "T2.14 wires the real design card)"
+                "c_rff_matched requires either `pde` (T2.14: derives B from the real "
+                "SMCD design card) or cfg.frequencies (pre-Phase-2 explicit-list path, "
+                "still supported for tests that want a hand-picked frequency set)"
             )
         return make_c_rff_matched(cfg.frequencies)
 

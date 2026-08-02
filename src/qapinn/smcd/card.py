@@ -131,3 +131,71 @@ def predicted_benefit(
     matched = _match_mask(target_omega, Omega, rtol)
     numer = float(target_weight[above_knee & matched].sum())
     return numer / total_w
+
+
+def matched_target_frequencies(card: DesignCard, rtol: float = 1e-6) -> np.ndarray:
+    """The design's own reachable set Omega, RESTRICTED to the target support S_hat
+    (project.md Section 6's c_rff_matched ablation, T2.14) -- the frequencies
+    `c_rff_matched` should use as its fixed Fourier-feature matrix B. `card.target_omega`
+    is already support-restricted (S_hat); intersecting it against `card.omega_set` via
+    the same relative-tolerance matching as coverage() means a de-tuned (coverage < 1.0)
+    card correctly excludes target frequencies the circuit can't actually reach, rather
+    than silently claiming a frequency the model has no way to represent.
+    """
+    target_omega = np.asarray(card.target_omega, dtype=float)
+    omega_set = np.asarray(card.omega_set, dtype=float)
+    if target_omega.shape[0] == 0:
+        return target_omega
+    matched = _match_mask(target_omega, omega_set, rtol)
+    return target_omega[matched]
+
+
+def matched_and_padded_frequencies(
+    card: DesignCard, target_param_count: int, tol: float = 0.10, rtol: float = 1e-6
+) -> np.ndarray:
+    """`matched_target_frequencies(card)` (the REQUIRED subset -- guarantees the
+    ablation's frequencies literally include the target support), PADDED with additional
+    rows of `card.omega_set` (in increasing |omega| order, i.e. nearest to DC first, a
+    simple deterministic policy) until a `FourierFeaturePINN`'s param count
+    (`2*m + 1` -- `nn.Linear(2*m, 1)`, `m` = number of frequency rows) lands within `tol`
+    of `target_param_count`. Needed because the raw target support alone is typically far
+    too small to match q_serial's own parameter count (T2.14's DoD requires BOTH, for P1
+    specifically: `c_rff_matched.realised_frequencies()` contains the target frequencies,
+    AND its param count is matched to q_serial within 10% -- for P1 the bare 2-frequency
+    support gives only 5 params against q_serial's 14, so padding is not optional).
+
+    "Contains the target support" always wins over "matches within tol": if the REQUIRED
+    set alone already exceeds target_param_count + tol (verified for Burgers: its
+    empirical target support has 16 points, needing 33 params, against a q_serial design
+    of only 14 -- richer/broader target spectra than P1's own can genuinely outstrip a
+    small quantum design's own capacity), no padding happens and the required set is
+    returned as-is, best-effort, WITHOUT raising -- T2.14's DoD only pins the exact 10%
+    match for P1; the weaker "runs error-free on all four PDEs" requirement (T1.13's
+    deferred criterion) must still hold even when the tighter match can't be achieved.
+    Similarly, if `card.omega_set` runs out of distinct rows before reaching the target
+    from below, whatever was accumulated is returned rather than raising.
+    """
+    required = matched_target_frequencies(card, rtol=rtol)
+    omega_set = np.asarray(card.omega_set, dtype=float)
+
+    def _n_params(m: int) -> int:
+        return 2 * m + 1
+
+    if abs(_n_params(required.shape[0]) - target_param_count) <= tol * target_param_count:
+        return required
+    if _n_params(required.shape[0]) > target_param_count:
+        return required  # already over budget just from the required set; can't shrink further
+
+    order = np.argsort(np.linalg.norm(omega_set, axis=1))
+    pool = omega_set[order]
+    already = _match_mask(pool, required, rtol) if required.shape[0] > 0 else np.zeros(pool.shape[0], dtype=bool)
+
+    result = required
+    for row in pool[~already]:
+        if abs(_n_params(result.shape[0]) - target_param_count) <= tol * target_param_count:
+            break
+        if _n_params(result.shape[0]) > target_param_count:
+            break
+        result = np.vstack([result, row[None, :]]) if result.shape[0] > 0 else row[None, :]
+
+    return result

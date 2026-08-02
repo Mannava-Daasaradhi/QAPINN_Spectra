@@ -520,3 +520,40 @@ the concerning result.
 **Result:** all 11 `tests/test_hybrid.py` cases pass (`q_random`'s own quantum-family
 check chosen via the retry above). Full suite: 254 passed.
 
+# T2.14 Wire c_rff_matched to the Design Card -- closes out T1.13's waived criterion 3
+
+**Bug fixed (the one T1.13 deferred here): `TargetSpectrum` deliberately omits the time
+axis for time-dependent PDEs** (its weight already encodes the time-integrated
+`||u_hat(omega,.)||_{L2(0,T)}` amplitude, T2.8), so `omega` has one column per SPATIAL
+dimension only. `FourierFeaturePINN`'s `B` needs one column per `pde.dim` (INCLUDING
+time), or `x @ B.T` shape-mismatches -- exactly the "matmul shape-mismatch RuntimeError"
+T1.13 found for heat/burgers/helmholtz. Fixed in `models/__init__.py`'s new
+`_pad_time_column`: insert a genuinely-zero temporal-frequency column at
+`pde.domain.time_axis`, not a placeholder -- the feature's amplitude already carries the
+time dependence a different way.
+
+**A second, real design tension found while satisfying BOTH DoD items together.** T2.14's
+DoD requires, for P1: (1) `realised_frequencies()` CONTAINS `{pi, 15*pi}`, and (2) param
+count matched to `q_serial` within 10%. The raw target support alone is far too small for
+(2) -- P1's 2-frequency support gives only 5 params against `q_serial`'s 14 -- so
+`card.py`'s new `matched_and_padded_frequencies` pads the required (support-derived) set
+with additional `card.omega_set` rows (nearest-to-DC first) until the param count lands
+within tolerance. Verified for P1: 13 params vs `q_serial`'s 14 (7.1% off, contains both
+`pi` and `15*pi`). **Burgers' own empirical target support (16 points, `eps=1e-3`) already
+needs 33 params before ANY padding -- more than `q_serial`'s entire 14-param design.**
+Since "contains the target support" must win over "matches the size" when they conflict
+(T2.14's literal DoD only pins the exact 10% match for P1, not for all four PDEs),
+`matched_and_padded_frequencies` returns the required set as-is without raising in this
+case, rather than either dropping required frequencies (violating DoD item 1) or crashing
+(violating the weaker "runs error-free on all four PDEs" requirement T1.13 deferred here).
+This is a genuine, examined finding, not a shortcut: Burgers' broader/richer target
+spectrum genuinely outstrips this small quantum design's own capacity, which is
+scientifically meaningful (classical Fourier-matched needs more parameters to represent
+the same content there) rather than a bug to paper over.
+
+**Result:** all 4 `tests/test_smcd_rff_matched.py` cases pass (P1's two literal DoD items,
+plus a run-error-free check across all four PDEs, plus a backward-compatibility check for
+the pre-Phase-2 explicit-`cfg.frequencies` path, T0.16, which is unmodified and still
+passes its own original 5 tests). **T1.13's waived criterion 3 is now closed**: `c_rff_matched`
+runs error-free on all four PDEs. Full suite: 258 passed.
+

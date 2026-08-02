@@ -206,8 +206,12 @@ def smcd(
     return DesignCard(
         pde=pde.name,
         eps=eps,
-        target_omega=S.omega.tolist(),
-        target_weight=S.weight.tolist(),
+        # Shat notation in the phase doc (card.py's own field comment: "Shat and its
+        # weights") means the SUPPORT set S_eps, not the raw unrestricted omega/weight
+        # arrays -- restricting here is what lets T2.14's c_rff_matched read this field
+        # directly as its Fourier-feature frequency list.
+        target_omega=S.omega[S.support].tolist(),
+        target_weight=S.weight[S.support].tolist(),
         omega_set=Omega.tolist(),
         coverage=cov_count,
         coverage_weighted=cov_weighted,
