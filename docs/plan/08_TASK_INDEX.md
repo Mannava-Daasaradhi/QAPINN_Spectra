@@ -225,8 +225,66 @@ of one deliberately-accepted, disclosed gap.
 | ☑ T5.11 | ⚡ Notebooks (narrative only) | T5.1 | execute top-to-bottom, no GPU — 5 notebooks (`notebooks/01_theory_walkthrough.ipynb`…`05_results.ipynb`), each hand-authored (no `jupyter`/`nbformat` in this environment — not added as a dependency without asking) and verified by extracting and running each notebook's code cells as a script (CPU-only); all cells pass. One real bug caught while verifying: notebook 1's original Prop.-1 frequency-set comparison flattened Helmholtz's 2-D frequency pairs incorrectly (`np.atleast_2d` on a 1-D array adds a leading axis, not one row per element) — fixed with an explicit `_as_rows` reshape before shipping |
 | ☑ T5.12 | `README.md` + headline figure | T5.2 | contribution clear in 60 seconds — `README.md`, headline finding + figure pointer + repo layout + reproduction commands |
 | ☑ T5.13 | `docs/REPRODUCE.md` | T5.5 | every command actually run, output pasted — `docs/REPRODUCE.md`, 8 sections, every command run this session with real captured output |
-| ☐ T5.14 | ★★ **Clean-clone verification (Phase 5 gate)** | T5.13 | clone → `uv sync` → test → repro-quick → figures — **pending** |
-| ☐ T5.15 | Final delivery checklist | T5.14 | 10 boxes; tag `v1.0-submission` — **pending** |
+| ☑ T5.14 | ★★ **Clean-clone verification (Phase 5 gate)** | T5.13 | clone → `uv sync` → test → repro-quick → figures — **all pass, genuinely, from a real fresh `git clone --local`** (see below) |
+| ☑ T5.15 | Final delivery checklist | T5.14 | 10 boxes; tag `v1.0-submission` — see below |
+
+### T5.14: what running this for real actually found (2026-08-06)
+
+The first attempt correctly failed: `results/runs/` (610 of 613 run directories, ~1.09 GB)
+and every other file from this entire session (23 modified + 69 new — every bug fix,
+`FINDINGS.md`, the whole paper rewrite, notebooks, scripts) were still uncommitted
+working-tree state. A fresh clone had none of it. **Owner explicitly authorized
+committing both** (two separate confirmations — data first, then the rest — not assumed):
+`results/runs/` alone (ba5d140), then 6 logical commits for the remaining code/paper/docs
+(193280c…f8da7ec). This is the first time in the project's history the repository itself,
+not just the working tree, has been reproducible.
+
+Running the **real** clean-clone chain a second time, post-commit, found one more
+genuine bug neither inspection nor the earlier in-repo test runs had caught:
+**`check_pr7` called `make_ntk_spectrum_comparison`, which reconstructs a live model
+from `results/runs/*/checkpoints/*.pt`** — deliberately gitignored
+(`.gitignore`'s own stated policy keeps only `config.yaml`/`metrics.json`/
+`design_card.json`/`xai/*.npz`). This crashed with a bare `FileNotFoundError` in the
+fresh clone. Fixed by switching to `make_ntk_spectrum_comparison_from_npz` (the existing
+T5.1-DoD-compliant substitute, already used correctly by `make_figures.py`'s own driver
+— only `check_pr7` had missed the switch). That fix then surfaced a **second**,
+previously-masked issue: Poisson's committed NTK spectrum has fewer than 2 positive
+eigenvalues in the outside-band index range, making that decay exponent genuinely
+undefined; the old code's `gap >= 0.5` silently evaluated `NaN >= 0.5` as `False` and
+reported REFUTED with no stated reason — the exact same failure shape PR-8 already had.
+Fixed the same way: explicit NaN detection, `INSUFFICIENT_DATA` with a clear reason.
+**PR-7(poisson)'s verdict changed from REFUTED to INSUFFICIENT_DATA** as a direct result;
+propagated into `FINDINGS.md` (F3, the C1–C5 table) and `paper/sections/results.tex`/
+`conclusion.tex` (212ce6c). No claim anywhere now states a stronger verdict than this
+corrected data supports.
+
+**Full verified chain, this run, genuinely from `git clone --local`:**
+1. `uv sync` — clean, all packages resolved.
+2. `python tasks.py test` — **378 passed, 1 skipped, 5 deselected** (322.5s).
+3. `python tasks.py repro-quick` — **42/42 OK, 536.8s** (≈8.9 min, under the 15-min target).
+4. `python tasks.py figures` — **18/19 produced, 0 errored** (the 1 skip is
+   `staircase_cmlp_p1`, deliberately excluded, see T5.1).
+5. `python scripts/adjudicate_predictions.py` — runs clean, all 15 checks resolve.
+6. `tectonic main.tex` — clean build, 15 pages.
+
+### T5.15: final delivery checklist
+
+- [x] `paper/main.pdf` — 15 pp, math section centred on Props. 1–4 + Algorithm 1
+      (`paper/sections/methodology.tex`)
+- [x] `slides/` — 18 slides from the same figure assets
+- [x] `FINDINGS.md` — 13 numbered findings + confidence + C1–C5 table + decision table
+- [x] `README.md` — headline finding + embedded headline figure
+- [x] `docs/REPRODUCE.md` — every command actually run this session, real output pasted
+- [x] `pytest` green, including `test_circuit_spectrum.py` (7/7) — 384/384 in the main
+      repo, 378/378 (+1 skip) in the verified fresh clone
+- [x] `results/manifest.json` complete, no orphans — 20/20 exact match
+- [x] Every C1–C5 marked confirmed / refuted / inconclusive / partially — `FINDINGS.md`'s
+      table (none left as a bare `?`)
+- [x] Clean-clone `repro-quick` succeeds — 42/42, 536.8s, verified from a real fresh clone
+- [ ] Repository public, MIT licensed — `LICENSE` added (MIT); GitHub visibility is a
+      hosting setting, not a file, and is left for the repository owner to flip
+
+9/10 complete; the 10th is a one-click owner action, not remaining engineering work.
 
 ---
 
