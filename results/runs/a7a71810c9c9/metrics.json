@@ -1,0 +1,16 @@
+{
+  "circuit_evals": 0,
+  "encoder_drift": 0.0,
+  "grad_var_final": 0.0,
+  "l_inf": 1.0728410013313636,
+  "n_params": 19,
+  "ntk_cond": 0.0,
+  "ntk_decay_exponent": 0.0,
+  "rel_l2": 0.998831286836331,
+  "residual_norm": 2082.075255603666,
+  "smcd_coverage": 0.0,
+  "smcd_coverage_weighted": 0.0,
+  "steps_to_tol_1e-2": -1,
+  "steps_to_tol_1e-3": -1,
+  "wall_clock_s": 5236.842128992081
+}

@@ -1,0 +1,15 @@
+{
+  "device": "cuda",
+  "git_sha": "3f40ad66cae47ebcec2524093ecbd63edc237fee",
+  "hostname": "MSI",
+  "python_version": "3.12.13",
+  "run_id": "5865c49225b2",
+  "seed": 0,
+  "versions": {
+    "numpy": "2.4.4",
+    "pennylane": "0.45.1",
+    "scipy": "1.18.0",
+    "torch": "2.11.0+cu128"
+  },
+  "wall_clock_s": 40.402557611465454
+}

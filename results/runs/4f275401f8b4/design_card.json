@@ -1,0 +1,1 @@
+{"pde": "poisson", "family": "q_serial", "n_qubits": 1, "n_layers": 1, "scalings": [[3.1415926535897896]], "wire_to_dim": [0], "entangler": "none", "observable": "z0", "omega_set": [[-3.1415926535897896], [0.0], [3.1415926535897896]]}

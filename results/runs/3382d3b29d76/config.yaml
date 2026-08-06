@@ -1,0 +1,57 @@
+model:
+  activation: tanh
+  encoder: affine
+  entangler: null
+  family: q_octave
+  ff_sigma: null
+  frequencies: null
+  n_features: null
+  n_layers: null
+  n_qubits: null
+  observable: null
+  scaling_mode: null
+  target_params: null
+  widths:
+  - 64
+  - 64
+  - 64
+pde:
+  n_boundary: 512
+  n_collocation: 4096
+  n_eval: 1024
+  name: burgers
+  params: {}
+seed: 4
+smcd_coverage_target: null
+smcd_eps: 0.001
+tag: ''
+train:
+  bc_mode: hard
+  checkpoints:
+  - 0
+  - 100
+  - 500
+  - 1000
+  - 5000
+  - 20000
+  - -1
+  instruments:
+  - ntk
+  - specerr
+  - attribution
+  - fisher
+  - drift
+  - gradvar
+  - probes
+  - landscape
+  instruments_final_only:
+  - gradvar
+  - landscape
+  lambda_bc: 1.0
+  lambda_ic: 1.0
+  lambda_residual: 1.0
+  lr: 0.001
+  lr_schedule: cosine
+  noise: none
+  steps_adam: 20000
+  steps_lbfgs: 2000
