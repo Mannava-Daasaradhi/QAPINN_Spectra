@@ -1,4 +1,67 @@
 {
+  "ablation_matched": {
+    "run_ids": []
+  },
+  "attribution_burgers": {
+    "run_ids": []
+  },
+  "attribution_helmholtz_k4": {
+    "run_ids": []
+  },
+  "barren_frontier": {
+    "run_ids": []
+  },
+  "coverage_vs_error": {
+    "run_ids": []
+  },
+  "decision_map": {
+    "run_ids": []
+  },
+  "fisher_effdim": {
+    "run_ids": []
+  },
+  "freq_heatmap_burgers": {
+    "run_ids": []
+  },
+  "freq_heatmap_heat": {
+    "run_ids": []
+  },
+  "freq_heatmap_helmholtz_k10": {
+    "run_ids": []
+  },
+  "freq_heatmap_helmholtz_k20": {
+    "run_ids": []
+  },
+  "freq_heatmap_helmholtz_k4": {
+    "run_ids": []
+  },
+  "freq_heatmap_poisson": {
+    "run_ids": []
+  },
+  "landscape_grid": {
+    "run_ids": []
+  },
+  "ntk_spectrum_helmholtz_k10_pr7": {
+    "run_ids": [
+      "b07abab1747c",
+      "9d4c386d5907"
+    ]
+  },
+  "ntk_spectrum_p1": {
+    "run_ids": []
+  },
+  "ntk_spectrum_p4": {
+    "run_ids": []
+  },
+  "ntk_spectrum_poisson_pr7": {
+    "run_ids": [
+      "14bbe5f763c4",
+      "ce23b631c673"
+    ]
+  },
+  "probes_cka": {
+    "run_ids": []
+  },
   "staircase_cmlp_p1": {
     "run_ids": [
       "0280f156172b",

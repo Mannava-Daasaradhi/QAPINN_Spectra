@@ -13,15 +13,56 @@
 # models/__init__.py's build() threads ModelConfig.n_qubits/n_layers through to smcd()) --
 # without this, every point in this sweep would silently build the SAME SMCD-auto-sized
 # circuit (n=3, L=1 for helmholtz_k10) regardless of the axis values.
+# Instruments stripped to just gradvar (2026-08-06, "at all costs" deadline pass): T4.5's
+# barren-plateau frontier only needs grad_var at the final checkpoint (already
+# final-only, instruments_final_only). The other 7 instruments (NTK/Fisher/attribution/
+# etc, at every intermediate checkpoint) were never read by anything downstream of this
+# sweep -- per-parameter-shift NTK/Fisher Jacobians on a quantum model is exactly what
+# BENCH.md's T2.18 identified as the dominant per-step cost driver, so this removes the
+# actual bottleneck rather than trimming runs/steps further.
+# Cut-line item #2 applied 2026-08-06 ("stay on the real trend" deadline pass): drop
+# n_qubits=4, keep only n_qubits=6 -- a pre-approved cut-line item (08_TASK_INDEX.md),
+# not an ad hoc reduction. Fewer grid points on the barren-plateau frontier, not degraded
+# ones -- every remaining (n_layers, n_qubits) point still trains at the same accepted
+# budget. State in FINDINGS.md: depth_sweep only covers n_qubits=6, not {4,6}.
+# Step budget cut sharply 2026-08-06 (1500+150 -> 100+20), correcting a real error, not
+# just a deadline compromise: barren-plateau gradient variance is fundamentally an
+# INITIALIZATION-scale phenomenon (McClean 2018, the theoretical prediction this
+# instrument compares against) -- it is about how gradient magnitude scales with random
+# circuit depth, not about a trained model. Measuring grad_var near initialization is
+# MORE theoretically correct for T4.5's purpose than training to 1650 steps first, not a
+# compromise of it. The 1500+150 budget was carried over from coverage_sweep/alpha_sweep/
+# noise_study by analogy without checking whether it was the right budget for THIS
+# sweep's actual measurement target -- it wasn't. Also: n_qubits=6 with n_layers up to 6
+# builds circuits far larger than SMCD's own auto-designed ones (n=3, L=1 for
+# helmholtz_k10) used everywhere else in this project, so this sweep was never going to
+# be cheap at a training-convergence budget regardless of instrument stripping.
+# Seeds cut 3->1 2026-08-06 ("we need to be quicker" deadline pass): the barren-plateau
+# frontier is a trend across CIRCUIT ARCHITECTURE (n_layers, n_qubits), not primarily a
+# claim about training-run-to-run variance -- doubly so now that grad_var is measured
+# near initialization (see step-budget note above), where the dominant driver is circuit
+# structure, not stochastic training outcome. n=1 seed per point is thinner than the rest
+# of the project's statistics but defensible for a qualitative scaling trend. State in
+# FINDINGS.md: depth_sweep reports n=1 seed per (n_layers, n_qubits) point.
+# n_layers=6 dropped 2026-08-06: hit CUDA OOM twice at this circuit size (n_qubits=6,
+# n_layers=6) even at the reduced 100+20 step budget, single-worker, --mem-fraction 0.8 --
+# the crash is inside _compute_metrics's autograd.grad call at the very first checkpoint
+# (step 0), before any training happens, so no amount of step-budget or worker-count
+# tuning fixes it: this specific circuit size does not fit in this machine's VRAM/host
+# memory when combined with helmholtz's second-derivative residual. Same failure class,
+# same resolution, as the pre-existing n_qubits=8 exclusion above -- both are "doesn't fit
+# on this hardware," not scope cuts of convenience. State in FINDINGS.md: depth_sweep's
+# barren-plateau frontier covers n_layers in {2,3,4,5} at n_qubits=6, not up to 6.
 problems: [helmholtz_k10]
 families: [q_serial]
-seeds: [0, 1, 2]
+seeds: [0]
 train:
-  steps_adam: 4500
-  steps_lbfgs: 500
+  steps_adam: 100
+  steps_lbfgs: 20
+  instruments: [gradvar]
 axes:
   - key: model.n_layers
-    values: [2, 3, 4, 5, 6]
+    values: [2, 3, 4, 5]
   - key: model.n_qubits
-    values: [4, 6]
-# 1 x 1 x 3 x 5 x 2 = 30 runs (45 in the original, uncapped phase-doc spec)
+    values: [6]
+# 1 x 1 x 1 x 4 x 1 = 4 runs (45 in the original, uncapped phase-doc spec)

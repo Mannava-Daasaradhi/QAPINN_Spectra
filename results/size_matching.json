@@ -4,43 +4,43 @@
       "flops": 64,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 1.2313999977777712e-05
+      "wall_clock_s": 1.507199998741271e-05
     },
     "c_mlp": {
       "flops": 24,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 1.1961999989580363e-05
+      "wall_clock_s": 1.394599999912316e-05
     },
     "c_rff_matched": {
       "flops": 128,
       "n_params": 33,
       "rel_diff_from_q_serial": 0.8333333333333334,
-      "wall_clock_s": 1.3245999944047072e-05
+      "wall_clock_s": 1.5937999996822328e-05
     },
     "q_octave": {
       "flops": 128,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 0.0008484299999690848
+      "wall_clock_s": 0.0010495540000192705
     },
     "q_parallel": {
       "flops": 132,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.1111111111111111,
-      "wall_clock_s": 0.0008651479999389266
+      "wall_clock_s": 0.0010993379999854368
     },
     "q_random": {
       "flops": 130,
       "n_params": 18,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0009126239999750396
+      "wall_clock_s": 0.0010103019999951357
     },
     "q_serial": {
       "flops": 130,
       "n_params": 18,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0008661920000304235
+      "wall_clock_s": 0.0010290600000007544
     }
   },
   "heat": {
@@ -48,43 +48,43 @@
       "flops": 64,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 1.273600006243214e-05
+      "wall_clock_s": 1.6305999997712207e-05
     },
     "c_mlp": {
       "flops": 24,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 1.2065999981132335e-05
+      "wall_clock_s": 1.317999998718733e-05
     },
     "c_rff_matched": {
       "flops": 64,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 1.2776000003213995e-05
+      "wall_clock_s": 1.5735999986645766e-05
     },
     "q_octave": {
       "flops": 128,
       "n_params": 17,
       "rel_diff_from_q_serial": 0.05555555555555555,
-      "wall_clock_s": 0.0008386099999916041
+      "wall_clock_s": 0.0011004460000185645
     },
     "q_parallel": {
       "flops": 132,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.1111111111111111,
-      "wall_clock_s": 0.0008630819999962114
+      "wall_clock_s": 0.0010541279999961262
     },
     "q_random": {
       "flops": 130,
       "n_params": 18,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0008294179999938933
+      "wall_clock_s": 0.0010469240000020364
     },
     "q_serial": {
       "flops": 130,
       "n_params": 18,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0008410140000341925
+      "wall_clock_s": 0.0010363019999931567
     }
   },
   "helmholtz_k10": {
@@ -92,43 +92,43 @@
       "flops": 72,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 1.2591999984579161e-05
+      "wall_clock_s": 1.5119999989110511e-05
     },
     "c_mlp": {
       "flops": 28,
       "n_params": 21,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 2.503799994883593e-05
+      "wall_clock_s": 2.8280000005906913e-05
     },
     "c_rff_matched": {
       "flops": 72,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 1.2452000009943732e-05
+      "wall_clock_s": 1.562599998578662e-05
     },
     "q_octave": {
       "flops": 584,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 0.001074616000041715
+      "wall_clock_s": 0.001344918000031612
     },
     "q_parallel": {
       "flops": 588,
       "n_params": 22,
       "rel_diff_from_q_serial": 0.1,
-      "wall_clock_s": 0.0011447539999790025
+      "wall_clock_s": 0.0013648719999764581
     },
     "q_random": {
       "flops": 586,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.00105842400000256
+      "wall_clock_s": 0.0012981719999879714
     },
     "q_serial": {
       "flops": 586,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0010880719999840948
+      "wall_clock_s": 0.0014528960000097868
     }
   },
   "helmholtz_k20": {
@@ -136,43 +136,43 @@
       "flops": 72,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 1.241800004208926e-05
+      "wall_clock_s": 1.7827999981818722e-05
     },
     "c_mlp": {
       "flops": 28,
       "n_params": 21,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 2.4674000014783816e-05
+      "wall_clock_s": 3.1882000002951826e-05
     },
     "c_rff_matched": {
       "flops": 72,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 1.2324000053922645e-05
+      "wall_clock_s": 1.4751999988220632e-05
     },
     "q_octave": {
       "flops": 584,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 0.0010836640000343324
+      "wall_clock_s": 0.0012910159999955796
     },
     "q_parallel": {
       "flops": 588,
       "n_params": 22,
       "rel_diff_from_q_serial": 0.1,
-      "wall_clock_s": 0.0010884839999926045
+      "wall_clock_s": 0.0019997439999860944
     },
     "q_random": {
       "flops": 586,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0010939780000626342
+      "wall_clock_s": 0.0013331259999904432
     },
     "q_serial": {
       "flops": 586,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0011066920000303072
+      "wall_clock_s": 0.0013234659999943688
     }
   },
   "helmholtz_k4": {
@@ -180,43 +180,43 @@
       "flops": 72,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 1.2474000031943433e-05
+      "wall_clock_s": 1.447599999664817e-05
     },
     "c_mlp": {
       "flops": 28,
       "n_params": 21,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 2.4376000001211652e-05
+      "wall_clock_s": 3.1297999994421845e-05
     },
     "c_rff_matched": {
       "flops": 72,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 1.2163999999756924e-05
+      "wall_clock_s": 1.4665999988210387e-05
     },
     "q_octave": {
       "flops": 584,
       "n_params": 19,
       "rel_diff_from_q_serial": 0.05,
-      "wall_clock_s": 0.0011636759999964852
+      "wall_clock_s": 0.001334811999986414
     },
     "q_parallel": {
       "flops": 588,
       "n_params": 22,
       "rel_diff_from_q_serial": 0.1,
-      "wall_clock_s": 0.0011162440000043717
+      "wall_clock_s": 0.0013241139999809093
     },
     "q_random": {
       "flops": 586,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0010955699999612989
+      "wall_clock_s": 0.0013792500000272413
     },
     "q_serial": {
       "flops": 586,
       "n_params": 20,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0010958859999664128
+      "wall_clock_s": 0.00140190199999779
     }
   },
   "poisson": {
@@ -224,43 +224,43 @@
       "flops": 36,
       "n_params": 13,
       "rel_diff_from_q_serial": 0.07142857142857142,
-      "wall_clock_s": 1.2811999986297452e-05
+      "wall_clock_s": 1.5305999986594544e-05
     },
     "c_mlp": {
       "flops": 16,
       "n_params": 13,
       "rel_diff_from_q_serial": 0.07142857142857142,
-      "wall_clock_s": 1.837399999203626e-05
+      "wall_clock_s": 2.1868000003451017e-05
     },
     "c_rff_matched": {
       "flops": 36,
       "n_params": 13,
       "rel_diff_from_q_serial": 0.07142857142857142,
-      "wall_clock_s": 1.2710000009974465e-05
+      "wall_clock_s": 1.5477999986615033e-05
     },
     "q_octave": {
       "flops": 122,
       "n_params": 13,
       "rel_diff_from_q_serial": 0.07142857142857142,
-      "wall_clock_s": 0.000872901999973692
+      "wall_clock_s": 0.00103257399998256
     },
     "q_parallel": {
       "flops": 124,
       "n_params": 15,
       "rel_diff_from_q_serial": 0.07142857142857142,
-      "wall_clock_s": 0.0009067819999472703
+      "wall_clock_s": 0.0010777800000141724
     },
     "q_random": {
       "flops": 124,
       "n_params": 14,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0008858959999633953
+      "wall_clock_s": 0.0009858060000260593
     },
     "q_serial": {
       "flops": 124,
       "n_params": 14,
       "rel_diff_from_q_serial": 0.0,
-      "wall_clock_s": 0.0008335620000434574
+      "wall_clock_s": 0.0010263359999953536
     }
   }
 }

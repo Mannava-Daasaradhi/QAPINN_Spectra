@@ -1,17 +1,27 @@
 # Noise study: shot-noise and depolarizing surrogates (T2.11's ShotNoise/
 # GlobalDepolarizing) on classical-FF vs. the two quantum families.
 #
-# KNOWN GAP (T3.3 finding, documented rather than silently fixed -- see BENCH.md):
-# `train.noise` enumerates into a distinct ExpConfig/run_id per value, satisfying this
-# task's own DoD, but nothing in train/loop.py currently READS cfg.train.noise to
-# actually wrap the model with ShotNoise/GlobalDepolarizing during training -- T2.11
-# built the noise classes but never wired them into the training loop. Running this sweep
-# as-is (T3.5) would silently train every "noisy" row identically to the noiseless one.
-# Must be wired into train() before T3.5 launches this sweep for real.
+# `train.noise` ('none' | 'shot_<n_shots>' | 'depol_<p>') is wired end-to-end (T3.4
+# parallel-prep window, see BENCH.md): models.build() threads it through to
+# SerialHybrid's noise_model (q_serial/q_random are both SerialHybrid), applied to the
+# circuit's raw expval before the classical head. c_ff (the classical baseline here) is
+# unaffected by construction -- noise only ever applies to the quantum families. Verified
+# noise='none' is a true no-op (identical forward output to omitting the field entirely)
+# so every OTHER experiment config's results are provably unaffected by this change.
+# Cut-line item #3 applied 2026-08-05 (00_MASTER_PLAN.md §5 / 08_TASK_INDEX.md cut-line):
+# shot-noise only, dropped depol_1e-3, to fit the Aug 7 deadline. State this cut in
+# FINDINGS.md.
+# Step budget + instruments reduced 2026-08-06 ("at all costs" deadline pass), same
+# rationale as coverage_sweep/depth_sweep/alpha_sweep: only final rel_l2 under each noise
+# setting is needed, not per-point convergence or XAI comparison.
 problems: [poisson, helmholtz_k10]
 families: [c_ff, q_serial, q_random]
 seeds: [0, 1, 2]
+train:
+  steps_adam: 1500
+  steps_lbfgs: 150
+  instruments: []
 axes:
   - key: train.noise
-    values: [shot_1024, depol_1e-3]
-# 2 x 3 x 3 x 2 = 36 runs
+    values: [shot_1024]
+# 2 x 3 x 3 x 1 = 18 runs

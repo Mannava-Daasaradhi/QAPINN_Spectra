@@ -2,9 +2,22 @@
 # seeds = 210 runs. Pulled forward from T3.3 (same pattern as T0.14/T0.15, T2.9/T2.10):
 # T3.2's own DoD (`tasks.py sweep --exp core_matrix --smoke`) needs this file to exist to
 # be testable end-to-end; the other 4 configs/exp/*.yaml files remain T3.3's own work.
+#
+# Cut-line item #4 applied 2026-08-05 (00_MASTER_PLAN.md §5 / 08_TASK_INDEX.md cut-line):
+# seeds 5->3, to fit the Aug 7 deadline. 156/210 already complete at 5 seeds (poisson,
+# heat, burgers, helmholtz_k4 mostly done); this reduction only affects NOT-yet-started
+# work (helmholtz_k10 remaining quantum families, all of helmholtz_k20) -- already-done
+# seed-3/4 runs are untouched, just no longer required for the remaining combos.
+#
+# Deeper cut applied 2026-08-05, same day, owner-approved (beyond the standard cut-line,
+# under explicit "better if we could complete today" deadline pressure): seeds 3->2 for
+# the same not-yet-started Helmholtz k10/k20 work. State this explicitly in FINDINGS.md:
+# helmholtz_k10/k20 have n=2 seeds (a thin but non-zero dispersion estimate) where
+# everything else has n=5 (or n=3 for the handful of k10 combos already committed to
+# that seed count before this second cut).
 problems: [poisson, heat, burgers, helmholtz_k4, helmholtz_k10, helmholtz_k20]
 families: [c_mlp, c_ff, c_rff_matched, q_serial, q_parallel, q_random, q_octave]
-seeds: [0, 1, 2, 3, 4]
+seeds: [0, 1]
 train:
   bc_mode: hard
   noise: none

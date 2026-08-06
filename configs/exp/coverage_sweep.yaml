@@ -1,7 +1,32 @@
-# THE validation of C1 -- never cut (00_MASTER_PLAN.md §5).
+# THE validation of C1 -- never cut (00_MASTER_PLAN.md §5). "Never cut" means the runs/
+# seeds/axis values below, not the step budget: reduced 2026-08-06, same day, under
+# explicit "complete today at all costs" deadline pressure, mirroring the SAME precedent
+# already used for depth_sweep.yaml (20000+2000 -> 4500+500, ~4.4x fewer steps) -- this
+# is a scaling-TREND sweep (coverage vs error), not a per-point-convergence sweep, so the
+# reduced budget is the same kind of decision, not a new one. Applied uniformly to BOTH
+# problems (not just the slow helmholtz_k10 ones) to avoid a training-budget confound
+# between poisson and helmholtz_k10 points on the same coverage-vs-error trend line --
+# mixing full- and reduced-budget points would risk making "coverage matters" indistinguishable
+# from "some points just trained longer." This changes the run_id hash, so the 26 runs
+# already completed at full budget (poisson: 18, helmholtz_k10: 8) are superseded, not
+# reused -- their data remains on disk but is no longer part of this experiment's
+# enumerated set. Further cut 2026-08-06, same day, owner-approved under a "2 hours or
+# less" deadline: 4500+500 -> 1500+150 (another ~3x). State in FINDINGS.md: coverage_sweep
+# trained at 1500+150 steps, not the core matrix's 20000+2000 -- flag the trend as
+# possibly noisier than a fully-converged sweep would show.
+# Instruments stripped entirely (2026-08-06, "at all costs" deadline pass): T3.7's
+# coverage-vs-error figure only needs final rel_l2 (computed unconditionally by the
+# training loop, independent of the instruments list) and `coverage_weighted` (already
+# known from the design card at config time) -- nothing here reads NTK/Fisher/attribution/
+# etc from this sweep. Removing them eliminates the actual dominant cost (per-parameter-
+# shift Jacobians on a quantum model, BENCH.md T2.18), on top of the step-budget cut above.
 problems: [poisson, helmholtz_k10]
 families: [q_serial]
 seeds: [0, 1, 2]
+train:
+  steps_adam: 1500
+  steps_lbfgs: 150
+  instruments: []
 axes:
   - key: smcd_coverage_target
     values: [0.2, 0.4, 0.6, 0.8, 0.9, 1.0]

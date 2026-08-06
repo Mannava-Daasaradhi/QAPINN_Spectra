@@ -1,9 +1,23 @@
 # Where does quantum start winning? Sweeps Poisson's forcing sharpness (alpha) across the
 # three families that best isolate the effect (project.md).
+#
+# Cut-line item #1 applied 2026-08-05 (00_MASTER_PLAN.md §5 / 08_TASK_INDEX.md cut-line):
+# 6 alpha values -> 3, to fit the Aug 7 deadline (T3.4's Helmholtz k10/k20 tail is
+# consuming more wall-clock than budgeted). Kept 0.0 (baseline, no high-frequency
+# content), 0.1 (near T1.5's tuned staircase value, mid-transition), and 0.8 (max
+# stress test) -- spans the full range with both endpoints retained. State this cut in
+# FINDINGS.md.
+# Step budget + instruments reduced 2026-08-06 ("at all costs" deadline pass), same
+# rationale as coverage_sweep/depth_sweep: only final rel_l2 per alpha value is needed
+# (error-vs-alpha trend, not per-point convergence or XAI comparison).
 problems: [poisson]
 families: [c_mlp, c_ff, q_serial]
 seeds: [0, 1, 2]
+train:
+  steps_adam: 1500
+  steps_lbfgs: 150
+  instruments: []
 axes:
   - key: pde.params.alpha
-    values: [0.0, 0.05, 0.1, 0.2, 0.4, 0.8]
-# 1 x 3 x 3 x 6 = 54 runs
+    values: [0.0, 0.1, 0.8]
+# 1 x 3 x 3 x 3 = 27 runs
