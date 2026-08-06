@@ -206,9 +206,10 @@ intent:
 ## What we would do next with more time
 
 Re-run the full core matrix and `depth_sweep` at the pre-registered n=5 seeds and
-restored `n_qubits` grid; extend the four-family ablation (PR-1/2/3-style) to every
-problem instance, not just Poisson; chase down F7's drift-normalization question
-directly from the raw `‖Θ_0‖`/`‖Θ_t‖` values rather than the ratio alone; separate F12's
+restored `n_qubits` grid, so F13's already-generalized 6-problem ablation and every
+other n=2 finding above can be re-checked with real statistical power; chase down F7's
+drift-normalization question directly from the raw `‖Θ_0‖`/`‖Θ_t‖` values rather than
+the ratio alone; separate F12's
 max-error tail (1058%) from its typical case to confirm it is a relative-error-near-zero
 artifact and not a genuine surrogate failure mode; and validate the shot-noise surrogate
 (the one arm actually used in `noise_study.yaml`) against a density-matrix reference —
