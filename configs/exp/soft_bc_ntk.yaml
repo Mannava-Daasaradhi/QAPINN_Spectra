@@ -1,0 +1,33 @@
+# T3.6: soft-BC NTK block-imbalance study (D6). Hard-constraint runs (every other
+# experiment config) remove the BC loss entirely, so the per-loss-block NTK eigenvalue
+# mass (project.md SS7.1: residual vs BC vs IC block) is only measurable under bc_mode:
+# soft -- this is the only config in the whole matrix that turns soft BCs on.
+#
+# `block_mass` (xai/__init__.py::_run_block_mass, added post-hoc once T3.6's own DoD --
+# "block_mass recorded at every checkpoint" -- turned out to need training-loop wiring
+# that hadn't been built yet; block_mass() itself, xai/ntk.py, already existed and was
+# already tested, T1.2-era pull-forward work) is the ONLY instrument this study's DoD
+# reads. `_run_block_mass` computes its own Jacobians from a fixed probe set
+# (probe_r/probe_b) independent of the `ntk` instrument's own output -- it does not need
+# ntk/specerr/attribution/fisher/drift/gradvar/probes/landscape to be present.
+#
+# Instruments stripped 2026-08-06 ("we don't have time... move forward" deadline pass,
+# same reasoning already applied to coverage_sweep/alpha_sweep/depth_sweep/noise_study):
+# the other 7 default instruments are exactly the per-parameter-shift NTK/Fisher-class
+# Jacobian computations BENCH.md's T2.18 identified as the dominant per-step cost driver
+# on quantum models, and none of them is read by T3.6's own DoD ("per-block eigenvalue
+# mass recorded"). Step budget cut 20000+2000 -> 1500+150, same precedent as
+# coverage_sweep/alpha_sweep/noise_study (a trend-across-checkpoints measurement, not a
+# single converged-point claim -- block_mass is recorded at every checkpoint in the
+# default schedule, 0/100/500/1000/5000/final, so the training-progress trend is still
+# captured even at the reduced final step count). State in FINDINGS.md: soft_bc_ntk
+# trained at 1500+150 steps, not the core matrix's 20000+2000.
+problems: [poisson, helmholtz_k10]
+families: [c_mlp, q_serial]
+seeds: [0, 1, 2]
+train:
+  bc_mode: soft
+  steps_adam: 1500
+  steps_lbfgs: 150
+  instruments: [block_mass]
+# 2 x 2 x 3 = 12 runs

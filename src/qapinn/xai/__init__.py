@@ -23,7 +23,7 @@ from qapinn.xai.drift import encoder_drift
 from qapinn.xai.fisher import effective_dimension, empirical_fisher
 from qapinn.xai.gradvar import gradient_variance
 from qapinn.xai.landscape import loss_landscape_slice
-from qapinn.xai.ntk import probe_set, save_ntk_report
+from qapinn.xai.ntk import block_mass, probe_set, save_ntk_report
 from qapinn.xai.probes import collect_layer_outputs, layer_probe_r2
 from qapinn.xai.spectral_error import save_spectral_error_checkpoint
 
@@ -70,6 +70,38 @@ def _run_ntk(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smo
     result = save_ntk_report(model, pde, probe_x, step, run_dir, K_0=K_0)
     if key not in _NTK_K0_CACHE:
         _NTK_K0_CACHE[key] = result["K"].detach().clone()
+
+
+_BLOCK_MASS_PROBE_SEED = 0  # fixed, NOT step-seeded (unlike _run_landscape): block_mass
+# is an NTK-family instrument (project.md SS7.1's per-loss-block eigenvalue mass), and
+# T1.2's own established convention for this family is a probe set held FIXED across
+# checkpoints ("the SAME probe set is used for every family/checkpoint/PDE-instance
+# comparison" -- see probe_set()'s docstring) so that a change in trace_rr/trace_bb across
+# steps reflects the model's evolving NTK, not a different sample of probe points.
+
+
+def _run_block_mass(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
+    """T3.6 (D6): per-loss-block NTK eigenvalue mass (trace_rr, trace_bb, trace_rb), only
+    meaningful under bc_mode='soft' -- see block_mass()'s own docstring. Uses the SAME
+    sample_collocation/sample_boundary_only calls train/loop.py's own soft-BC loss uses
+    (pde.sample_boundary_only, not sample_boundary -- matches the boundary-only points the
+    soft BC loss term is actually computed against, T2.x's own choice, not a new one made
+    here)."""
+    n = _PROBE_SIZE_SMOKE if smoke else _PROBE_SIZE
+    device = _device(model)
+    gen = torch.Generator().manual_seed(_BLOCK_MASS_PROBE_SEED)
+    probe_r = pde.sample_collocation(n, gen).to(device)
+    probe_b = pde.sample_boundary_only(n, gen).to(device)
+    result = block_mass(model, pde, probe_r, probe_b)
+
+    out_dir = Path(run_dir) / "xai"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        out_dir / f"block_mass_step{step}.npz",
+        trace_rr=result["trace_rr"],
+        trace_bb=result["trace_bb"],
+        trace_rb=result["trace_rb"] if result["trace_rb"] is not None else np.nan,
+    )
 
 
 def _run_specerr(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir, smoke: bool = False) -> None:
@@ -190,6 +222,7 @@ INSTRUMENTS = {
     "gradvar": _run_gradvar,
     "probes": _run_probes,
     "landscape": _run_landscape,
+    "block_mass": _run_block_mass,
 }
 
 

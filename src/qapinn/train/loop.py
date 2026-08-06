@@ -165,6 +165,7 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
         pde=pde,
         smcd_eps=cfg.smcd_eps,
         smcd_coverage_target=cfg.smcd_coverage_target,
+        noise=train_cfg.noise,
     ).to(device)
 
     design_card = _design_card_summary(model, cfg.model.family, pde)

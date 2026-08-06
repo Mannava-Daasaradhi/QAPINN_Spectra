@@ -4,6 +4,7 @@ both.
 """
 from __future__ import annotations
 
+import pytest
 import torch
 
 from qapinn.models.noise import GlobalDepolarizing, ShotNoise
@@ -85,3 +86,33 @@ def noise_module_doc() -> str:
     import qapinn.models.noise as noise_mod
 
     return noise_mod.__doc__ or ""
+
+
+def test_build_noise_model_none_returns_none():
+    from qapinn.models.noise import build_noise_model
+
+    assert build_noise_model("none", n_layers=4) is None
+
+
+def test_build_noise_model_parses_shot_spec():
+    from qapinn.models.noise import build_noise_model
+
+    model = build_noise_model("shot_2048", n_layers=4)
+    assert isinstance(model, ShotNoise)
+    assert model.n_shots == 2048
+
+
+def test_build_noise_model_parses_depol_spec_using_n_layers_as_m():
+    from qapinn.models.noise import build_noise_model
+
+    model = build_noise_model("depol_0.02", n_layers=6)
+    assert isinstance(model, GlobalDepolarizing)
+    assert model.p == pytest.approx(0.02)
+    assert model.m == 6
+
+
+def test_build_noise_model_rejects_unrecognised_spec():
+    from qapinn.models.noise import build_noise_model
+
+    with pytest.raises(ValueError):
+        build_noise_model("bogus_spec", n_layers=4)

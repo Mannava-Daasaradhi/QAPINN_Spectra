@@ -84,6 +84,7 @@ class SerialHybrid(PINNModel):
         entangler: str = "ring_cz",
         observable: str = "z0",
         input_dim: int | None = None,
+        noise_model: nn.Module | None = None,
     ):
         super().__init__()
         # input_dim defaults to the circuit's own dimensionality (correct for a STEADY
@@ -107,9 +108,19 @@ class SerialHybrid(PINNModel):
         self.head = nn.Linear(1, 1)
         nn.init.ones_(self.head.weight)
         nn.init.zeros_(self.head.bias)
+        # T3.5 prep: noise surrogates (T2.11's ShotNoise/GlobalDepolarizing) act on the
+        # circuit's raw expval, BEFORE the classical head -- applied here, not to the
+        # model's final output, since the head is just a learned affine readout and the
+        # noise classes' own contract ("expval -> expval + noise") is about the quantum
+        # measurement itself. None (default) is a no-op -- every existing caller that
+        # doesn't pass noise_model is unaffected.
+        self.noise_model = noise_model
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.head(self.circuit(self.encoder(x)))
+        expval = self.circuit(self.encoder(x))
+        if self.noise_model is not None:
+            expval = self.noise_model(expval)
+        return self.head(expval)
 
     def param_groups(self) -> dict[str, list[nn.Parameter]]:
         return {

@@ -63,6 +63,7 @@ def build(
     pde=None,
     smcd_eps: float = 1e-3,
     smcd_coverage_target: float | None = None,
+    noise: str = "none",
 ) -> PINNModel:
     """Instantiate the model family named in cfg.family. input_dim comes from the
     associated PDE (pde.dim), since ModelConfig does not itself carry dimensionality.
@@ -70,7 +71,10 @@ def build(
     which design their circuit against `qapinn.smcd.design.smcd(pde, ...)` -- SMCD needs
     the PDE's own target spectrum, not just a dimension count. `smcd_eps` /
     `smcd_coverage_target` mirror ExpConfig's own same-named fields (pre-placed for this
-    by an earlier task, unwired until now).
+    by an earlier task, unwired until now). `noise` mirrors TrainConfig.noise (T3.5's
+    noise_study.yaml): 'none' (default, a no-op) applies to every family; only
+    `SerialHybrid`-based families (`q_serial`, `q_random` -- the two quantum families
+    noise_study.yaml actually exercises) apply it, via `models.noise.build_noise_model`.
     """
     if cfg.family == "c_mlp":
         return MLPPINN(input_dim=input_dim, widths=cfg.widths, activation=cfg.activation)
@@ -126,6 +130,8 @@ def build(
         )
         wire_to_dim = tuple(card.wire_to_dim)
         if cfg.family == "q_serial":
+            from qapinn.models.noise import build_noise_model
+
             return SerialHybrid(
                 n_qubits=card.n_qubits,
                 n_layers=card.n_layers,
@@ -134,8 +140,11 @@ def build(
                 entangler=card.entangler,
                 observable=card.observable,
                 input_dim=pde.dim,
+                noise_model=build_noise_model(noise, card.n_layers),
             )
         if cfg.family == "q_random":
+            from qapinn.models.noise import build_noise_model
+
             scalings = _random_scalings(card.n_layers, card.n_qubits, cfg.scaling_mode or "random", gen)
             return SerialHybrid(
                 n_qubits=card.n_qubits,
@@ -145,6 +154,7 @@ def build(
                 entangler=card.entangler,
                 observable=card.observable,
                 input_dim=pde.dim,
+                noise_model=build_noise_model(noise, card.n_layers),
             )
         if cfg.family == "q_parallel":
             return ParallelHybrid(

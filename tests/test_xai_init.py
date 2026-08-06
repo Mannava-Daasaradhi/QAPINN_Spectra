@@ -90,10 +90,46 @@ def test_run_instruments_which_overrides_config_default(tmp_path):
     assert files == {"ntk_step0.npz"}
 
 
-def test_instruments_registry_has_all_eight_entries():
+def test_instruments_registry_has_all_nine_entries():
     assert set(INSTRUMENTS) == {
         "ntk", "specerr", "attribution", "fisher", "drift", "gradvar", "probes", "landscape",
+        "block_mass",
     }
+
+
+def test_run_block_mass_writes_npz_with_finite_traces(tmp_path):
+    import numpy as np
+
+    cfg = _small_cfg(**{"train.bc_mode": "soft"})
+    pde = Poisson(alpha=cfg.pde.params["alpha"])
+    model = MLPPINN(input_dim=1, widths=(4, 4))
+
+    run_instruments(model, pde, cfg, 0, tmp_path, which=("block_mass",))
+
+    saved = np.load(tmp_path / "xai" / "block_mass_step0.npz")
+    assert saved["trace_rr"] > 0
+    assert saved["trace_bb"] > 0
+    assert np.isfinite(saved["trace_rr"])
+    assert np.isfinite(saved["trace_bb"])
+
+
+def test_run_block_mass_probe_points_are_fixed_across_checkpoints(tmp_path):
+    """block_mass is an NTK-family instrument (T1.2's convention: a FIXED probe set
+    across checkpoints, not a step-seeded one like _run_landscape) -- two different steps
+    on an UNCHANGED model must therefore produce identical traces."""
+    import numpy as np
+
+    cfg = _small_cfg(**{"train.bc_mode": "soft"})
+    pde = Poisson(alpha=cfg.pde.params["alpha"])
+    model = MLPPINN(input_dim=1, widths=(4, 4))
+
+    run_instruments(model, pde, cfg, 0, tmp_path, which=("block_mass",))
+    run_instruments(model, pde, cfg, 1, tmp_path, which=("block_mass",))
+
+    step0 = np.load(tmp_path / "xai" / "block_mass_step0.npz")
+    step1 = np.load(tmp_path / "xai" / "block_mass_step1.npz")
+    assert step0["trace_rr"] == pytest.approx(float(step1["trace_rr"]))
+    assert step0["trace_bb"] == pytest.approx(float(step1["trace_bb"]))
 
 
 def test_full_smoke_run_all_instruments_under_120s_writes_expected_files():

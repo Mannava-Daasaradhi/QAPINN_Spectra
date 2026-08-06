@@ -52,3 +52,18 @@ class GlobalDepolarizing(nn.Module):
 
     def forward(self, expval: Tensor) -> Tensor:
         return ((1.0 - self.p) ** self.m) * expval
+
+
+def build_noise_model(noise: str, n_layers: int) -> nn.Module | None:
+    """Parses `TrainConfig.noise` ('none' | 'shot_<n_shots>' | 'depol_<p>', T3.3's
+    `noise_study.yaml`) into a `ShotNoise`/`GlobalDepolarizing` instance, or None for
+    'none' (T2.11 built these classes but nothing constructed them from the config string
+    until now). `n_layers`: the circuit's own layer count, used as GlobalDepolarizing's
+    `m` -- one noisy layer per circuit layer."""
+    if noise == "none":
+        return None
+    if noise.startswith("shot_"):
+        return ShotNoise(n_shots=int(noise[len("shot_") :]))
+    if noise.startswith("depol_"):
+        return GlobalDepolarizing(p=float(noise[len("depol_") :]), m=n_layers)
+    raise ValueError(f"unrecognised noise spec {noise!r}; expected 'none', 'shot_<n>', or 'depol_<p>'")

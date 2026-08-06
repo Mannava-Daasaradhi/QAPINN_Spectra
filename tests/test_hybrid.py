@@ -191,3 +191,114 @@ def test_build_q_serial_respects_n_qubits_n_layers_override():
     )
     assert overridden.circuit.n_qubits == 6
     assert overridden.circuit.n_layers == 4
+
+
+@pytest.mark.parametrize("family", ["q_serial", "q_random"])
+def test_build_noise_none_is_a_true_no_op(family):
+    """T3.5 prep: models.build()'s default noise='none' must produce IDENTICAL forward
+    output to never passing `noise` at all -- every already-written experiment config
+    (core_matrix, coverage_sweep, depth_sweep, alpha_sweep) either omits `noise` entirely
+    or sets it to 'none', and this must not change a single one of their results.
+
+    `ReuploadCircuit`'s own `theta` init draws from the GLOBAL torch RNG, not the `gen`
+    passed to `models.build()` (`circuits.py`: `torch.randn(...)` with no `generator=`) --
+    a pre-existing, unrelated characteristic of this codebase, not something this task
+    changes -- so reproducing the SAME circuit across two separate `build()` calls needs
+    `torch.manual_seed(...)` reset globally before each, not just a matched local `gen`."""
+    pde = Poisson(alpha=_ALPHA)
+    x = torch.rand(11, pde.dim)
+
+    torch.manual_seed(0)
+    model_a = models_pkg.build(ModelConfig(family=family), input_dim=pde.dim, pde=pde)
+    torch.manual_seed(0)
+    model_b = models_pkg.build(ModelConfig(family=family), input_dim=pde.dim, pde=pde, noise="none")
+
+    assert model_a.noise_model is None
+    assert model_b.noise_model is None
+    with torch.no_grad():
+        torch.testing.assert_close(model_a(x), model_b(x))
+
+
+def test_build_shot_noise_perturbs_forward_output_and_registers_as_submodule():
+    pde = Poisson(alpha=_ALPHA)
+    gen = torch.Generator().manual_seed(0)
+    model = models_pkg.build(
+        ModelConfig(family="q_serial"), input_dim=pde.dim, gen=gen, pde=pde, noise="shot_16"
+    )
+
+    from qapinn.models.noise import ShotNoise
+
+    assert isinstance(model.noise_model, ShotNoise)
+    assert model.noise_model.n_shots == 16
+    assert model.noise_model in list(model.modules())  # registered as a real submodule
+
+    x = torch.rand(200, pde.dim)
+    torch.manual_seed(0)
+    out_a = model(x)
+    torch.manual_seed(1)
+    out_b = model(x)
+    assert not torch.allclose(out_a, out_b)  # shot noise is stochastic: different draws differ
+
+
+def test_build_shot_noise_gradient_still_flows_straight_through():
+    pde = Poisson(alpha=_ALPHA)
+    gen = torch.Generator().manual_seed(0)
+    model = models_pkg.build(
+        ModelConfig(family="q_serial"), input_dim=pde.dim, gen=gen, pde=pde, noise="shot_1024"
+    )
+    x = torch.rand(5, pde.dim, requires_grad=True)
+    out = model(x)
+    out.sum().backward()
+    assert x.grad is not None
+    assert torch.isfinite(x.grad).all()
+
+
+def test_build_depolarizing_noise_scales_output_deterministically():
+    pde = Poisson(alpha=_ALPHA)
+    torch.manual_seed(0)
+    clean = models_pkg.build(ModelConfig(family="q_serial"), input_dim=pde.dim, pde=pde)
+    torch.manual_seed(0)
+    noisy = models_pkg.build(
+        ModelConfig(family="q_serial"), input_dim=pde.dim, pde=pde, noise="depol_1e-3"
+    )
+
+    from qapinn.models.noise import GlobalDepolarizing
+
+    assert isinstance(noisy.noise_model, GlobalDepolarizing)
+    assert noisy.noise_model.p == pytest.approx(1e-3)
+    assert noisy.noise_model.m == clean.circuit.n_layers  # one noisy layer per circuit layer
+
+    x = torch.rand(9, pde.dim)
+    with torch.no_grad():
+        expval_clean = clean.circuit(clean.encoder(x))  # raw circuit output, noise never applied here
+        scale = (1.0 - 1e-3) ** clean.circuit.n_layers
+        expected_noisy_expval = expval_clean * scale
+
+        # noisy.circuit(...) alone is ALSO just the raw (unscaled) expval -- the scaling
+        # only happens when explicitly routed through noise_model, confirming the
+        # integration point is forward()'s `if self.noise_model is not None` branch, not
+        # inside the circuit itself.
+        raw_noisy_expval = noisy.circuit(noisy.encoder(x))
+        torch.testing.assert_close(raw_noisy_expval, expval_clean)
+        actual_noisy_expval = noisy.noise_model(raw_noisy_expval)
+        torch.testing.assert_close(actual_noisy_expval, expected_noisy_expval)
+
+        # and the scaling lands BEFORE the head, not after -- model(x) must equal
+        # head(scaled expval).
+        torch.testing.assert_close(noisy(x), clean.head(expected_noisy_expval))
+
+
+def test_build_rejects_unrecognised_noise_spec():
+    pde = Poisson(alpha=_ALPHA)
+    with pytest.raises(ValueError, match="unrecognised noise spec"):
+        models_pkg.build(ModelConfig(family="q_serial"), input_dim=pde.dim, pde=pde, noise="bogus")
+
+
+def test_build_noise_only_applies_to_serial_hybrid_families():
+    """c_ff (noise_study.yaml's classical baseline) is a no-op by construction -- build()
+    only threads `noise` into the q_serial/q_random branches, so passing a noise spec for
+    a classical family must simply be ignored, not raise."""
+    pde = Poisson(alpha=_ALPHA)
+    cfg = ModelConfig(family="c_ff", n_features=64, ff_sigma=15.0)
+    model = models_pkg.build(cfg, input_dim=pde.dim, pde=pde, noise="shot_16")
+    assert not hasattr(model, "noise_model")
