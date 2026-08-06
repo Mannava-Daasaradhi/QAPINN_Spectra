@@ -132,6 +132,10 @@ Mechanically verified, not asserted:
 
 ### Two real bugs found and fixed while verifying T3.7-T3.10 (2026-08-06)
 
+(A third, more serious one — PR-7 silently unreproducible from a clean clone, plus a
+second masked NaN it exposed — was found later while actually running T5.14's
+clean-clone verification, not this pass. See that section below.)
+
 - **`scripts/make_figures.py::regenerate_all` silently skipped `coverage_vs_error` (the
   headline figure!) and `barren_frontier`.** Its run-counting helper called
   `cost_ledger.enumerate_core_matrix_run_ids`, whose own docstring says it "does not

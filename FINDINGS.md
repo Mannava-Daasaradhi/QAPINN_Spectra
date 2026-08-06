@@ -171,7 +171,7 @@ disadvantage" (not the same as an advantage) shows up, and only the single-probl
 | C2 — Quantum-NTK block flattening | **Reversed where measurable** | PR-7 REFUTED on Helmholtz_k10 — spectrum steeper, not flatter, inside Ω; Poisson INSUFFICIENT_DATA (undefined outside-band exponent, not computed) (F3) |
 | C3 — Spectral-bias relief mechanism | **Holds on Poisson only** | PR-8 CONFIRMED (Poisson, 71.3%), REFUTED (Helmholtz_k10, 0% — no improvement exists) (F4) |
 | C4 — Negative-result map | **Mechanism partially right, uniform threshold REFUTED** | PR-4 REFUTED (3 families cross 5%), but 3 of 4 *quantum* families underperform as predicted; only `q_serial` is a quantum exception (F6) |
-| C5 — XAI protocol | **Demonstrated** | All 12 predictions mechanically adjudicated from committed artifacts, no `?` left; caught real bugs in its own tooling (PR-8 NaN mishandling, PR-10 degenerate fit, `specerr.npz` corruption) rather than silently propagating them |
+| C5 — XAI protocol | **Demonstrated** | All 12 predictions mechanically adjudicated from committed artifacts, no `?` left; caught real bugs in its own tooling (PR-8 NaN mishandling, PR-10 degenerate fit, `specerr.npz` corruption, PR-7 silently unreproducible from a clean clone + a second masked NaN) rather than silently propagating them |
 
 ## Decision table: when to (not) go quantum
 

@@ -19,11 +19,14 @@ comparator tested. What does hold up: the smoothing-operator negative control mo
 matches its a-priori prediction, one genuine per-frequency win exists (Poisson only),
 and — most solidly — the pre-registered, mechanically-adjudicated measurement protocol
 itself worked end-to-end on all 12 predictions with no result silently dropped or
-reinterpreted. See `FINDINGS.md` for the full, numbered breakdown, including two real
+reinterpreted. See `FINDINGS.md` for the full, numbered breakdown, including three real
 bugs the adjudication pipeline caught in its own supporting code before they could
 silently produce a wrong verdict.
 
-Headline figure: `paper/figures/coverage_vs_error.pdf`.
+![Coverage vs. error, per problem, with Spearman rho annotated](paper/figures/coverage_vs_error.png)
+
+Poisson confirms the predicted negative correlation (rho=-0.82); Helmholtz_k10 does not
+(rho=+0.28, wrong sign) — the headline figure ships exactly as measured either way.
 
 ## Repository layout
 
