@@ -65,7 +65,13 @@ direction) and \textbf{INCONCLUSIVE} on heat despite a large surface ratio
 ($12.2\times$, past the $1.5\times$ bar) --- Cliff's $\delta=-1$ there means both seeds
 agree, but $p=0.5$ at $n=2$ can never clear the pre-registered significance bar (see the
 sample-size note above), so it is reported as inconclusive rather than confirmed on a
-favorable-looking ratio alone.
+favorable-looking ratio alone. \emph{Adversarial check (T4.9):} were \texttt{c\_mlp}/
+\texttt{c\_ff} simply under-tuned, faking these REFUTED verdicts? A learning-rate/width
+sweep, re-run at the real comparison budget, says no --- \texttt{c\_ff}'s mild
+under-tuning makes its win over \texttt{q\_serial} \emph{larger} (≈18$\times$, not
+smaller), and \texttt{c\_mlp}'s apparent reduced-budget improvement was worse, not
+better, once tested at the actual 20000-step schedule (\texttt{docs/self\_review.md},
+\texttt{FINDINGS.md} F14).
 
 \subsection{The matched-capacity equivalence, across all six instances (PR-3 generalized, C1/T4.2)}
 PR-3's own falsifier (\texttt{q\_serial} $\approx$ \texttt{c\_rff\_matched}, ratio within

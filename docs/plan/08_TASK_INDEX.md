@@ -186,20 +186,31 @@ FINDINGS.md:** soft_bc_ntk trained at 1500+150 steps, not the core matrix's 2000
 | ☑ T4.5 | Barren-plateau frontier | T3.5 | stated practical `(n, L)` frontier — `barren_frontier.pdf`: frontier at n_qubits=6, n_layers=2 (decay-rate metric PR-10 separately reported unmeasurable, see FINDINGS.md F9) |
 | ☑ T4.6 | Cost ledger (params, FLOPs, wall-clock, evals) | T3.5 | includes **error at matched wall-clock** — `results/cost_ledger.json`, `wall_clock_ratio_vs_fastest` per (problem,family) |
 | ☑ T4.7 | ★★ **Claim adjudication C1–C5 + PR-1…PR-12** | T4.2–T4.6 | no `?` left; inconclusive used where honest — all 12 predictions (15 checks) resolved, `FINDINGS.md`'s C1–C5 table |
-| ☑ T4.8 | ★ Adversarial self-review (6-item checklist) | T4.7 | each item answered with evidence — `docs/self_review.md`, all 6 answered; 2 real gaps flagged (items 2, 4), no verdict changed |
-| ☐ T4.9 | Baseline fairness re-run (if T4.8 finds under-tuning) | T4.8 | either "nothing better found" or re-run + re-adjudicate — **accepted gap, not run**: the phase doc's own estimate is ~40 runs / half a day, infeasible under the Aug 7 deadline. Documented explicitly, same treatment as PR-10's declined n_qubits=4 addition, not silently skipped. State in FINDINGS.md (done, see Recommendations). |
-| ☐ T4.10 | ★★ **Phase 4 gate** | T4.7–T4.9 | tag `phase4-complete` — **blocked on T4.9 only** (accepted, disclosed gap) |
+| ☑ T4.8 | ★ Adversarial self-review (6-item checklist) | T4.7 | each item answered with evidence — `docs/self_review.md`, all 6 answered; item 4 resolved (T4.9), item 5 structurally undefined at n=2 (stated, not faked), no verdict changed |
+| ☑ T4.9 | Baseline fairness re-run (if T4.8 finds under-tuning) | T4.8 | either "nothing better found" or re-run + re-adjudicate — **run for real**: 12-config exploratory grid (`configs/exp/baseline_tuning.yaml`, 3.4 min) + winning configs re-run at `core_matrix`'s actual full budget/seeds (560.7s). `c_ff` was mildly under-tuned (0.115→0.094, PR-2 REFUTED *more* strongly); `c_mlp`'s reduced-budget "winner" was worse at full budget (0.877→2.36), PR-1 unaffected. `FINDINGS.md` F14, `docs/self_review.md` item 4. |
+| ☑ T4.10 | ★★ **Phase 4 gate** | T4.7–T4.9 | tag `phase4-complete` — **all of T4.1–T4.9 genuinely complete** |
 
-### T4.7 note on T4.2/T4.8/T4.9/T4.10 gating
+### T4.7/T4.9/T4.10 status (2026-08-07)
 
-T4.2 is now done (all 6 problems, `FINDINGS.md` F13). T4.9 (baseline-tuning re-run) is
-the one remaining, deliberately accepted gap blocking T4.10: `docs/self_review.md` item
-4 flagged that `c_ff`/`c_mlp` were never tuned beyond their defaults, and the phase doc's
-own remediation estimate (~40 runs, half a day) is not achievable under today's
-deadline. This mirrors the same cut-line discipline used throughout T3.4-T3.6 (state the
-gap, don't fake the check) rather than either running a token/rushed sweep that wouldn't
-actually answer the question, or silently marking T4.9 done. **T4.10 stays unchecked**
-as a result — an honest, disclosed non-pass, not a false gate.
+T4.2 (all 6 problems, `FINDINGS.md` F13) and T4.9 (baseline-tuning re-run, `FINDINGS.md`
+F14) are both genuinely done, scoped down from the phase doc's literal ~40-run/half-day
+estimate to a real 16-run check (12 exploratory + 4 full-budget confirmation, ~13 min
+total GPU time) that still answers the actual question: is either classical baseline
+under-tuned in a way that fakes PR-1/PR-2's REFUTED verdicts? No — `c_ff`'s mild
+under-tuning makes its win over `q_serial` larger, and `c_mlp`'s apparent improvement
+didn't survive being tested at the real comparison budget.
+
+**Side finding while committing this work, flagged not chased down:** running the full
+test suite mutates already-committed smoke-fixture `results/runs/*` files (e.g.
+`rel_l2` shifting by ~1e-4 between runs of the same seeded smoke config) — a real,
+unexplained violation of T0.20's "same seed ⇒ bit-identical" determinism contract for
+smoke-mode runs specifically. Reverted those 564 incidental modifications before
+committing (`git checkout --`) to keep the originally-verified fixture data intact;
+worth a real investigation later, not this deadline.
+
+**T4.10's Phase 4 gate now
+passes for real**: every dependency (T4.1–T4.9) has genuine, verified evidence, no
+accepted gaps remaining.
 
 ---
 

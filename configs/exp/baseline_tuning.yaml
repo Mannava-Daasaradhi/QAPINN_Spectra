@@ -1,0 +1,25 @@
+# T4.9: baseline fairness re-run (docs/self_review.md item 4). Checks whether c_mlp/c_ff
+# were under-tuned in a way that could fake q_serial's REFUTED verdicts on PR-1/PR-2 --
+# both rest on c_mlp/c_ff beating q_serial, so an under-tuned baseline is the one risk
+# item this session's own adversarial self-review flagged as unaddressed.
+#
+# Scoped down from the phase doc's literal "~40 runs, half a day" estimate (infeasible
+# under the deadline that produced FINDINGS.md's original REFUTED verdicts) to a small,
+# real exploratory grid: 3 learning rates x 2 widths x 2 families = 12 configs, Poisson
+# only (the one problem where PR-1/PR-2 are actually decided), reduced budget (matching
+# every other trend-only sweep this session), single seed for exploration. The winning
+# config per family gets re-run at core_matrix's actual seeds {0,1} separately (not in
+# this file) for a real apples-to-apples comparison against the existing q_serial data.
+problems: [poisson]
+families: [c_mlp, c_ff]
+seeds: [0]
+train:
+  steps_adam: 1500
+  steps_lbfgs: 150
+  instruments: []
+axes:
+  - key: train.lr
+    values: [0.001, 0.003, 0.0003]
+  - key: model.widths
+    values: [[64, 64, 64], [128, 128, 128]]
+# 1 x 2 x 1 x 3 x 2 = 12 runs

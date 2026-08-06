@@ -163,11 +163,31 @@ n=2 read. This is the one place in this run's data where "no longer a clear quan
 disadvantage" (not the same as an advantage) shows up, and only the single-problem
 (Poisson) view in the original T4.2 scope would have missed it entirely.
 
+**F14 — Baseline-tuning check (T4.9) reinforces PR-2's REFUTED verdict and leaves PR-1
+unaffected, for two different reasons.** A 12-config exploratory grid
+(`configs/exp/baseline_tuning.yaml`: 3 learning rates × 2 widths, `c_mlp`/`c_ff`,
+Poisson, reduced budget) found each family's best configuration; the winner was then
+re-run at `core_matrix`'s real full budget (20000+2000 steps) and seeds {0,1} — the
+actual comparison PR-1/PR-2 are adjudicated against. **`c_ff`** was mildly under-tuned:
+`lr=0.003` improves median rel-L2 from 0.115 to 0.094, making its win over `q_serial`
+(1.702) *larger* (≈18×, up from 14.8×) — PR-2 REFUTED more decisively, not less.
+**`c_mlp`**'s reduced-budget "winner" (`lr=0.003`, which looked better at 1500 steps)
+was dramatically *worse* at the real 20000-step budget (median 2.36 vs.\ the default's
+0.877) — a higher rate that helps short-horizon convergence destabilizes the long
+schedule. PR-1's verdict is unaffected (`q_serial` still doesn't clear the 2× bar
+either baseline), but the finding rules out under-tuning as the reason, for the
+opposite of the originally-suspected direction. **Confidence: medium-high** — this is a
+direct, full-budget, apples-to-apples re-measurement (not an estimate or a proxy-budget
+extrapolation), though still `n=2` seeds and one problem (Poisson) only. **Methodological
+lesson, stated explicitly**: hyperparameters tuned at a reduced step budget do not
+reliably transfer to a longer one — any future tuning pass must search at the actual
+comparison budget.
+
 ## C1–C5 adjudication table
 
 | Claim | Status | Deciding evidence |
 |---|---|---|
-| C1 — SMCD constructive map | **Not supported at this sample size, one qualified exception** | Falsifier PR-6 INCONCLUSIVE (both problems, n=2 floor — F10); direct ablation PR-1/2/3 REFUTED on Poisson (F2); generalized to all 6 problems, REFUTED on 4, but genuinely CONFIRMED (statistical parity, not advantage) on Helmholtz_k10/k20 — the two highest-wavenumber instances (F13) |
+| C1 — SMCD constructive map | **Not supported at this sample size, one qualified exception** | Falsifier PR-6 INCONCLUSIVE (both problems, n=2 floor — F10); direct ablation PR-1/2/3 REFUTED on Poisson (F2), and confirmed not an under-tuned-baseline artifact (T4.9, F14); generalized to all 6 problems, REFUTED on 4, but genuinely CONFIRMED (statistical parity, not advantage) on Helmholtz_k10/k20 — the two highest-wavenumber instances (F13) |
 | C2 — Quantum-NTK block flattening | **Reversed where measurable** | PR-7 REFUTED on Helmholtz_k10 — spectrum steeper, not flatter, inside Ω; Poisson INSUFFICIENT_DATA (undefined outside-band exponent, not computed) (F3) |
 | C3 — Spectral-bias relief mechanism | **Holds on Poisson only** | PR-8 CONFIRMED (Poisson, 71.3%), REFUTED (Helmholtz_k10, 0% — no improvement exists) (F4) |
 | C4 — Negative-result map | **Mechanism partially right, uniform threshold REFUTED** | PR-4 REFUTED (3 families cross 5%), but 3 of 4 *quantum* families underperform as predicted; only `q_serial` is a quantum exception (F6) |
@@ -195,13 +215,13 @@ intent:
    point) so PR-10 can be measured, not just correctly reported as unmeasurable (F9).
 3. Investigate F7's NTK-drift ratio for a possible small-`‖Θ_0‖` normalization artifact
    before citing the raw 6.7-million-times figure in any follow-on claim.
-4. **Run T4.9's baseline-tuning sweep** (a small learning-rate/width sweep on `c_ff`
-   and `c_mlp`, using each family's best configuration rather than its default) —
-   flagged by `docs/self_review.md` item 4 as a real, unaddressed risk to PR-1/PR-2's
-   REFUTED verdicts specifically (both rest on `c_mlp`/`c_ff` beating `q_serial`).
-   Deliberately not run this session: the phase doc's own estimate (~40 runs, half a
-   day) was not achievable under the Aug 7 deadline. Accepted, disclosed gap, same
-   treatment as PR-10's declined `n_qubits=4` addition.
+4. ~~Run T4.9's baseline-tuning sweep~~ **Done (F14).** `c_ff` was mildly under-tuned;
+   fixing it strengthens PR-2's REFUTED verdict. `c_mlp`'s reduced-budget "improvement"
+   did not transfer to full budget and made things worse there, leaving PR-1 unaffected.
+   Extend to `helmholtz_k10`/`k20` (F13's two CONFIRMED-parity instances) next, where a
+   genuine baseline improvement could plausibly flip PR-3's per-problem verdict, unlike
+   Poisson where both PR-1/PR-2 were REFUTED by a wide enough margin that this check
+   couldn't realistically flip them.
 
 ## What we would do next with more time
 

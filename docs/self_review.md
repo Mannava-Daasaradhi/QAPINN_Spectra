@@ -34,17 +34,35 @@ item on this checklist with a clean, already-adjudicated CONFIRMED answer.
 
 ## 4. Are the classical baselines properly tuned?
 
-**Real gap — no `c_ff` learning-rate/width sweep was run.** Every family in this run
-used its default configuration. This is a genuine unanswered risk: an under-tuned
-`c_ff` would understate the classical baseline and could make a real `q_serial`
-disadvantage look smaller than it should, or (more relevant to what was actually
-measured) could make `c_ff`'s already-substantial win over `q_serial` (PR-2:
-`c_ff` beats `q_serial` by 14.8× on Poisson) look artificially large if `c_ff` happens
-to be over-tuned by luck of its default hyperparameters — though there is no specific
-evidence of that here, only the absence of a check that would rule it out. **Not done;
-this is the item most likely to change a verdict if run** (T4.9's own trigger
-condition), specifically PR-1/PR-2's REFUTED verdicts, which rest on `c_mlp`/`c_ff`
-beating `q_serial`, not the reverse.
+**Checked (T4.9, resolved). Neither verdict changes; the story is more interesting than
+"was under-tuned or wasn't."** Ran a 12-config exploratory grid (3 learning rates ×
+2 widths, `c_mlp`/`c_ff`, Poisson, reduced budget) to find each family's best
+configuration, then re-ran the winner at `core_matrix`'s actual full budget
+(20000+2000 steps) and seeds `{0,1}` — the only comparison that actually matters, since
+that is what PR-1/PR-2 are adjudicated against.
+
+- **`c_ff` was mildly under-tuned**: `lr=0.003` (vs.\ default `1e-3`) improves median
+  rel-L2 from 0.115 to 0.094 at full budget. This makes PR-2 *more* decisively REFUTED,
+  not less — tuned `c_ff` beats `q_serial` by ≈18× (vs.\ the original 14.8×), not the
+  other direction. Seed variance at the tuned LR is large (0.013 vs.\ 0.174, nearly 14×
+  apart) — one seed converges cleanly, the other doesn't; the median still holds.
+- **`c_mlp`'s reduced-budget "winner" did NOT transfer to full budget — it made
+  things worse.** `lr=0.003` looked better than the default at 1500 steps (1.54 vs.\
+  1.97), but at the real 20000-step budget it is dramatically worse (median 2.36 vs.\
+  the default's 0.877) — the higher rate that helped short-horizon convergence
+  destabilized the long-horizon schedule. This is itself a real methodological lesson,
+  not just a null result: tuning at one step budget does not reliably predict the
+  optimum at another, so any future tuning pass must search at the actual comparison
+  budget, not a cheaper proxy.
+- **Net effect on PR-1/PR-2**: PR-2 (`c_ff`) is now REFUTED more strongly. PR-1
+  (`c_mlp`) is unaffected in verdict — `q_serial` (1.702) still doesn't beat `c_mlp`
+  by the required 2× margin either way — but the *default* `c_mlp` (0.877) turns out
+  to be a better full-budget baseline than the naive "improvement" this sweep initially
+  found, which is reassuring evidence against under-tuning in `c_mlp`'s specific case,
+  for the opposite reason originally worried about.
+
+Config: `configs/exp/baseline_tuning.yaml` (exploratory) plus a direct `run_all` call
+at full budget for the winning configs. See `FINDINGS.md` F14.
 
 ## 5. Does the result survive dropping the best and worst seed?
 
@@ -69,11 +87,11 @@ solutions themselves are computed.
 
 ## Does any of this change a T4.7 verdict?
 
-**No verdict changes as a result of this review.** Item 1 (parameter count) rules out
-one specific alternative explanation for PR-3's result without changing the verdict
-itself (already REFUTED). Item 3 and item 6 are clean confirmations of existing
-verdicts. Items 2, 4, and 5 are real, stated gaps — none of them currently contradicts
-a reported verdict, but item 4 (baseline tuning) is the one most likely to matter if
-pursued: T4.9 is triggered by exactly this finding, and the recommended next step
-(`FINDINGS.md`'s Recommendations) is to run it before treating PR-1/PR-2's REFUTED
-verdicts as final.
+**No PR verdicts change, and T4.9 (item 4, baseline tuning) is now resolved rather than
+an open gap.** Item 1 (parameter count) rules out one specific alternative explanation
+for PR-3's result without changing the verdict itself (already REFUTED). Item 3 and
+item 6 are clean confirmations of existing verdicts. Item 4 was run to completion
+(T4.9): `c_ff` was mildly under-tuned, but fixing it makes PR-2's REFUTED verdict
+*stronger*, not weaker; `c_mlp`'s apparent improvement didn't survive being re-tested
+at the actual comparison budget, leaving PR-1 unaffected. Items 2 and 5 remain real,
+stated gaps — neither currently contradicts a reported verdict.
