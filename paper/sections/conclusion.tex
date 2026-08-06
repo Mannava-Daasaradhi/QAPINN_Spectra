@@ -1,0 +1,67 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+Against the contributions claimed in Section~\ref{sec:intro}, adjudicated strictly
+against the pre-registered falsifiers of \texttt{docs/predictions.md} (12 predictions,
+15 checks counting per-problem splits; \S\ref{sec:results}--\ref{sec:negative}):
+
+\textbf{C1 (SMCD's constructive map) is not supported at the achieved sample size, with
+one qualified exception at high wavenumber.} Its own falsifier, PR-6, is INCONCLUSIVE
+on both checked problems --- $n=2$ seeds cannot statistically separate \texttt{q\_serial}
+from \texttt{q\_random}, even where the raw ratio points the predicted way (heat,
+$12.2\times$). The direct comparison against classical baselines on P1 (PR-1/PR-2/PR-3)
+shows \texttt{q\_serial} \emph{underperforming} \texttt{c\_mlp}, \texttt{c\_ff}, and
+\texttt{c\_rff\_matched} alike. Generalizing PR-3 to all six instances (\S\ref{sec:results})
+sharpens this: REFUTED (classical decisively wins) on four of six, but genuinely
+CONFIRMED --- matched-capacity statistical equivalence --- on the two highest-wavenumber
+instances, Helmholtz\_k10 and Helmholtz\_k20, consistent with PR-5's $k$-scaling trend.
+Read together, the honest statement is not "SMCD doesn't work" but "this run finds no
+evidence of a quantum \emph{advantage} anywhere, and finds the quantum
+\emph{disadvantage} narrowing to statistical parity specifically at the hardest,
+highest-wavenumber instances" --- a real, qualified finding, not the clean constructive
+win C1 was written to claim.
+
+\textbf{C2 (quantum-NTK block decomposition, flattened decay inside $\Omega$) is
+reversed.} PR-7 REFUTED on both checked instances (Poisson, Helmholtz\_k10): the
+quantum block's spectrum was steeper, not flatter, inside the encoded band on this
+data.
+
+\textbf{C3 (spectral-bias relief as mechanism) holds on one instance, not the other.}
+PR-8 CONFIRMED on Poisson (71.3\% of the real, positive improvement lands inside
+$\Omega$) but REFUTED on Helmholtz\_k10, where \texttt{q\_serial} does not beat
+\texttt{c\_mlp} at any frequency at all --- there is no improvement for the mechanism
+to explain on the harder instance.
+
+\textbf{C4 (the negative-result map) is right about the mechanism, wrong about the
+uniform threshold.} Three of four quantum families tested on P2 (heat) underperform
+\texttt{c\_mlp} exactly as the smoothing-operator argument predicts, \texttt{q\_random}
+by an order of magnitude; \texttt{q\_serial}'s own modest $+7.7\%$ is the one quantum
+counter-example, and two classical-family violations (\texttt{c\_ff},
+\texttt{c\_rff\_matched}) are unrelated to the quantum-specific claim the 5\% bar was
+meant to test. The mechanistic story --- smoothing operators give a high-frequency-rich
+circuit nothing to earn its keep on --- is better supported by the per-family breakdown
+than by the single uniform threshold PR-4 was pre-registered against.
+
+\textbf{C5 (the XAI protocol) is the contribution this run actually demonstrates
+cleanly.} Every number above is a falsifiable, mechanically-checked quantity, run
+identically across classical and quantum families, computed from committed artifacts
+by \texttt{scripts/adjudicate\_predictions.py} rather than asserted --- and the protocol
+caught real bugs in its own supporting tooling along the way (a NaN silently
+miscategorized as REFUTED in PR-8's early implementation, a degenerate least-squares fit
+that would have reported a fabricated PR-10 slope, corrupted checkpoint data recovered
+rather than silently used), which is itself evidence the falsification discipline this
+paper argues for is not decorative.
+
+\textbf{The honest headline, matching Section~\ref{sec:intro}'s own framing:} at the
+sample size this deadline allowed ($n=2$, not the pre-registered $n=5$), this run does
+not demonstrate the quantum-advantage hypothesis SMCD was built to test --- on the one
+problem with a full ablation (Poisson), the hybrid model underperforms every classical
+comparator, and the NTK-block and spectral-flattening mechanisms proposed to explain
+\emph{why} it should help (C2) point the opposite direction from predicted. What does
+hold up is the negative-result mechanism on the smoothing control (C4, mostly), one
+genuine per-frequency win (C3, Poisson only), and the measurement protocol itself (C5)
+--- which is precisely the outcome this project's own pre-registration discipline exists
+to make legible rather than obscure. A larger, unrushed replication at the originally
+planned $n=5$ seeds, and a \texttt{depth\_sweep} grid that retains $n_{\text{qubits}}$
+variation (needed to even attempt PR-10), are the two most direct next steps
+(Section~\ref{sec:limitations}).

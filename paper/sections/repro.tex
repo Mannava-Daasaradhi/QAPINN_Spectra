@@ -1,0 +1,32 @@
+\section{Reproducibility appendix}
+\label{sec:repro}
+
+Every number below is measured against this session's actual runs, not estimated.
+
+\begin{itemize}
+\item \textbf{Hardware:} NVIDIA RTX 4090 Laptop GPU, 32 logical CPU cores
+  (\texttt{provenance.json}, recorded per run) --- one machine for every run in this paper.
+\item \textbf{Software} (\texttt{docs/ENV\_RESOLVED.md}, pinned via \texttt{uv}):
+  Python 3.12.13, \texttt{torch 2.11.0+cu128} (CUDA 12.8), \texttt{pennylane 0.45.1},
+  \texttt{numpy 2.4.4}, \texttt{scipy 1.18.0}.
+\item \textbf{Determinism:} \texttt{qapinn.seeding.set\_global\_seed} seeds Python,
+  NumPy, and Torch (CPU+CUDA) from one integer and enables
+  \texttt{torch.use\_deterministic\_algorithms}; an explicit \texttt{torch.Generator}
+  is threaded through every sampling call, so two runs at the same seed produce
+  bit-identical \texttt{metrics.json} (T0.20).
+\item \textbf{Seeds used} (state explicitly, cut from a pre-registered $n=5$ under the
+  Aug 7 deadline --- Section~\ref{sec:limitations}, \texttt{FINDINGS.md} F10):
+  \texttt{core\_matrix} $\{0,1\}$; \texttt{coverage\_sweep}/\texttt{alpha\_sweep}/
+  \texttt{noise\_study}/\texttt{soft\_bc\_ntk} $\{0,1,2\}$; \texttt{depth\_sweep} $\{0\}$.
+\item \textbf{Concurrency:} \texttt{--workers 2 --mem-fraction 0.35} for every sweep
+  except \texttt{depth\_sweep} (\texttt{--workers 1 --mem-fraction 0.8}, forced down
+  after system-memory exhaustion on its larger circuits --- OS/driver contention under
+  concurrent CUDA context creation on this specific machine, not a VRAM limit).
+\item \textbf{Measured wall-clock:} \texttt{tasks.py repro-quick} (CPU-only, 42
+  combinations, implemented this session): \textbf{513.7\,s ($\approx$8.6 min)}, 42/42
+  OK, under the 15-min target. \texttt{tasks.py test} (384 tests): 361.8\,s.
+  \texttt{tasks.py figures} (18 figures from committed data, no GPU): under a minute.
+  A single composite \texttt{repro-all} time was not measured --- that command is not
+  implemented as one entry point this session; per-experiment costs are in
+  \texttt{results/cost\_ledger.json} instead.
+\end{itemize}

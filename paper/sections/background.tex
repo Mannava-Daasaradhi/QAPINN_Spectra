@@ -1,0 +1,69 @@
+\section{Background}
+\label{sec:background}
+
+Full derivations for every item below are in \texttt{docs/derivations/}; this section
+states results and the one-line reason each matters to the design rule in
+Section~\ref{sec:methodology}.
+
+\subsection{Classical side}
+
+\textbf{PINNs as strong-form collocation.} A PINN \citep{raissi2019pinn} minimizes the PDE residual directly at
+sampled collocation points via automatic differentiation, with no mesh and no weak form
+--- unlike Galerkin/FEM, the optimization problem is non-convex in the network parameters
+even when the underlying PDE is linear.
+
+\textbf{Exact derivatives via reverse-mode AD.} Reverse-mode AD gives derivatives that are
+exact (to floating-point precision), not finite-difference approximations; the dominant
+cost for a PINN is second derivatives (e.g.\ $u_{xx}$ in $\ge 2$ dimensions), computed via
+double backward passes.
+
+\textbf{The NTK and lazy training} \citep{jacot2018ntk} \textbf{(Section~\ref{sec:prop4}'s classical baseline).} Writing
+$\Theta(x,x')=\nabla_\theta N[u_\theta](x)\cdot\nabla_\theta N[u_\theta](x')^\top$ for the
+residual network's tangent kernel, gradient-flow training linearizes in the lazy regime to
+$\dot e = -\Theta_0 e$, so each eigenmode of $\Theta_0$ decays as $\exp(-\lambda_i t)$:
+loss-term imbalance between residual and boundary blocks is an eigenvalue-imbalance
+phenomenon, not merely a loss-weight-tuning problem (\texttt{docs/derivations/03\_ntk\_pinn.md}).
+
+\textbf{Spectral bias.} For a tanh or ReLU MLP, the NTK eigenvalues decay roughly as a
+power law in Fourier-mode index, so high-frequency solution components are learned last
+and slowly. Fourier-feature and random-feature encodings \citep{tancik2020fourier} are the standard classical fix
+and the non-negotiable fair baseline this project compares against (model family
+\texttt{C-FF}, Section~\ref{sec:results}) --- if the quantum layer beats only a plain MLP and not
+a Fourier-feature MLP, it has bought nothing that random Fourier features do not already
+supply.
+
+\textbf{Hard vs.\ soft boundary enforcement.} The ansatz $u = B(x) + D(x)\cdot N(x)$
+(distance function $D$ vanishing on the boundary, particular solution $B$ matching the
+boundary data) removes the boundary-loss NTK block entirely by construction, at the cost
+of a distance-function derivation per domain; the soft-BC alternative keeps a
+separately-weighted boundary loss term whose own NTK block this project instruments
+directly (Section~\ref{sec:xai}).
+
+\subsection{Quantum side}
+
+\textbf{Data-re-uploading circuits as Fourier series.} For encoding gates
+$\exp(-ix H^{(l)})$ with generator eigenvalues $\{\lambda^{(l)}_a\}$, an $L$-layer
+re-uploading circuit's output expectation is a truncated Fourier series whose frequency
+set is the set of signed sums of per-layer eigenvalue differences --- the central theorem
+this project's entire methodology is engineering on top of (Proposition~1,
+Section~\ref{sec:prop1}; \citealp{schuld2021effect}).
+
+\textbf{Parameter-shift derivatives.} $\partial_\theta f = \tfrac12[f(\theta+\pi/2) -
+f(\theta-\pi/2)]$ for a Pauli-generated gate; because the circuit's input $x$ enters as a
+rotation angle, $\partial_x f$ is \emph{also} exactly computable via a parameter shift ---
+a hardware-exact PINN residual gradient, not a finite-difference approximation, and the
+reason this project's whole approach is physically realizable on real quantum hardware,
+not just simulable.
+
+\textbf{Barren plateaus.} $\mathrm{Var}[\partial_\theta C]$ decays exponentially in qubit
+count $n$ for a global-observable cost function on a deep, unstructured random circuit
+\citep{mcclean2018barren}. SMCD's Algorithm~1 (Section~\ref{sec:algorithm}) mitigates this
+structurally: shallow depth (by design, not by luck --- the depth rule targets the
+\emph{minimum} $L$ that covers the target band), a local observable, and small-angle
+initialization.
+
+\textbf{Effective dimension.} The Abbas et al.\ effective-dimension statistic
+\citep{abbas2021effdim}, computed from the empirical Fisher information eigenspectrum, is
+this project's quantum-native capacity measure (Section~\ref{sec:xai}'s Fisher/effective-dimension
+instrument), reported alongside --- not instead of --- parameter count, since ``fewer
+parameters'' is a claim prior QPINN work makes loosely.

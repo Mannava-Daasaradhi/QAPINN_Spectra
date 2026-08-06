@@ -1,0 +1,52 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[numbers,sort&compress]{natbib}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+\title{Spectrum-Matched Quantum-Assisted PINNs:\\
+  A Constructive Design Methodology for Problem-Specific\\
+  Variational Circuits, Instrumented by Explainable-AI Diagnostics}
+\author{Katta Lahari \and Mannava Daasaradhi}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A classical physics-informed neural network (PINN) fails on exactly one thing, reliably
+and provably: it learns low frequencies fast and high frequencies almost not at all
+(spectral bias), because its neural tangent kernel (NTK) eigenspectrum decays with
+Fourier-mode index. A data-re-uploading variational quantum circuit is not a black-box
+speedup --- it is a Fourier feature map whose accessible frequency set is exactly and
+prescribably determined by the eigenvalues of its data-encoding Hamiltonians. This paper
+joins those two facts into a constructive design rule, Spectrum-Matched Circuit Design
+(SMCD, Section~\ref{sec:methodology}): given a PDE, we compute the target spectral support
+analytically from the operator symbol and forcing/boundary data, then construct the
+encoding generators, re-uploading depth, and qubit count so the circuit's realized
+frequency set covers it --- no architecture search. We use six explainable-AI instruments,
+run identically on matched classical and hybrid models, as the measurement instrument that
+proves the mechanism rather than merely reporting an accuracy delta.
+\end{abstract}
+
+\input{sections/intro}
+\input{sections/background}
+\input{sections/methodology}
+\input{sections/xai_protocol}
+\input{sections/results}
+\input{sections/negative_results}
+\input{sections/limitations}
+\input{sections/conclusion}
+\input{sections/repro}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

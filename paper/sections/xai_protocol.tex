@@ -1,0 +1,49 @@
+\section{XAI Instrument Protocol}
+\label{sec:xai}
+
+Six instruments are run at identical checkpoints ($\{0,100,500,1\text{k},5\text{k},
+20\text{k},\text{final}\}$ steps) for every model $\times$ PDE $\times$ seed, on matched
+classical and hybrid families, so any measured difference is attributable to the quantum
+layer and not to a difference in when or how each family was probed. Every instrument's
+prediction is pre-registered (\texttt{docs/predictions.md}) before the corresponding run,
+with a stated falsifier --- the discipline this project's XAI protocol relies on to avoid
+the post-hoc-storytelling failure mode the PINN-XAI literature is criticized for
+\citep{fundamental_flaws_pinns}.
+
+\paragraph{7.1 NTK spectroscopy (primary).} Following the template of \citet{ntk_pikans_2506}
+for classical physics-informed solvers, extended here to the hybrid case: empirical NTK on a fixed probe set; eigenvalue
+spectrum, decay exponent, condition number, and per-loss-block eigenvalue mass (residual
+vs.\ boundary vs.\ initial condition). Predicted signature: a plateau in the hybrid
+model's spectrum located at the encoded band $\Omega$ (Proposition~4,
+Section~\ref{sec:prop4}), against the classical model's monotone power-law decay. NTK drift
+$\|\Theta_t-\Theta_0\|_F/\|\Theta_0\|_F$ is tracked to check whether the hybrid model
+stays in the lazy-training regime throughout.
+
+\paragraph{7.2 Per-frequency error trajectory (primary).} The error field
+$u_\theta - u^*$ projected onto Fourier modes at each checkpoint, plotted as a
+frequency-vs-training-step heatmap with the design card's $\Omega$ overlaid. A classical
+PINN gives the textbook spectral-bias staircase (low $k$ first); the hybrid model is
+predicted to show simultaneous decay across $\Omega$. If the improved band and $\Omega$
+coincide, Contribution C3 is demonstrated directly in one figure, not inferred indirectly
+from an aggregate error number.
+
+\paragraph{7.3 Collocation-point attribution.} Integrated Gradients of the residual loss
+with respect to input coordinates, aggregated into an attribution field over the domain,
+with the completeness-axiom violation and the attribution-vs-true-residual correlation
+reported alongside the field --- Integrated Gradients is known to be unstable, so the
+correlation number is reported, not just the picture.
+
+\paragraph{7.4 Fisher information \& effective dimension.} The empirical Fisher spectrum
+of the quantum block and its Abbas et al.\ effective dimension \citep{abbas2021effdim},
+tracked across training and reported against the classical block's own effective
+dimension --- distinguishing ``more expressive'' from ``just more parameters.''
+
+\paragraph{7.5 Gradient variance / barren-plateau tracking.} $\mathrm{Var}[\partial_\theta
+L]$ measured against qubit count and depth, compared to the theoretical $2^{-n}$
+prediction for a global-cost deep random circuit \citep{mcclean2018barren} --- the honest
+cost side of the design ledger.
+
+\paragraph{7.6 Layerwise probes and loss-landscape slices.} Ridge-regression $R^2$ per
+layer for how much of $u^*$ is already linearly decodable at that representation, plus
+filter-normalized 2-D loss-landscape slices, confirming the trained point sits at a
+minimum.

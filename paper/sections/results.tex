@@ -1,0 +1,109 @@
+\section{Results}
+\label{sec:results}
+
+\textbf{Sample size note, stated once here rather than repeated at every number below:}
+the Aug 7 deadline forced the core matrix's seed count down from the pre-registered
+plan of 5 to 2 (\texttt{08\_TASK\_INDEX.md}'s cut-line, invoked twice under real time
+pressure). At $n=2$ paired seeds, the smallest two-sided Wilcoxon $p$ achievable is
+\textbf{0.5} (both seeds agreeing in sign is the single most extreme $n=2$ outcome), not
+the $n=5$ plan's $0.0625$. \texttt{docs/predictions.md}'s CONFIRMED gate
+($p\le 0.0625$) was left at its original, pre-registered value rather than loosened
+post hoc, which means every ratio-and-significance check below (PR-1, PR-2, PR-6) can
+now only land on REFUTED or INCONCLUSIVE, \emph{regardless of true effect size}. This is
+a real, structural consequence of the seed cut, not a weak result reported as an ambiguous
+one --- every verdict below is exactly what the pre-registered thresholds say, unmodified.
+
+\subsection{The headline figure: coverage vs.\ error (PR-9)}
+\texttt{coverage\_vs\_error} (\texttt{paper/figures/coverage\_vs\_error.pdf}): median
+relative-$L^2$ error vs.\ SMCD's achieved coverage $|\hat S\cap\Omega|/|\hat S|$, one
+series per problem (poisson, helmholtz\_k10), Spearman $\rho$ per problem, at $n=18$
+points per problem (6 coverage targets $\times$ 3 seeds --- \texttt{coverage\_sweep} is
+the one sweep never cut on seed count). \textbf{REFUTED.} Poisson shows the predicted
+strong negative correlation, $\rho=-0.82$ ($p=3.2\times10^{-5}$), well past the $\rho\le
+-0.7$ bar. Helmholtz\_k10 does not: $\rho=+0.28$ ($p=0.27$), the \emph{wrong sign} ---
+higher SMCD coverage did not track lower error on the harder, more quantum-heavy
+problem instance. The adjudication rule takes the worst case across problems, so the
+verdict is REFUTED even though one problem instance individually confirms the claim;
+this is the headline figure and it ships exactly as measured, per this project's own
+"ships whatever it says" rule.
+
+\subsection{NTK spectroscopy (PR-7)}
+\texttt{ntk\_spectrum\_\{p1,p4,poisson\_pr7,helmholtz\_k10\_pr7\}}: classical-vs-hybrid
+eigenvalue spectra with the encoded band $\Omega$ shaded, decay exponent measured
+separately inside vs.\ outside the band. \textbf{REFUTED on both checked instances.}
+Poisson: gap $=-5.47$ (inside-band exponent $-9.43$, outside $-3.96$) --- the spectrum is
+\emph{steeper}, not flatter, inside $\Omega$. Helmholtz\_k10: gap $=-9.67$, same
+direction. Both are the opposite sign from the $\ge+0.5$ threshold: the quantum block's
+NTK does not show the predicted eigen-direction concentration at the encoded
+frequencies; if anything, the classical block's decay is comparatively flatter across
+these two instances.
+
+\subsection{Per-frequency error trajectories (PR-8)}
+\texttt{freq\_heatmap\_\{poisson,heat,burgers,helmholtz\_k4,helmholtz\_k10,helmholtz\_k20\}}
+(all six problem instances render; see \S\ref{sec:xai} note on the crash-retry
+\texttt{specerr.npz} corruption found and fixed while building this figure).
+\textbf{Split verdict.} Poisson: \textbf{CONFIRMED} --- 71.3\% of the total error
+improvement lands inside $\Omega$, past the 70\% bar, on real positive total
+improvement (13{,}751 in the accumulated per-frequency metric). Helmholtz\_k10:
+\textbf{REFUTED}, and not narrowly --- \texttt{q\_serial} does not outperform
+\texttt{c\_mlp} at \emph{any} frequency (total\_improvement $=0$), so there is no
+improvement for PR-8's premise to attribute to $\Omega$ in the first place, independent
+of the 70\% threshold.
+
+\subsection{Ablation: is it the design, or just being quantum? (PR-1, PR-2, PR-3, PR-6)}
+\texttt{ablation\_matched}: \texttt{q\_serial} vs.\ \texttt{c\_mlp}, \texttt{c\_ff},
+\texttt{c\_rff\_matched} (matched spectrum, no quantum), and \texttt{q\_random}
+(quantum, unmatched spectrum), paired Wilcoxon and Cliff's delta on Poisson (P1), $n=2$
+shared seeds. \textbf{All four REFUTED}, and in the same direction: \texttt{q\_serial}'s
+median rel-$L^2$ ($1.702$) is not just short of beating the classical families, it is
+\emph{worse} than every one of them at this sample size --- \texttt{c\_mlp} ($0.877$,
+ratio $0.52\times$ vs.\ the $\ge2\times$ bar), \texttt{c\_ff} ($0.115$, ratio
+$0.068\times$ vs.\ the $\ge1.3\times$ bar), and \texttt{c\_rff\_matched} ($0.400$, ratio
+$4.25\times$ vs.\ the $[0.77,1.3]$ equivalence band PR-3 needed). PR-6
+(\texttt{q\_serial} vs.\ \texttt{q\_random}, same-size ablation, C1's own falsifier) is
+\textbf{INCONCLUSIVE} on Poisson (Cliff's $\delta=0$, the two seeds disagree in
+direction) and \textbf{INCONCLUSIVE} on heat despite a large surface ratio
+($12.2\times$, past the $1.5\times$ bar) --- Cliff's $\delta=-1$ there means both seeds
+agree, but $p=0.5$ at $n=2$ can never clear the pre-registered significance bar (see the
+sample-size note above), so it is reported as inconclusive rather than confirmed on a
+favorable-looking ratio alone.
+
+\subsection{The matched-capacity equivalence, across all six instances (PR-3 generalized, C1/T4.2)}
+PR-3's own falsifier (\texttt{q\_serial} $\approx$ \texttt{c\_rff\_matched}, ratio within
+$[0.77,1.3]$) was checked on Poisson only in \S\ref{sec:results}'s ablation above;
+extending the same check to all six problem instances (same $n=2$ caveat throughout)
+surfaces a real pattern the single-problem view misses. Ratio
+(\texttt{q\_serial}/\texttt{c\_rff\_matched} median rel-$L^2$): Poisson $4.25\times$
+(REFUTED), heat $1.42\times$ (REFUTED), burgers $3.58\times$ (REFUTED),
+Helmholtz\_k4 $8.97\times$ (REFUTED, driven by the same catastrophic k=4
+non-convergence as PR-5), Helmholtz\_k10 $1.09\times$ (\textbf{CONFIRMED} --- inside the
+band), Helmholtz\_k20 $0.98\times$ (\textbf{CONFIRMED}, and here \texttt{q\_serial} is
+marginally \emph{ahead}). The pattern is consistent with PR-5's k-scaling trend: at low
+wavenumber, matched-capacity classical Fourier features decisively beat \texttt{q\_serial};
+at the two highest-wavenumber instances, the two are statistically indistinguishable at
+this sample size. This does not establish a quantum \emph{advantage} anywhere --- the
+best this run's data supports is "no longer a clear quantum \emph{disadvantage}" on the
+hardest two instances, which is itself a real, non-obvious finding this single-problem
+view would have missed.
+
+\subsection{Decision map: predicted vs.\ measured benefit, and P4's k-scaling (PR-5)}
+\texttt{decision\_map}: SMCD's a-priori predicted benefit against the measured benefit
+of \texttt{q\_serial} over \texttt{c\_mlp}, one point per problem. Separately, P4's
+$k$-scaling prediction (PR-5, \textbf{CONFIRMED}): the \texttt{c\_mlp}/\texttt{q\_serial}
+rel-$L^2$ ratio increases monotonically across $k=4\to10\to20$
+($8.79\times10^{-6}\to0.918\to1.024$). The direction is confirmed, but the $k=4$ point's
+extremity is itself the finding, not a clean win: a ratio of $8.79\times10^{-6}$ means
+\texttt{q\_serial}'s error is roughly five orders of magnitude \emph{larger} than
+\texttt{c\_mlp}'s at $k=4$ --- catastrophic non-convergence, not a close loss. The
+monotonic trend is real, but it is driven by quantum failing worst at the easiest
+instance and only nearly catching up at $k=20$ (ratio $1.02$, i.e.\ still not actually
+ahead), not by quantum's advantage growing from a positive baseline.
+
+\subsection{P2's negative control (PR-4) and the barren-plateau frontier (PR-10)}
+See \S\ref{sec:negative} for PR-4 (heat/P2, C4's core claim). PR-10 (gradient variance
+vs.\ the $2^{-n}$ barren-plateau line): \textbf{INSUFFICIENT\_DATA}, reported honestly
+rather than computed anyway --- \texttt{depth\_sweep}'s final grid (cut to
+$n_{\text{qubits}}=6$ only, under the same deadline pressure) has zero variation in
+$n_{\text{qubits}}$, the fit's own independent variable, so \texttt{barren\_plateau\_fit}
+refuses to report a slope rather than return a solver artifact from a rank-deficient
+fit. See \S\ref{sec:limitations}.
