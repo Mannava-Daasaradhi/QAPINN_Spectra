@@ -92,13 +92,29 @@ def gradient_variance(
 
 
 def barren_plateau_fit(results: list[dict]) -> dict:
-    """Fit log(var_mean) = a - b*n_qubits by least squares. Returns {'slope_b', 'r2'}.
-    Theoretical prediction for a global-cost, deep random circuit is b = log(2) (Var ~
-    2^-n); we compare our local-observable, shallow circuits against it -- the expectation
-    is to sit well ABOVE that line (small or near-zero b), which is the point of the
-    cost-ledger section."""
+    """Fit log(var_mean) = a - b*n_qubits by least squares. Returns {'slope_b', 'r2'}, or
+    {'error': ...} if `results` doesn't span at least 2 distinct n_qubits values -- a
+    least-squares fit against a constant independent variable is degenerate (rank-deficient
+    design matrix): numpy will still return *a* slope, but it's an artifact of the solver's
+    tie-breaking, not a measurement. Theoretical prediction for a global-cost, deep random
+    circuit is b = log(2) (Var ~ 2^-n); we compare our local-observable, shallow circuits
+    against it -- the expectation is to sit well ABOVE that line (small or near-zero b),
+    which is the point of the cost-ledger section."""
     ns = np.array([r["n_qubits"] for r in results], dtype=float)
     var_means = np.array([r["var_mean"] for r in results], dtype=float)
+
+    if len(set(ns.tolist())) < 2:
+        return {
+            "error": "degenerate_fit",
+            "reason": (
+                f"barren_plateau_fit needs >=2 distinct n_qubits values to fit a slope; "
+                f"got only {sorted(set(ns.tolist()))} across {len(results)} result(s). "
+                "Refusing to report a slope_b/r2 computed against a constant independent "
+                "variable -- np.polyfit would return a solver artifact, not a measurement."
+            ),
+            "n_qubits_seen": sorted(set(ns.tolist())),
+        }
+
     log_var = np.log(np.clip(var_means, 1e-300, None))
 
     slope, intercept = np.polyfit(ns, log_var, 1)  # log_var ~= intercept + slope*n

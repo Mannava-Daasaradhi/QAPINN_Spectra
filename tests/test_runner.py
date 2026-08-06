@@ -18,10 +18,12 @@ def test_smoke_pde_instances_matches_runner_canonical_list():
     assert tasks.SMOKE_PDE_INSTANCES == PROBLEM_INSTANCES
 
 
-def test_enumerate_runs_core_matrix_yaml_gives_210_distinct_configs():
+def test_enumerate_runs_core_matrix_yaml_gives_84_distinct_configs():
+    # 210 in the original spec; cut to 84 (seeds 5->2, cut-line #4) under Aug 7 deadline
+    # pressure -- see 08_TASK_INDEX.md's "Cuts applied" sections.
     cfgs = enumerate_runs(Path("configs/exp/core_matrix.yaml"))
-    assert len(cfgs) == 210
-    assert len({c.run_id for c in cfgs}) == 210
+    assert len(cfgs) == 84
+    assert len({c.run_id for c in cfgs}) == 84
 
 
 def test_enumerate_runs_axes_cartesian_product(tmp_path):

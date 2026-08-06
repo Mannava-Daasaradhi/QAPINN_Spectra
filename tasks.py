@@ -233,7 +233,29 @@ def cmd_smoke(args: argparse.Namespace) -> int:
 
 
 def cmd_repro_quick(args: argparse.Namespace) -> int:
-    return _not_yet_implemented("repro-quick", "T5.5")
+    """T5.5: ~15 min, CPU-only reduced-fidelity reproduction a reviewer can run without a
+    GPU. Reuses cmd_smoke's own --smoke path (train(..., smoke=True), <60s/combo target,
+    every PDE instance x every model family, 6x7=42 combos) rather than a separate
+    implementation -- it is already exactly "reduced-fidelity, every family x problem,
+    process-isolated" and already supports --cpu. This is deliberately NOT a
+    reproduction of any specific paper number (that is repro-all's job, T5.1's
+    strict-mode figure regeneration from committed results/runs/ data): it is a fast
+    correctness signal ("does the whole pipeline still run, end to end, on a machine with
+    no CUDA") that a reviewer can run in minutes before trusting the slower, real
+    reproduction path.
+    """
+    import time
+    from argparse import Namespace
+
+    t0 = time.time()
+    smoke_args = Namespace(cpu=True, mem_fraction=0.75, workers=1, timeout=180.0)
+    rc = cmd_smoke(smoke_args)
+    elapsed = time.time() - t0
+
+    print(f"\nrepro-quick: {elapsed:.1f}s elapsed (CPU-only, target ~15 min / 900s)")
+    if elapsed > 900:
+        print("repro-quick: exceeded the ~15 min target -- report this, do not silently accept it", file=sys.stderr)
+    return rc
 
 
 def cmd_repro_all(args: argparse.Namespace) -> int:
@@ -241,15 +263,98 @@ def cmd_repro_all(args: argparse.Namespace) -> int:
 
 
 def cmd_figures(args: argparse.Namespace) -> int:
-    return _not_yet_implemented("figures", "T5.1")
+    scripts_dir = os.path.join(REPO_ROOT, "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    from make_figures import regenerate_all
+
+    result = regenerate_all(strict=args.strict)
+    return 1 if (result["skipped"] or result["errors"]) and args.strict else 0
 
 
 def cmd_paper(args: argparse.Namespace) -> int:
-    return _not_yet_implemented("paper", "T5.6")
+    import shutil
+    import subprocess
+
+    paper_dir = os.path.join(REPO_ROOT, "paper")
+    main_tex = os.path.join(paper_dir, "main.tex")
+    if not os.path.isfile(main_tex):
+        print("tasks.py paper: paper/main.tex does not exist yet (T5.6)", file=sys.stderr)
+        return 1
+
+    tectonic = shutil.which("tectonic")
+    legacy_engine = next((e for e in ("pdflatex", "xelatex", "lualatex") if shutil.which(e)), None)
+    if tectonic is None and legacy_engine is None:
+        print(
+            "tasks.py paper: no LaTeX engine found (checked tectonic, pdflatex, xelatex, lualatex).\n"
+            "paper/main.tex and paper/sections/*.tex exist and are ready to compile once one is\n"
+            "installed -- tectonic is the lightest option (single portable binary, fetches only\n"
+            "the packages it needs): see docs/REPRODUCE.md for the install command used on this\n"
+            "machine. This command cannot verify the DoD (PDF builds, 5-15 pages) without one.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if tectonic is not None:
+        result = subprocess.run(
+            [tectonic, "main.tex"], cwd=paper_dir, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print(result.stderr[-4000:], file=sys.stderr)
+            print(f"tasks.py paper: tectonic failed (exit {result.returncode})", file=sys.stderr)
+            return 1
+    else:
+        for _ in range(2):  # twice for references/citations to resolve
+            result = subprocess.run(
+                [legacy_engine, "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
+                cwd=paper_dir, capture_output=True, text=True,
+            )
+            if result.returncode != 0:
+                print(result.stdout[-4000:], file=sys.stderr)
+                print(f"tasks.py paper: {legacy_engine} failed (exit {result.returncode})", file=sys.stderr)
+                return 1
+
+    pdf_path = os.path.join(paper_dir, "main.pdf")
+    if not os.path.isfile(pdf_path):
+        print("tasks.py paper: build reported success but main.pdf is missing", file=sys.stderr)
+        return 1
+    print(f"tasks.py paper: built {pdf_path}")
+    return 0
 
 
 def cmd_slides(args: argparse.Namespace) -> int:
-    return _not_yet_implemented("slides", "T5.10")
+    import shutil
+    import subprocess
+
+    slides_dir = os.path.join(REPO_ROOT, "slides")
+    main_md = os.path.join(slides_dir, "main.md")
+    if not os.path.isfile(main_md):
+        print("tasks.py slides: slides/main.md does not exist yet (T5.10)", file=sys.stderr)
+        return 1
+    if shutil.which("npx") is None:
+        print(
+            "tasks.py slides: npx (Node.js) not found -- @marp-team/marp-cli renders "
+            "slides/main.md to PDF; install Node.js to build.",
+            file=sys.stderr,
+        )
+        return 1
+
+    result = subprocess.run(
+        ["npx", "--yes", "@marp-team/marp-cli", "main.md", "-o", "main.pdf", "--allow-local-files"],
+        cwd=slides_dir, capture_output=True, text=True, shell=True,
+    )
+    if result.returncode != 0:
+        print(result.stdout[-4000:], file=sys.stderr)
+        print(result.stderr[-4000:], file=sys.stderr)
+        print(f"tasks.py slides: marp-cli failed (exit {result.returncode})", file=sys.stderr)
+        return 1
+
+    pdf_path = os.path.join(slides_dir, "main.pdf")
+    if not os.path.isfile(pdf_path):
+        print("tasks.py slides: build reported success but main.pdf is missing", file=sys.stderr)
+        return 1
+    print(f"tasks.py slides: built {pdf_path}")
+    return 0
 
 
 def cmd_clean(args: argparse.Namespace) -> int:
@@ -345,6 +450,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_sweep)
 
     p = sub.add_parser("figures", help="Regenerate all figures from results/")
+    p.add_argument(
+        "--strict", action="store_true", help="fail if any figure is skipped or errors (the real T5.1 DoD check)"
+    )
     p.set_defaults(func=cmd_figures)
 
     p = sub.add_parser("paper", help="Build paper/main.pdf")

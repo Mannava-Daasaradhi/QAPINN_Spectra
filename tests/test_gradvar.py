@@ -56,3 +56,14 @@ def test_barren_plateau_fit_recovers_known_slope():
     fit = barren_plateau_fit(results)
     assert abs(fit["slope_b"] - true_b) < 0.05
     assert fit["r2"] > 0.99
+
+
+def test_barren_plateau_fit_rejects_constant_n_qubits():
+    # a single n_qubits value repeated across every (n_layers) point is exactly
+    # depth_sweep.yaml's current grid -- the fit's independent variable is constant, so it
+    # must refuse to report a slope rather than return a np.polyfit solver artifact.
+    results = [{"n_qubits": 6, "var_mean": v} for v in (1.0, 0.5, 0.25, 0.1)]
+    fit = barren_plateau_fit(results)
+    assert fit["error"] == "degenerate_fit"
+    assert "slope_b" not in fit
+    assert fit["n_qubits_seen"] == [6.0]
