@@ -29,14 +29,13 @@ this is the headline figure and it ships exactly as measured, per this project's
 
 \subsection{NTK spectroscopy (PR-7)}
 \texttt{ntk\_spectrum\_\{p1,p4,poisson\_pr7,helmholtz\_k10\_pr7\}}: classical-vs-hybrid
-eigenvalue spectra with the encoded band $\Omega$ shaded, decay exponent measured
-separately inside vs.\ outside the band. \textbf{REFUTED on both checked instances.}
-Poisson: gap $=-5.47$ (inside-band exponent $-9.43$, outside $-3.96$) --- the spectrum is
-\emph{steeper}, not flatter, inside $\Omega$. Helmholtz\_k10: gap $=-9.67$, same
-direction. Both are the opposite sign from the $\ge+0.5$ threshold: the quantum block's
-NTK does not show the predicted eigen-direction concentration at the encoded
-frequencies; if anything, the classical block's decay is comparatively flatter across
-these two instances.
+eigenvalue spectra with $\Omega$ shaded, decay exponent measured inside vs.\ outside the
+band, from each run's committed \texttt{xai/ntk\_step*.npz} only. \textbf{Helmholtz\_k10:
+REFUTED}, gap $=-9.67$ (need $\ge+0.5$) --- steeper, not flatter, inside $\Omega$.
+\textbf{Poisson: INSUFFICIENT\_DATA}, not REFUTED --- fewer than 2 positive eigenvalues
+fall in the outside-band range, so that exponent is undefined, not just noisy; reported
+as such rather than letting \texttt{NaN}$\ge 0.5$ silently evaluate false. Where measurable, the quantum block's NTK does not show the
+predicted eigen-concentration at the encoded frequencies.
 
 \subsection{Per-frequency error trajectories (PR-8)}
 \texttt{freq\_heatmap\_\{poisson,heat,burgers,helmholtz\_k4,helmholtz\_k10,helmholtz\_k20\}}

@@ -42,10 +42,7 @@
     "run_ids": []
   },
   "ntk_spectrum_helmholtz_k10_pr7": {
-    "run_ids": [
-      "b07abab1747c",
-      "9d4c386d5907"
-    ]
+    "run_ids": []
   },
   "ntk_spectrum_p1": {
     "run_ids": []
@@ -54,10 +51,7 @@
     "run_ids": []
   },
   "ntk_spectrum_poisson_pr7": {
-    "run_ids": [
-      "14bbe5f763c4",
-      "ce23b631c673"
-    ]
+    "run_ids": []
   },
   "probes_cka": {
     "run_ids": []

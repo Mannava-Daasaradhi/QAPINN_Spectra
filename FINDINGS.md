@@ -36,12 +36,20 @@ this run cannot characterize further.
 direction is consistent (q\_serial loses to all three), which is at least not
 random-looking, but consistency across 2 points is weak evidence on its own.
 
-**F3 — NTK spectrum is steeper, not flatter, inside the encoded band (PR-7).** Figure:
-`paper/figures/ntk_spectrum_{poisson,helmholtz_k10}_pr7.pdf`. Gap (outside-exponent minus
-inside-exponent, predicted ≥+0.5): Poisson −5.47, Helmholtz\_k10 −9.67. **Confidence:
-medium** — direct spectral measurement, not a seed-noise-limited statistic, but one
-representative run per family per problem (not seed-averaged). Both instances agree in
-direction (reversed from predicted), which is at least internally consistent.
+**F3 — NTK spectrum is steeper, not flatter, inside the encoded band, where
+measurable (PR-7).** Figure: `paper/figures/ntk_spectrum_{poisson,helmholtz_k10}_pr7.pdf`,
+read from each run's committed `xai/ntk_step*.npz` (an earlier version of this check
+reconstructed models from `results/runs/*/checkpoints/*.pt`, which is deliberately
+gitignored — that made the check silently unreproducible from a clean clone; caught by
+actually running the T5.14 clean-clone verification, not by inspection). Helmholtz\_k10:
+gap (outside-exponent minus inside-exponent, predicted ≥+0.5) = −9.67, REFUTED. Poisson:
+**INSUFFICIENT\_DATA**, not REFUTED — fewer than 2 positive eigenvalues fall in the
+outside-band index range of this run's committed NTK spectrum, so the outside-band decay
+exponent is undefined there, not just noisy; reported honestly rather than silently
+letting `NaN >= 0.5` evaluate to `False` and report REFUTED with no stated reason (the
+same failure shape F4/PR-8 already had, before its own fix). **Confidence: medium** on
+Helmholtz\_k10 — direct spectral measurement, not seed-noise-limited, but one
+representative run per family, not seed-averaged; **n/a** on Poisson.
 
 **F4 — Per-frequency improvement concentrates in Ω on Poisson; there is no improvement
 to attribute on Helmholtz\_k10 (PR-8).** Figure:
@@ -160,7 +168,7 @@ disadvantage" (not the same as an advantage) shows up, and only the single-probl
 | Claim | Status | Deciding evidence |
 |---|---|---|
 | C1 — SMCD constructive map | **Not supported at this sample size, one qualified exception** | Falsifier PR-6 INCONCLUSIVE (both problems, n=2 floor — F10); direct ablation PR-1/2/3 REFUTED on Poisson (F2); generalized to all 6 problems, REFUTED on 4, but genuinely CONFIRMED (statistical parity, not advantage) on Helmholtz_k10/k20 — the two highest-wavenumber instances (F13) |
-| C2 — Quantum-NTK block flattening | **Reversed** | PR-7 REFUTED on both checked instances — spectrum steeper, not flatter, inside Ω (F3) |
+| C2 — Quantum-NTK block flattening | **Reversed where measurable** | PR-7 REFUTED on Helmholtz_k10 — spectrum steeper, not flatter, inside Ω; Poisson INSUFFICIENT_DATA (undefined outside-band exponent, not computed) (F3) |
 | C3 — Spectral-bias relief mechanism | **Holds on Poisson only** | PR-8 CONFIRMED (Poisson, 71.3%), REFUTED (Helmholtz_k10, 0% — no improvement exists) (F4) |
 | C4 — Negative-result map | **Mechanism partially right, uniform threshold REFUTED** | PR-4 REFUTED (3 families cross 5%), but 3 of 4 *quantum* families underperform as predicted; only `q_serial` is a quantum exception (F6) |
 | C5 — XAI protocol | **Demonstrated** | All 12 predictions mechanically adjudicated from committed artifacts, no `?` left; caught real bugs in its own tooling (PR-8 NaN mishandling, PR-10 degenerate fit, `specerr.npz` corruption) rather than silently propagating them |

@@ -168,11 +168,20 @@ def check_pr6(run_dirs_by_family: dict) -> dict:
 
 def check_pr7(run_dir_c_mlp, run_dir_q_serial, problem: str, step: int) -> dict:
     """NTK spectrum of q_serial is flatter INSIDE the encoded band Omega than outside,
-    by >= 0.5 (decay-exponent gap). Needs both runs' checkpoints at the same step."""
+    by >= 0.5 (decay-exponent gap). Reads both runs' already-committed
+    xai/ntk_step{step}.npz -- NOT make_ntk_spectrum_comparison, which reconstructs live
+    models from results/runs/*/checkpoints/*.pt. checkpoints/ is deliberately gitignored
+    (.gitignore's own stated policy: keep only config.yaml/metrics.json/design_card.json/
+    xai/*.npz, exclude raw checkpoints), so calling the checkpoint-reloading version here
+    made this check silently unreproducible from a clean clone -- found by actually
+    running T5.14's clean-clone verification, not by inspection. See
+    make_ntk_spectrum_comparison_from_npz's own docstring: it exists specifically to be
+    the T5.1 DoD-compliant, committed-data-only substitute for exactly this call site.
+    """
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
-    from make_figures import make_ntk_spectrum_comparison  # noqa: E402
+    from make_figures import make_ntk_spectrum_comparison_from_npz  # noqa: E402
 
     if not DESIGN_CARDS_PATH.is_file():
         return {"verdict": "INSUFFICIENT_DATA", "reason": "results/design_cards.json missing"}
@@ -181,10 +190,24 @@ def check_pr7(run_dir_c_mlp, run_dir_q_serial, problem: str, step: int) -> dict:
         return {"verdict": "INSUFFICIENT_DATA", "reason": f"no design card for {problem!r}"}
     omega_set = cards[problem]["omega_set"]
 
-    result = make_ntk_spectrum_comparison(
+    result = make_ntk_spectrum_comparison_from_npz(
         run_dir_c_mlp, run_dir_q_serial, step, omega_set, figure_name=f"ntk_spectrum_{problem}_pr7"
     )
-    gap = abs(result["decay_exponent_outside_band"]) - abs(result["decay_exponent_inside_band"])
+    inside, outside = result["decay_exponent_inside_band"], result["decay_exponent_outside_band"]
+    if math.isnan(inside) or math.isnan(outside):
+        return {
+            "verdict": "INSUFFICIENT_DATA",
+            "threshold": 0.5,
+            "reason": (
+                "decay exponent undefined for at least one of inside/outside the band -- "
+                "fewer than 2 positive eigenvalues in that index range "
+                "(_decay_exponent_in_index_range's own floor, not a NaN-vs-threshold "
+                "coincidence: NaN >= 0.5 is False in Python, which would otherwise silently "
+                "report REFUTED with no stated reason)"
+            ),
+            **result,
+        }
+    gap = abs(outside) - abs(inside)
     return {
         "verdict": "CONFIRMED" if gap >= 0.5 else "REFUTED",
         "measured_gap": gap,

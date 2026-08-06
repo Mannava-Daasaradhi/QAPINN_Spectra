@@ -22,9 +22,11 @@ highest-wavenumber instances" --- a real, qualified finding, not the clean const
 win C1 was written to claim.
 
 \textbf{C2 (quantum-NTK block decomposition, flattened decay inside $\Omega$) is
-reversed.} PR-7 REFUTED on both checked instances (Poisson, Helmholtz\_k10): the
-quantum block's spectrum was steeper, not flatter, inside the encoded band on this
-data.
+reversed where measurable.} PR-7 REFUTED on Helmholtz\_k10: the quantum block's
+spectrum was steeper, not flatter, inside the encoded band on this data. Poisson is
+INSUFFICIENT\_DATA, not REFUTED --- fewer than 2 positive eigenvalues fall in the
+outside-band index range of this run's committed NTK spectrum, so the comparison this
+prediction needs is undefined there, reported as such rather than guessed at.
 
 \textbf{C3 (spectral-bias relief as mechanism) holds on one instance, not the other.}
 PR-8 CONFIRMED on Poisson (71.3\% of the real, positive improvement lands inside
