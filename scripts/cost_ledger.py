@@ -146,7 +146,7 @@ def build_cost_ledger(run_dirs: list, label_by_run_id: dict | None = None) -> di
     by_problem: dict = {}
     for e in entries:
         by_problem.setdefault(e["problem"], []).append(e)
-    for _problem, es in by_problem.items():
+    for es in by_problem.values():
         fastest = min(e["wall_clock_s_median"] for e in es)
         for e in es:
             e["wall_clock_ratio_vs_fastest"] = e["wall_clock_s_median"] / fastest

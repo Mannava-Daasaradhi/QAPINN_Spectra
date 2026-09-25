@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-import tasks  # noqa: E402 -- must follow the sys.path fix-up above
+import tasks  # must follow the sys.path fix-up above
 
 TIME_BUDGET_S = 20 * 60
 

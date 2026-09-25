@@ -95,7 +95,7 @@ def test_global_depolarizing_surrogate_vs_local_density_matrix_noise():
         true_noisy = noisy_qnode(z, theta, scalings).item()
         surrogate_noisy = surrogate(clean).item()
 
-        denom = abs(true_noisy) if abs(true_noisy) > 1e-6 else 1e-6
+        denom = max(1e-06, abs(true_noisy))
         rel_errors.append(abs(surrogate_noisy - true_noisy) / denom)
 
     rel_errors = np.array(rel_errors)

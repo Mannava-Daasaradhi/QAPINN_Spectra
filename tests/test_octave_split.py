@@ -18,8 +18,6 @@ that P4 cannot produce. See BENCH.md's T2.15 section for the full writeup.
 """
 from __future__ import annotations
 
-import math
-
 import numpy as np
 import torch
 

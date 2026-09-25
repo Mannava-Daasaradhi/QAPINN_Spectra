@@ -18,7 +18,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
-from check_specerr_integrity import specerr_has_duplicate_steps  # noqa: E402
+from check_specerr_integrity import specerr_has_duplicate_steps
 
 
 def dedupe_specerr(run_dir: Path) -> dict:

@@ -23,11 +23,10 @@ if str(SRC_DIR) not in sys.path:
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tasks import SMOKE_PDE_INSTANCES
-
 from qapinn.config import load_config
 from qapinn.pdes import build as build_pde
 from qapinn.smcd.design import smcd
+from tasks import SMOKE_PDE_INSTANCES
 
 
 def main() -> None:

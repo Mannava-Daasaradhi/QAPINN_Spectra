@@ -82,7 +82,9 @@ def build(
         return make_c_ff(input_dim=input_dim, n_features=cfg.n_features, ff_sigma=cfg.ff_sigma, gen=gen)
     if cfg.family == "c_rff_matched":
         if pde is not None:
-            from qapinn.smcd.card import matched_and_padded_frequencies  # avoids a models <-> smcd cycle
+            from qapinn.smcd.card import (
+                matched_and_padded_frequencies,  # avoids a models <-> smcd cycle
+            )
             from qapinn.smcd.design import smcd
 
             card = smcd(pde, eps=smcd_eps, coverage_target=smcd_coverage_target)
@@ -201,10 +203,10 @@ def build(
 __all__ = [
     "MLPPINN",
     "FourierFeaturePINN",
-    "SerialHybrid",
-    "ParallelHybrid",
     "OctaveEnsemble",
     "PINNModel",
+    "ParallelHybrid",
+    "SerialHybrid",
     "build",
     "match_param_count",
 ]

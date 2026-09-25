@@ -156,7 +156,9 @@ def _octave_index(mag: float, base_delta: float) -> int:
     band and is left at 0 by every circuit regardless of split."""
     if mag <= _ZERO_TOL or base_delta <= 0:
         return -1
-    return max(0, int(math.floor(math.log(mag / base_delta, 2.0) + 1e-9)))
+    # math.log(x, 2.0), not math.log2: the two can differ in the last ulp, and every
+    # committed q_octave design was built with exactly this expression.
+    return max(0, math.floor(math.log(mag / base_delta, 2.0) + 1e-9))  # noqa: FURB163
 
 
 def _build_octave_configs(omega_supp: np.ndarray, d: int, delta_dim_global: np.ndarray, L_max: int, n_max: int) -> list[dict] | None:
@@ -243,7 +245,7 @@ def smcd(
 
     # --- steps 3-8: BAND, DEPTH, WIDTH, ENTANGLER, OBSERVABLE, scalings -------------
     design = _design_circuit(omega_supp, d, n_layers=n_layers, n_qubits=n_qubits)
-    K_dim, delta_dim = design["K_dim"], design["delta_dim"]
+    delta_dim = design["delta_dim"]
     L, n = design["L"], design["n"]
     wire_to_dim, entangler, observable, scalings = (
         design["wire_to_dim"],

@@ -18,7 +18,11 @@ import qapinn.reference as reference_pkg
 from qapinn.config import ExpConfig
 from qapinn.models.base import PINNModel
 from qapinn.pdes.base import PDE
-from qapinn.xai.attribution import attribution_residual_correlation, completeness_error, integrated_gradients
+from qapinn.xai.attribution import (
+    attribution_residual_correlation,
+    completeness_error,
+    integrated_gradients,
+)
 from qapinn.xai.drift import encoder_drift
 from qapinn.xai.fisher import effective_dimension, empirical_fisher
 from qapinn.xai.gradvar import gradient_variance

@@ -84,7 +84,7 @@ class DesignCard:
         return json.dumps(asdict(self), sort_keys=True)
 
     @classmethod
-    def from_json(cls, s: str) -> "DesignCard":
+    def from_json(cls, s: str) -> DesignCard:
         d = json.loads(s)
         d["predicted_ntk_band"] = tuple(d["predicted_ntk_band"])
         return cls(**d)

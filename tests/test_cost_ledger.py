@@ -15,7 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from cost_ledger import (  # noqa: E402
+from cost_ledger import (
     build_cost_ledger,
     enumerate_core_matrix_run_ids,
     load_run_record,

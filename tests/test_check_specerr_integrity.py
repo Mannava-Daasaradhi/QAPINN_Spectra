@@ -14,7 +14,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from check_specerr_integrity import (  # noqa: E402
+from check_specerr_integrity import (
     scan_core_matrix_for_contamination,
     specerr_has_duplicate_steps,
 )

@@ -13,7 +13,7 @@ from __future__ import annotations
 import torch
 
 from qapinn.models.circuits import ReuploadCircuit
-from qapinn.models.pshift import psr_grad_input, psr_grad_theta, psr_grad2_input
+from qapinn.models.pshift import psr_grad2_input, psr_grad_input, psr_grad_theta
 
 TOLERANCE = 1e-9
 N_DRAWS = 20

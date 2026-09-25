@@ -8,9 +8,6 @@ tolerance (PennyLane is the oracle cited in the paper, D2).
 """
 from __future__ import annotations
 
-import math
-
-import numpy as np
 import pennylane as qml
 import pytest
 import torch

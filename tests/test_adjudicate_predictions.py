@@ -11,13 +11,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import yaml
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from adjudicate_predictions import (  # noqa: E402
+from adjudicate_predictions import (
     check_pr1,
     check_pr2,
     check_pr3,

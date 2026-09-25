@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from verify_preregistration import (  # noqa: E402
+from verify_preregistration import (
     preregistration_commit_sha,
     verify_predictions_precede_runs,
 )

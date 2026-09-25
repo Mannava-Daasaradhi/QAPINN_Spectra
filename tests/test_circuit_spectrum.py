@@ -163,7 +163,7 @@ def _two_wire_setup(entangler: str):
 
 
 def test_two_wires_no_entangler_no_cross_terms():
-    circuit, delta_x, delta_y, max_idx_x, max_idx_y, expected_x, expected_y = _two_wire_setup("none")
+    circuit, delta_x, delta_y, max_idx_x, max_idx_y, _expected_x, _expected_y = _two_wire_setup("none")
 
     torch.manual_seed(2)
     theta = torch.randn(circuit.n_layers + 1, 2, 2) * 0.5
@@ -181,7 +181,7 @@ def test_two_wires_no_entangler_no_cross_terms():
 
 
 def test_two_wires_ring_cz_cross_terms_appear():
-    circuit, delta_x, delta_y, max_idx_x, max_idx_y, expected_x, expected_y = _two_wire_setup("ring_cz")
+    circuit, delta_x, delta_y, max_idx_x, max_idx_y, _expected_x, _expected_y = _two_wire_setup("ring_cz")
 
     torch.manual_seed(3)
     theta = torch.randn(circuit.n_layers + 1, 2, 2) * 0.5

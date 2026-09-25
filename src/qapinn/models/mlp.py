@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import numpy as np
-import torch
 from torch import Tensor, nn
 
 from qapinn.models.base import PINNModel
