@@ -1,0 +1,18 @@
+# T4.9, second half: the winning baseline_tuning.yaml configuration (lr=0.003 for both
+# families; default widths [64, 64, 64]) re-run at core_matrix's real comparison setting --
+# full 20000+2000 step budget, seeds {0, 1}, Poisson -- so PR-1/PR-2 are re-checked
+# apples-to-apples against the committed q_serial runs (FINDINGS.md F14).
+#
+# Added 2026-09-25, after submission: these 4 runs were launched on 2026-08-07 without a
+# config file, so F14's full-budget numbers could not be reproduced from the repository.
+# This file enumerates exactly the committed run_ids (3987924e8b7a, 9b4be2905b57,
+# cf3a29a94d29, d2260a58ae0f -- pinned in tests/test_experiment_configs.py), i.e. it is
+# the configuration that was actually run, not a re-design. `instruments: []` matches the
+# original launch (only final rel_l2 is compared).
+problems: [poisson]
+families: [c_mlp, c_ff]
+seeds: [0, 1]
+train:
+  lr: 0.003
+  instruments: []
+# 1 x 2 x 2 = 4 runs

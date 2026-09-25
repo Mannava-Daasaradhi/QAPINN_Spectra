@@ -64,3 +64,14 @@ def test_noise_study_covers_shot_noise():
     # depol_1e-3 dropped (cut-line #3) -- shot noise only, see noise_study.yaml's header.
     cfgs = enumerate_runs(Path("configs/exp/noise_study.yaml"))
     assert {c.train.noise for c in cfgs} == {"shot_1024"}
+
+
+def test_baseline_tuning_confirm_enumerates_exactly_the_committed_f14_runs():
+    # The T4.9 full-budget confirmation runs behind FINDINGS.md F14 were launched without
+    # a config file; baseline_tuning_confirm.yaml was reconstructed after submission and
+    # must hash to exactly the run_ids that are committed, or it is not the same experiment.
+    cfgs = enumerate_runs(Path("configs/exp/baseline_tuning_confirm.yaml"))
+    assert {c.run_id for c in cfgs} == {"3987924e8b7a", "9b4be2905b57", "cf3a29a94d29", "d2260a58ae0f"}
+    assert all(c.train.steps_adam == 20000 and c.train.steps_lbfgs == 2000 for c in cfgs)
+    for c in cfgs:
+        assert Path("results/runs", c.run_id, "metrics.json").is_file()

@@ -49,6 +49,7 @@ def _is_ancestor_or_equal(ancestor_sha: str, descendant_sha: str) -> bool:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        check=False,  # exit codes 0/1 are both answers, handled below
     )
     if result.returncode == 0:
         return True
@@ -104,8 +105,38 @@ def verify_predictions_precede_runs(run_dirs: list[Path]) -> dict:
     }
 
 
+# The experiments docs/predictions.md pre-registers (T3.1-T3.6), i.e. the T3.10 gate's
+# scope. configs/exp/baseline_tuning.yaml (T4.9) is deliberately absent: it is a
+# post-adjudication fairness check, not a pre-registered prediction, and its 12 runs
+# record a git_sha (d4c6877) that never reached the published history.
+PREREGISTERED_EXPERIMENTS = ("core_matrix", "coverage_sweep", "depth_sweep", "alpha_sweep", "noise_study", "soft_bc_ntk")
+
+
+def experiment_run_dirs() -> list[Path]:
+    """Every completed run of the pre-registered experiments. A raw glob of results/runs/
+    also sweeps in Phase 0-2 development and smoke-test runs whose commits legitimately
+    predate pre-registration -- which is what this CLI used to do, so it exited 1 (65
+    "violations", 16 unresolvable SHAs, none of them pre-registered runs) on the very
+    repository whose gate it documents."""
+    import sys
+
+    src_dir = REPO_ROOT / "src"
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+    from qapinn.runner import enumerate_runs
+
+    runs_dir = REPO_ROOT / "results" / "runs"
+    run_dirs = {
+        runs_dir / cfg.run_id
+        for exp in PREREGISTERED_EXPERIMENTS
+        for cfg in enumerate_runs(REPO_ROOT / "configs" / "exp" / f"{exp}.yaml")
+        if (runs_dir / cfg.run_id / "metrics.json").is_file()
+    }
+    return sorted(run_dirs)
+
+
 if __name__ == "__main__":
-    run_dirs = sorted((REPO_ROOT / "results" / "runs").iterdir())
+    run_dirs = experiment_run_dirs()
     report = verify_predictions_precede_runs(run_dirs)
     print(json.dumps(report, indent=2))
     if report["violations"] or report["unknown_sha"]:

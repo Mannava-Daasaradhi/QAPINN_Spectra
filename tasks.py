@@ -33,11 +33,6 @@ def _parse_value(raw: str) -> object:
     return raw
 
 
-def _not_yet_implemented(name: str, task_id: str) -> int:
-    print(f"tasks.py {name}: not yet implemented (see {task_id})", file=sys.stderr)
-    return 1
-
-
 def cmd_test(args: argparse.Namespace) -> int:
     import pytest
 
@@ -198,7 +193,7 @@ def cmd_smoke(args: argparse.Namespace) -> int:
             cmd += ["--set", f"{key}={value}"]
         t0 = time.time()
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=args.timeout, env=env)
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=args.timeout, env=env, check=False)
         except subprocess.TimeoutExpired:
             return label, time.time() - t0, False, f"timed out after {args.timeout}s"
         dt = time.time() - t0
@@ -258,8 +253,61 @@ def cmd_repro_quick(args: argparse.Namespace) -> int:
     return rc
 
 
+# Every experiment behind a reported number, in the order they were run (T3.4-T3.6, T4.9).
+REPRO_EXPERIMENTS = [
+    "core_matrix",
+    "coverage_sweep",
+    "depth_sweep",
+    "alpha_sweep",
+    "noise_study",
+    "soft_bc_ntk",
+    "baseline_tuning",
+    "baseline_tuning_confirm",
+]
+
+
 def cmd_repro_all(args: argparse.Namespace) -> int:
-    return _not_yet_implemented("repro-all", "T5.1")
+    """project.md §11: the full matrix, then everything derived from it -- every
+    configs/exp sweep (REPRO_EXPERIMENTS), figure regeneration (--strict), the mechanical
+    prediction adjudication, and the pre-registration ordering check.
+
+    Resumable like `sweep`: against the committed results/runs/ every run is already done,
+    so this re-derives every figure and verdict from committed data in about a minute.
+    With --no-resume it retrains all 197 runs in place, overwriting results/runs/, so the
+    figures and verdicts that follow come from the fresh runs: 67.2 h of training
+    wall-clock on the development machine (RTX 4090 laptop, the sum of the runs' recorded
+    wall_clock_s; core_matrix alone is 58.5 h). Stops at the first failing stage.
+    """
+    import subprocess
+    from argparse import Namespace
+
+    import torch
+
+    # `sweep` demands CUDA unless --cpu; here, fall back to CPU on a machine without a GPU
+    # so a reviewer can re-derive everything from the committed runs anywhere.
+    use_cpu = args.cpu or not torch.cuda.is_available()
+    for exp in REPRO_EXPERIMENTS:
+        sweep_args = Namespace(
+            exp=exp,
+            smoke=False,
+            workers=args.workers,
+            cpu=use_cpu,
+            mem_fraction=args.mem_fraction,
+            no_resume=args.no_resume,
+        )
+        if cmd_sweep(sweep_args) != 0:
+            print(f"repro-all: sweep {exp} failed", file=sys.stderr)
+            return 1
+
+    if cmd_figures(Namespace(strict=True)) != 0:
+        print("repro-all: figure regeneration failed", file=sys.stderr)
+        return 1
+
+    for script in ("adjudicate_predictions.py", "verify_preregistration.py"):
+        if subprocess.call([sys.executable, os.path.join(REPO_ROOT, "scripts", script)], cwd=REPO_ROOT) != 0:
+            print(f"repro-all: scripts/{script} failed", file=sys.stderr)
+            return 1
+    return 0
 
 
 def cmd_figures(args: argparse.Namespace) -> int:
@@ -268,8 +316,10 @@ def cmd_figures(args: argparse.Namespace) -> int:
         sys.path.insert(0, scripts_dir)
     from make_figures import regenerate_all
 
-    result = regenerate_all(strict=args.strict)
-    return 1 if (result["skipped"] or result["errors"]) and args.strict else 0
+    result = regenerate_all(strict=False)
+    # An error always fails; a skip (a sweep with no runs yet) fails only under --strict.
+    # Deliberate exclusions (result["excluded"]) never fail.
+    return 1 if result["errors"] or (args.strict and result["skipped"]) else 0
 
 
 def cmd_paper(args: argparse.Namespace) -> int:
@@ -297,7 +347,7 @@ def cmd_paper(args: argparse.Namespace) -> int:
 
     if tectonic is not None:
         result = subprocess.run(
-            [tectonic, "main.tex"], cwd=paper_dir, capture_output=True, text=True,
+            [tectonic, "main.tex"], cwd=paper_dir, capture_output=True, text=True, check=False,
         )
         if result.returncode != 0:
             print(result.stderr[-4000:], file=sys.stderr)
@@ -307,7 +357,7 @@ def cmd_paper(args: argparse.Namespace) -> int:
         for _ in range(2):  # twice for references/citations to resolve
             result = subprocess.run(
                 [legacy_engine, "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
-                cwd=paper_dir, capture_output=True, text=True,
+                cwd=paper_dir, capture_output=True, text=True, check=False,
             )
             if result.returncode != 0:
                 print(result.stdout[-4000:], file=sys.stderr)
@@ -331,7 +381,8 @@ def cmd_slides(args: argparse.Namespace) -> int:
     if not os.path.isfile(main_md):
         print("tasks.py slides: slides/main.md does not exist yet (T5.10)", file=sys.stderr)
         return 1
-    if shutil.which("npx") is None:
+    npx = shutil.which("npx")
+    if npx is None:
         print(
             "tasks.py slides: npx (Node.js) not found -- @marp-team/marp-cli renders "
             "slides/main.md to PDF; install Node.js to build.",
@@ -339,9 +390,11 @@ def cmd_slides(args: argparse.Namespace) -> int:
         )
         return 1
 
+    # The resolved path (npx.cmd on Windows) runs without a shell. shell=True with an
+    # argument list only worked on Windows: on POSIX it ran a bare `npx` with no arguments.
     result = subprocess.run(
-        ["npx", "--yes", "@marp-team/marp-cli", "main.md", "-o", "main.pdf", "--allow-local-files"],
-        cwd=slides_dir, capture_output=True, text=True, shell=True,
+        [npx, "--yes", "@marp-team/marp-cli", "main.md", "-o", "main.pdf", "--allow-local-files"],
+        cwd=slides_dir, capture_output=True, text=True, check=False,
     )
     if result.returncode != 0:
         print(result.stdout[-4000:], file=sys.stderr)
@@ -415,7 +468,15 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("repro-quick", help="~15 min reduced-fidelity reproduction (CPU-only, T5.5)")
     p.set_defaults(func=cmd_repro_quick)
 
-    p = sub.add_parser("repro-all", help="Full reproduction of every paper result")
+    p = sub.add_parser(
+        "repro-all", help="Every experiment sweep (resumable), then figures, adjudication, pre-registration check"
+    )
+    p.add_argument("--cpu", action="store_true", help="run any missing runs on CPU instead of CUDA")
+    p.add_argument("--workers", type=int, default=1, help="concurrent runs per sweep -- see `sweep --help`")
+    p.add_argument(
+        "--mem-fraction", type=float, default=0.75, help="max fraction of total VRAM CUDA may claim"
+    )
+    p.add_argument("--no-resume", action="store_true", help="retrain every run, ignoring existing metrics.json")
     p.set_defaults(func=cmd_repro_all)
 
     p = sub.add_parser("run", help="Run a single experiment config")
