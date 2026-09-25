@@ -2,16 +2,20 @@
 resume support and per-run failure isolation."""
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
 import yaml
 
+import qapinn.train.loop as loop_mod
 import tasks
 from qapinn.config import load_config
 from qapinn.runner import PROBLEM_INSTANCES, enumerate_runs, run_all
-from qapinn.train.loop import RESULTS_ROOT, apply_smoke_overrides
+from qapinn.train.loop import apply_smoke_overrides
+
+# Every test here reads loop_mod.RESULTS_ROOT at call time: conftest.py redirects it (and
+# QAPINN_RESULTS_DIR, which run_all's worker processes read) to a per-test temp dir, so
+# these tests never touch the committed results/runs/ tree.
 
 
 def test_smoke_pde_instances_matches_runner_canonical_list():
@@ -73,51 +77,51 @@ def test_run_all_resume_skips_existing_run():
     # smoke=True mutates the config internally (apply_smoke_overrides, T2.17) before
     # hashing for run_id -- the path run_all actually checks/writes is the POST-override
     # one, not cfg.run_id itself.
-    run_dir = RESULTS_ROOT / apply_smoke_overrides(cfg).run_id
+    run_dir = loop_mod.RESULTS_ROOT / apply_smoke_overrides(cfg).run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "metrics.json").write_text("{}", encoding="utf-8")
-    try:
-        result = run_all([cfg], n_workers=1, resume=True, smoke=True)
-        assert result.n_total == 1
-        assert result.n_skipped == 1
-        assert result.n_ok == 0
-        assert result.n_failed == 0
-    finally:
-        shutil.rmtree(run_dir, ignore_errors=True)
+
+    result = run_all([cfg], n_workers=1, resume=True, smoke=True)
+    assert result.n_total == 1
+    assert result.n_skipped == 1
+    assert result.n_ok == 0
+    assert result.n_failed == 0
 
 
 @pytest.mark.slow
 def test_run_all_isolates_a_failing_run_without_losing_the_good_one():
     good_cfg = load_config("poisson", "c_mlp", seed=1)
     bad_cfg = load_config("poisson", "c_mlp", seed=1, overrides={"train.lr_schedule": "step"})
-    good_dir = RESULTS_ROOT / apply_smoke_overrides(good_cfg).run_id
-    bad_dir = RESULTS_ROOT / apply_smoke_overrides(bad_cfg).run_id
-    try:
-        result = run_all([good_cfg, bad_cfg], n_workers=1, resume=False, smoke=True)
-        assert result.n_total == 2
-        assert result.n_ok == 1
-        assert result.n_failed == 1
-        assert result.failures[0][0] == apply_smoke_overrides(bad_cfg).run_id
-        assert (bad_dir / "error.json").is_file()
-        assert (good_dir / "metrics.json").is_file()
-    finally:
-        shutil.rmtree(good_dir, ignore_errors=True)
-        shutil.rmtree(bad_dir, ignore_errors=True)
+    good_dir = loop_mod.RESULTS_ROOT / apply_smoke_overrides(good_cfg).run_id
+    bad_dir = loop_mod.RESULTS_ROOT / apply_smoke_overrides(bad_cfg).run_id
+
+    result = run_all([good_cfg, bad_cfg], n_workers=1, resume=False, smoke=True)
+    assert result.n_total == 2
+    assert result.n_ok == 1
+    assert result.n_failed == 1
+    assert result.failures[0][0] == apply_smoke_overrides(bad_cfg).run_id
+    assert (bad_dir / "error.json").is_file()
+    assert (good_dir / "metrics.json").is_file()
 
 
 @pytest.mark.slow
 def test_run_all_second_invocation_skips_everything():
-    # An unusual seed, deliberately -- this writes into the REAL results/runs/ directory
-    # (T2.17's own established pattern for smoke-mode tests), so a common seed risks
-    # colliding with some other run's leftover directory from elsewhere in this repo.
     cfg = load_config("poisson", "c_mlp", seed=987654)
-    run_dir = RESULTS_ROOT / apply_smoke_overrides(cfg).run_id
-    shutil.rmtree(run_dir, ignore_errors=True)  # defensive: guard against stale leftovers
-    try:
-        first = run_all([cfg], n_workers=1, resume=True, smoke=True)
-        assert first.n_ok == 1 and first.n_skipped == 0
 
-        second = run_all([cfg], n_workers=1, resume=True, smoke=True)
-        assert second.n_ok == 0 and second.n_skipped == 1
-    finally:
-        shutil.rmtree(run_dir, ignore_errors=True)
+    first = run_all([cfg], n_workers=1, resume=True, smoke=True)
+    assert first.n_ok == 1 and first.n_skipped == 0
+
+    second = run_all([cfg], n_workers=1, resume=True, smoke=True)
+    assert second.n_ok == 0 and second.n_skipped == 1
+
+
+def test_run_all_writes_under_the_redirected_results_root():
+    # Regression guard for the isolation itself: a worker process must land its run in
+    # QAPINN_RESULTS_DIR (conftest.py), never in the committed results/runs/.
+    cfg = load_config("poisson", "c_mlp", seed=424242)
+    run_id = apply_smoke_overrides(cfg).run_id
+
+    result = run_all([cfg], n_workers=1, resume=False, smoke=True)
+    assert result.n_ok == 1
+    assert (loop_mod.RESULTS_ROOT / run_id / "metrics.json").is_file()
+    assert not (Path("results/runs") / run_id).exists()

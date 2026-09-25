@@ -87,9 +87,17 @@ def test_known_misses_are_still_present_and_not_worse_than_expected():
     assert burgers_rff < 1.5, f"burgers c_rff_matched drifted worse than expected: {burgers_rff}"
 
 
-def test_emits_results_json(report):
-    out_path = Path("results/size_matching.json")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+def _without_timings(report: dict) -> dict:
+    return {
+        instance: {family: {k: v for k, v in m.items() if k != "wall_clock_s"} for family, m in families.items()}
+        for instance, families in report.items()
+    }
+
+
+def test_emits_results_json(report, tmp_path):
+    # Written to a temp dir: the committed results/size_matching.json is an artifact, and
+    # its wall_clock_s fields change on every run, so a test must not rewrite it.
+    out_path = tmp_path / "size_matching.json"
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, sort_keys=True)
 
@@ -97,3 +105,11 @@ def test_emits_results_json(report):
     with out_path.open(encoding="utf-8") as f:
         reloaded = json.load(f)
     assert set(reloaded.keys()) == {name for name, _ in INSTANCES}
+
+
+def test_committed_results_json_matches_current_code(report):
+    # Every field except the machine-dependent timings must still agree with what the
+    # code computes today; a mismatch means the committed table has gone stale.
+    committed_path = Path(__file__).resolve().parent.parent / "results" / "size_matching.json"
+    committed = json.loads(committed_path.read_text(encoding="utf-8"))
+    assert _without_timings(committed) == _without_timings(report)

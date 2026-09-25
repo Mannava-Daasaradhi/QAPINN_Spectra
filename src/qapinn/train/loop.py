@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import os
+import shutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,7 +29,10 @@ from qapinn.seeding import set_global_seed
 from qapinn.train.checkpoint import build_provenance, save_checkpoint
 from qapinn.train.losses import pinn_loss
 
-RESULTS_ROOT = Path("results/runs")
+# Relative to the working directory (every entry point runs from the repo root).
+# QAPINN_RESULTS_DIR redirects it -- read at import so spawned sweep workers (runner.py)
+# inherit the redirect; the test suite uses this to keep committed results/ untouched.
+RESULTS_ROOT = Path(os.environ.get("QAPINN_RESULTS_DIR", "results/runs"))
 
 
 @dataclass
@@ -172,6 +177,11 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
 
     run_id = cfg.run_id
     run_dir = RESULTS_ROOT / run_id
+    # A run owns its directory, so clear instrument output left by an earlier attempt.
+    # specerr.npz gains one row per checkpoint: a retry after a crash (or a --no-resume
+    # re-run) appended to the old file, the duplicate-row corruption that
+    # scripts/check_specerr_integrity.py detects and scripts/dedupe_specerr.py repaired.
+    shutil.rmtree(run_dir / "xai", ignore_errors=True)
     (run_dir / "xai").mkdir(parents=True, exist_ok=True)
 
     numeric_checkpoints = {c for c in train_cfg.checkpoints if c != -1}

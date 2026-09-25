@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -54,6 +55,22 @@ def test_smoke_run_completes_quickly_and_writes_full_artifact_dir():
     history = pd.read_parquet(run_dir / "history.parquet")
     assert len(history) == 25  # steps_adam=20 + steps_lbfgs=5 (T2.17: cut from 50+10), the smoke override
     assert list(history.columns) == ["step", "loss", "lr", "grad_norm"]
+
+
+def test_rerunning_a_config_replaces_its_specerr_instead_of_appending():
+    # A crash-retry or `sweep --no-resume` trains the same run_id again. specerr.npz gains
+    # one row per checkpoint, so without clearing the run's old xai/ output first, the
+    # second run appended duplicate rows (scripts/check_specerr_integrity.py's corruption).
+    cfg = load_config("poisson", "c_mlp", seed=0)
+    first = train(cfg, smoke=True)
+    n_rows = len(np.load(first.run_dir / "xai" / "specerr.npz")["steps"])
+
+    second = train(cfg, smoke=True)
+
+    steps = np.load(second.run_dir / "xai" / "specerr.npz")["steps"]
+    assert second.run_dir == first.run_dir
+    assert len(steps) == n_rows
+    assert len(set(steps.tolist())) == len(steps)
 
 
 def test_run_id_matches_the_smoke_adjusted_config():

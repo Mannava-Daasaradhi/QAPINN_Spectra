@@ -14,8 +14,9 @@ from pathlib import Path
 import yaml
 from tqdm import tqdm
 
+import qapinn.train.loop as _loop
 from qapinn.config import ExpConfig, load_config
-from qapinn.train.loop import RESULTS_ROOT, apply_smoke_overrides
+from qapinn.train.loop import apply_smoke_overrides
 
 # The 6 problem instances shared across every Phase 2/3 use (T2.17's smoke matrix, every
 # T3.x sweep): label -> (pde yaml stem, config overrides). Single source of truth --
@@ -57,6 +58,14 @@ def enumerate_runs(exp_cfg_path: Path) -> list[ExpConfig]:
     a special-cased branch per experiment type -- all five configs/exp/*.yaml files (T3.3)
     are expressible this way.
     """
+    return [cfg for _label, cfg in enumerate_labeled_runs(exp_cfg_path)]
+
+
+def enumerate_labeled_runs(exp_cfg_path: Path) -> list[tuple[str, ExpConfig]]:
+    """`enumerate_runs`, with each config paired with its problem-instance label
+    ("helmholtz_k10", not the PDE name "helmholtz", which three instances share). Figure
+    generation and adjudication both group runs by this label, so they must get it from
+    the same place rather than re-deriving it."""
     with Path(exp_cfg_path).open("r", encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
@@ -70,7 +79,7 @@ def enumerate_runs(exp_cfg_path: Path) -> list[ExpConfig]:
     for axis in axes:
         axis_combos = [dict(combo, **{axis["key"]: v}) for combo in axis_combos for v in axis["values"]]
 
-    configs: list[ExpConfig] = []
+    configs: list[tuple[str, ExpConfig]] = []
     for problem in problems:
         if problem not in _PROBLEM_BY_LABEL:
             raise ValueError(f"unknown problem instance {problem!r}; expected one of {sorted(_PROBLEM_BY_LABEL)}")
@@ -79,7 +88,7 @@ def enumerate_runs(exp_cfg_path: Path) -> list[ExpConfig]:
             for seed in seeds:
                 for axis_combo in axis_combos:
                     overrides = _merge_overrides(pde_overrides, train_overrides, axis_combo)
-                    configs.append(load_config(pde_yaml, family, overrides=overrides or None, seed=seed))
+                    configs.append((problem, load_config(pde_yaml, family, overrides=overrides or None, seed=seed)))
     return configs
 
 
@@ -108,7 +117,7 @@ def _run_one(cfg: ExpConfig, smoke: bool) -> tuple[str, bool, str]:
     from qapinn.train.loop import train
 
     run_id = _effective_run_id(cfg, smoke)
-    run_dir = RESULTS_ROOT / run_id
+    run_dir = _loop.RESULTS_ROOT / run_id
     try:
         result = train(cfg, smoke=smoke)
         return run_id, True, str(result.run_dir)
@@ -143,7 +152,9 @@ def run_all(cfgs: list[ExpConfig], n_workers: int = 1, resume: bool = True, smok
     to_run = []
     n_skipped = 0
     for cfg in cfgs:
-        run_dir = RESULTS_ROOT / _effective_run_id(cfg, smoke)
+        # Looked up on the module at call time, not bound at import, so a redirected
+        # QAPINN_RESULTS_DIR / monkeypatched RESULTS_ROOT (tests) is honoured here too.
+        run_dir = _loop.RESULTS_ROOT / _effective_run_id(cfg, smoke)
         if resume and (run_dir / "metrics.json").is_file():
             n_skipped += 1
             continue
