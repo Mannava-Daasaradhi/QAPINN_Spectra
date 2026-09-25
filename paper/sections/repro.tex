@@ -28,7 +28,7 @@ Every number below is measured against this session's actual runs, not estimated
   combinations, implemented this session): \textbf{513.7\,s ($\approx$8.6 min)}, 42/42
   OK, under the 15-min target. \texttt{tasks.py test} (385 tests, post-submission
   revision): 244\,s CPU-only. \texttt{tasks.py figures} (20 figures from committed data, no GPU,
-  byte-reproducible): about 30\,s. \texttt{tasks.py repro-all} (added after submission):
+  byte-identical on the same machine): about 30\,s. \texttt{tasks.py repro-all} (added after submission):
   re-derives every figure and verdict from the committed runs in 56\,s; retraining all
   197 runs from scratch is 67.2\,h of training wall-clock on this machine (the sum of
   the runs' recorded \texttt{wall\_clock\_s}; \texttt{core\_matrix} alone is 58.5\,h).

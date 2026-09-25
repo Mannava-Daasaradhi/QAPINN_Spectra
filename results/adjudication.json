@@ -1,0 +1,207 @@
+{
+  "PR-1": {
+    "measured_ratio": 0.5153521048,
+    "threshold": 2.0,
+    "stats": {
+      "median_a": 1.701658375,
+      "median_b": 0.8769532252,
+      "iqr_a": 0.02659574384,
+      "iqr_b": 0.2071287838,
+      "ratio_median": 1.94042091,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.5,
+      "n_pairs": 2,
+      "cliffs_delta": 1.0
+    },
+    "verdict": "REFUTED"
+  },
+  "PR-2": {
+    "measured_ratio": 0.06772699358,
+    "threshold": 1.3,
+    "stats": {
+      "median_a": 1.701658375,
+      "median_b": 0.1152482058,
+      "iqr_a": 0.02659574384,
+      "iqr_b": 0.09440381022,
+      "ratio_median": 14.76516153,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.5,
+      "n_pairs": 2,
+      "cliffs_delta": 1.0
+    },
+    "verdict": "REFUTED"
+  },
+  "PR-3": {
+    "verdict": "REFUTED",
+    "measured_ratio": 4.252934339,
+    "band": [
+      0.7692307692,
+      1.3
+    ],
+    "stats": {
+      "median_a": 1.701658375,
+      "median_b": 0.4001139541,
+      "iqr_a": 0.02659574384,
+      "iqr_b": 0.04470624164,
+      "ratio_median": 4.252934339,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.5,
+      "n_pairs": 2,
+      "cliffs_delta": 1.0
+    }
+  },
+  "PR-4": {
+    "verdict": "REFUTED",
+    "benefits": {
+      "c_ff": 0.2437514695,
+      "c_rff_matched": 0.3493242202,
+      "q_serial": 0.07745461251,
+      "q_parallel": -0.6752970075,
+      "q_random": -10.23243935,
+      "q_octave": -0.5124645977
+    },
+    "violators": {
+      "c_ff": 0.2437514695,
+      "c_rff_matched": 0.3493242202,
+      "q_serial": 0.07745461251
+    },
+    "families_checked": [
+      "c_ff",
+      "c_rff_matched",
+      "q_octave",
+      "q_parallel",
+      "q_random",
+      "q_serial"
+    ]
+  },
+  "PR-5": {
+    "verdict": "CONFIRMED",
+    "ratios": {
+      "helmholtz_k4": 8.791323355e-06,
+      "helmholtz_k10": 0.9184898058,
+      "helmholtz_k20": 1.023549169
+    }
+  },
+  "PR-6 (poisson)": {
+    "measured_ratio": 1.524444053,
+    "threshold": 1.5,
+    "stats": {
+      "median_a": 1.701658375,
+      "median_b": 2.59408299,
+      "iqr_a": 0.02659574384,
+      "iqr_b": 0.9732280283,
+      "ratio_median": 0.6559768447,
+      "wilcoxon_stat": 1.0,
+      "p_value": 1.0,
+      "n_pairs": 2,
+      "cliffs_delta": 0.0
+    },
+    "verdict": "INCONCLUSIVE"
+  },
+  "PR-6 (heat)": {
+    "measured_ratio": 12.17548698,
+    "threshold": 1.5,
+    "stats": {
+      "median_a": 0.4242875713,
+      "median_b": 5.1659078,
+      "iqr_a": 0.004330392682,
+      "iqr_b": 2.428603485,
+      "ratio_median": 0.08213223846,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.5,
+      "n_pairs": 2,
+      "cliffs_delta": -1.0
+    },
+    "verdict": "INCONCLUSIVE"
+  },
+  "PR-7 (poisson)": {
+    "verdict": "INSUFFICIENT_DATA",
+    "threshold": 0.5,
+    "reason": "decay exponent undefined for at least one of inside/outside the band -- fewer than 2 positive eigenvalues in that index range (_decay_exponent_in_index_range's own floor, not a NaN-vs-threshold coincidence: NaN >= 0.5 is False in Python, which would otherwise silently report REFUTED with no stated reason)",
+    "decay_exponent_whole": -11.02627192,
+    "decay_exponent_inside_band": -11.02627192,
+    "decay_exponent_outside_band": null,
+    "band_size": 81
+  },
+  "PR-8 (poisson)": {
+    "verdict": "CONFIRMED",
+    "threshold": 0.7,
+    "overlap_fraction": 0.9993543509,
+    "total_improvement": 13750.79621
+  },
+  "PR-7 (helmholtz_k10)": {
+    "verdict": "REFUTED",
+    "measured_gap": -8.366129626,
+    "threshold": 0.5,
+    "decay_exponent_whole": -11.06903611,
+    "decay_exponent_inside_band": -12.0593902,
+    "decay_exponent_outside_band": -3.693260578,
+    "band_size": 15
+  },
+  "PR-8 (helmholtz_k10)": {
+    "verdict": "REFUTED",
+    "threshold": 0.7,
+    "reason": "q_serial does not outperform c_mlp at any frequency (total_improvement=0.0) -- PR-8's premise that an improvement exists to attribute to Omega does not hold, independent of the 70% threshold",
+    "overlap_fraction": null,
+    "total_improvement": 0.0
+  },
+  "PR-9": {
+    "verdict": "REFUTED",
+    "threshold": -0.7,
+    "by_problem": {
+      "poisson": {
+        "spearman_rho": -0.8190601558,
+        "spearman_p": 3.218387698e-05,
+        "n_points": 18
+      },
+      "helmholtz_k10": {
+        "spearman_rho": 0.2773500981,
+        "spearman_p": 0.2651682381,
+        "n_points": 18
+      }
+    }
+  },
+  "PR-10": {
+    "verdict": "INSUFFICIENT_DATA",
+    "threshold": 0.6931471806,
+    "frontier_n_qubits": 6,
+    "frontier_n_layers": 2,
+    "frontier_grad_var": 157719505.2,
+    "slope_b": null,
+    "fit_r2": null,
+    "pr10_holds": null,
+    "fit_error": "degenerate_fit",
+    "fit_error_reason": "barren_plateau_fit needs >=2 distinct n_qubits values to fit a slope; got only [6.0] across 4 result(s). Refusing to report a slope_b/r2 computed against a constant independent variable -- np.polyfit would return a solver artifact, not a measurement.",
+    "sizes_checked": [
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        6,
+        5
+      ]
+    ]
+  },
+  "PR-11": {
+    "verdict": "REFUTED",
+    "median_hybrid_drift": 1.028539063,
+    "median_classical_drift": 6878097.421,
+    "n_hybrid": 2,
+    "n_classical": 2
+  },
+  "PR-12": {
+    "verdict": "CONFIRMED",
+    "median_frobenius": 0.1323717394,
+    "threshold": 0.2,
+    "n_runs": 2
+  }
+}

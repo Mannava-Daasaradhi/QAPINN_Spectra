@@ -81,8 +81,18 @@ Regenerating figures from results/runs/ (core_matrix: 84/84 runs available)...
 of a committed-npz regeneration path. `--strict` fails on any skipped sweep or error,
 not on this exclusion.
 
-The output is byte-reproducible: running this command (or the adjudicator in §4, which
-draws some of the same figures) on a clean checkout leaves `git status` clean.
+On the machine that drew the committed figures the output is byte-for-byte identical, so
+running this command (or the adjudicator in §4, which draws some of the same figures)
+leaves `git status` clean. Other platforms rasterize slightly differently: every PNG, and
+the PDFs with raster content, change by a few pixels, while everything else is
+identical. To check regenerated figures against the committed ones with a pixel
+tolerance (CI runs this on Linux):
+
+```
+python scripts/compare_figures.py
+```
+
+Actual output, this machine: `20 PNGs checked, 0 outside tolerance`.
 
 Every figure comes from `results/runs/*/metrics.json` and `xai/*.npz` only — never a
 live model reload (`scripts/make_figures.py`).
@@ -98,6 +108,10 @@ per-problem splits) adjudicated against `docs/predictions.md`'s exact thresholds
 verdicts in this JSON are the source of every claim in `FINDINGS.md` and
 `paper/sections/results.tex`/`negative_results.tex`/`conclusion.tex` — nothing in the
 paper states a stronger verdict than what this script reports.
+
+`--write` also saves the verdicts to `results/adjudication.json`, with numbers rounded to
+10 significant digits so the record is identical on every machine; CI regenerates it
+and requires an exact match with the committed file.
 
 The pre-registration ordering check (T3.10) re-verifies that `docs/predictions.md` was
 committed before every run of the six pre-registered experiments:

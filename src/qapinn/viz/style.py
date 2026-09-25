@@ -59,9 +59,11 @@ def save_figure(fig, name: str, run_ids: list[str] | None = None) -> dict[str, P
     """Writes <name>.pdf (paper) and <name>.png (slides, 200 dpi) into paper/figures/, and
     appends an entry to results/manifest.json mapping figure name -> the run_ids used.
 
-    Output is byte-reproducible: the PDF carries no CreationDate (matplotlib otherwise
-    stamps the wall-clock time, so every regeneration rewrote every committed PDF), and
-    the tight bounding box keeps axis labels that sit outside the axes from being clipped.
+    On a given machine the output is byte-reproducible: the PDF carries no CreationDate
+    (matplotlib otherwise stamps the wall-clock time, so every regeneration rewrote every
+    committed PDF). Raster output still differs slightly across platforms; see
+    scripts/compare_figures.py. The tight bounding box keeps axis labels that sit outside
+    the axes from being clipped.
     """
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     pdf_path = FIGURES_DIR / f"{name}.pdf"

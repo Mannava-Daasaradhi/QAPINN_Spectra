@@ -303,8 +303,10 @@ def cmd_repro_all(args: argparse.Namespace) -> int:
         print("repro-all: figure regeneration failed", file=sys.stderr)
         return 1
 
-    for script in ("adjudicate_predictions.py", "verify_preregistration.py"):
-        if subprocess.call([sys.executable, os.path.join(REPO_ROOT, "scripts", script)], cwd=REPO_ROOT) != 0:
+    # --write refreshes results/adjudication.json, the committed record of all 15 verdicts.
+    for script, extra in (("adjudicate_predictions.py", ["--write"]), ("verify_preregistration.py", [])):
+        cmd = [sys.executable, os.path.join(REPO_ROOT, "scripts", script), *extra]
+        if subprocess.call(cmd, cwd=REPO_ROOT) != 0:
             print(f"repro-all: scripts/{script} failed", file=sys.stderr)
             return 1
     return 0

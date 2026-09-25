@@ -7,6 +7,7 @@ reloads a trained model. Start with `runs_index.csv` to find a run.
 |---|---|
 | `runs/<run_id>/` | One training run. `run_id` is the first 12 hex characters of the SHA-256 of the run's canonical config, so a config always maps to the same directory. |
 | `runs_index.csv` | Every run that carries data: experiment group, problem, family, seed, step budget, final rel-L2. Regenerate with `python scripts/index_runs.py`. |
+| `adjudication.json` | All 15 pre-registered verdicts with their numbers, rounded to 10 significant digits (`python scripts/adjudicate_predictions.py --write`). CI requires an exact match. |
 | `design_cards.json` | SMCD's design card per problem: realised frequency set Ω, encoding scalings, depth, qubits, coverage, predicted benefit (`scripts/make_design_cards.py`). |
 | `size_matching.json` | Parameter-matched (±10%) configurations for every family (T2.16). The core matrix trained each family at its default size instead; see FINDINGS.md erratum E6. |
 | `cost_ledger.json` | Parameters, FLOPs and wall-clock per (problem, family), T4.6. |

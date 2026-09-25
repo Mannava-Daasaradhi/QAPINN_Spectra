@@ -47,11 +47,22 @@ jobs:
         run: |
           git status --porcelain
           test -z "$(git status --porcelain)"
-      - name: Figures, verdicts and run index regenerate exactly from committed results
+      - name: Verdicts, run index and data files regenerate exactly from committed results
         run: |
           uv run --frozen python tasks.py figures --strict
-          uv run --frozen python scripts/adjudicate_predictions.py > /dev/null
+          uv run --frozen python scripts/adjudicate_predictions.py --write > /dev/null
           uv run --frozen python scripts/verify_preregistration.py > /dev/null
           uv run --frozen python scripts/index_runs.py
           git status --porcelain
-          test -z "$(git status --porcelain)"
+          test -z "$(git status --porcelain -- . ':!paper/figures')"
+      - name: Figures match the committed images
+        # Raster output differs slightly across OS/CPU (anti-aliasing, float rounding), so
+        # figures are compared with a pixel tolerance rather than byte for byte.
+        run: uv run --frozen python scripts/compare_figures.py
+      - name: Upload the regenerated figures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: regenerated-figures
+          path: paper/figures/
+          retention-days: 14

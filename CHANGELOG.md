@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+Fixes found by the first CI runs on GitHub's Linux runners. No result changed.
+
+- `results/adjudication.json`: all 15 verdicts and their numbers as a committed,
+  machine-readable record (`python scripts/adjudicate_predictions.py --write`). Floats
+  are rounded to 10 significant digits so the record compares exactly across machines.
+  CI regenerates it and requires an exact match.
+- Figures are byte-identical only on the machine that drew them. Linux rasterizes all 20
+  PNGs, and the 7 PDFs with raster content (heatmaps, loss landscape), slightly
+  differently from Windows (anti-aliasing and float rounding). The other PDFs and all
+  JSON and CSV outputs match exactly. `scripts/compare_figures.py` checks each PNG
+  against the committed one with a pixel tolerance: size within 2 px, and at most 2% of
+  pixels changed by more than a quarter of the colour range after the best alignment. On
+  the same machine it reports every figure identical. The submitted, wrong-band Poisson
+  heatmap fails it: different size, and 61.5% of pixels changed even when cropped to
+  match.
+- CI: `astral-sh/setup-uv` is pinned to an exact version (no floating `@v10` tag
+  exists), and the test job checks out full history (the pre-registration check verifies
+  commit ancestry, which a depth-1 clone lacks). Regenerated figures are uploaded as a
+  build artifact.
+- `tasks.py repro-all` refreshes `results/adjudication.json`.
+
 ## 1.1.0 — 2026-09-25 (post-submission)
 
 Changes after the WISER 2026 BQP Challenge. The judged version is tag `v1.0-submission`
@@ -21,9 +44,10 @@ Changes after the WISER 2026 BQP Challenge. The judged version is tag `v1.0-subm
 
 ### Fixed
 
-- Figure regeneration is byte-reproducible. PDFs no longer embed a timestamp, the
-  adjudicator and `tasks.py figures` draw identical figures from one Ω source, and
-  running either leaves the working tree clean.
+- Figure regeneration is deterministic. PDFs no longer embed a timestamp, and the
+  adjudicator and `tasks.py figures` draw identical figures from one Ω source, so on a
+  given machine running either leaves the working tree clean. (Across operating systems
+  raster pixels still differ slightly; see Unreleased.)
 - The test suite no longer writes into the committed `results/`. `test_runner.py` and
   one XAI test trained into `results/runs/`, and one of them deleted a committed smoke run
   that a later test recreated on CUDA. That is the "determinism violation" noted during
@@ -54,8 +78,8 @@ Changes after the WISER 2026 BQP Challenge. The judged version is tag `v1.0-subm
 
 ### Added
 
-- CI (GitHub Actions): lint, the test suite, and a check that regenerating figures and
-  verdicts from committed results reproduces the committed files exactly.
+- CI (GitHub Actions): lint, the test suite, and checks that regenerating from committed
+  results reproduces the committed files (see Unreleased for the final form).
 - `tasks.py repro-all`, previously a stub: every experiment sweep (resumable), figures,
   adjudication and the pre-registration check.
 - `configs/exp/baseline_tuning_confirm.yaml`: the config behind F14's four full-budget

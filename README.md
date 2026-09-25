@@ -31,7 +31,8 @@ flowchart LR
 
 Twelve predictions, each with a numeric falsifier, were committed to git before the first
 experiment ran ([`docs/predictions.md`](docs/predictions.md)). A script issues every
-verdict from the committed results ([`scripts/adjudicate_predictions.py`](scripts/adjudicate_predictions.py)).
+verdict from the committed results ([`scripts/adjudicate_predictions.py`](scripts/adjudicate_predictions.py)),
+and CI checks them against the committed record, [`results/adjudication.json`](results/adjudication.json).
 At the sample size the deadline allowed (2 seeds per cell, 5 planned), **the
 quantum-advantage hypothesis is not supported.** The design rule builds what it promises:
 a circuit's measured output has no Fourier energy outside its designed frequency set Ω
@@ -70,8 +71,8 @@ uv run python scripts/adjudicate_predictions.py    # all 15 verdicts, as JSON
 
 | Command | What it does | Time |
 |---|---|---|
-| `tasks.py test [--slow]` | Test suite (385 tests; `--slow` adds 5 longer ones, including the 42-run smoke matrix) | ~5 min |
-| `tasks.py figures [--strict]` | Every figure in `paper/figures/`, byte-for-byte, from `results/runs/` | ~30 s |
+| `tasks.py test [--slow]` | Test suite (`--slow` adds 5 longer tests, including the 42-run smoke matrix) | ~5 min |
+| `tasks.py figures [--strict]` | Every figure in `paper/figures/` from `results/runs/`; `scripts/compare_figures.py` checks them against the committed images | ~30 s |
 | `tasks.py repro-quick` | All 6 problems × 7 model families at reduced size, CPU only | ~9 min |
 | `tasks.py repro-all` | Every experiment sweep (skips finished runs), then figures, adjudication and the pre-registration check | ~1 min from committed results; 67 h to retrain all 197 runs |
 | `tasks.py run --pde poisson --model q_serial --smoke` | One training run | <1 min |

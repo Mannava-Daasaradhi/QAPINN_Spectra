@@ -40,9 +40,30 @@ from qapinn.stats import paired_comparison
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNS_DIR = REPO_ROOT / "results" / "runs"
 DESIGN_CARDS_PATH = REPO_ROOT / "results" / "design_cards.json"
+ADJUDICATION_PATH = REPO_ROOT / "results" / "adjudication.json"
 N5_P_FLOOR = 0.0625  # smallest achievable two-sided Wilcoxon p at n=5 (project.md SS8)
 PR12_DRIFT_THRESHOLD = 0.2
 PR11_CHECKPOINT_STEP = 5000
+
+
+def portable_record(obj):
+    """The report as a platform-independent record for results/adjudication.json: floats
+    rounded to 10 significant digits (BLAS/SIMD differences between machines only move the
+    last few bits), NaN/inf as null, numpy scalars as plain Python values."""
+    if isinstance(obj, dict):
+        return {k: portable_record(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [portable_record(v) for v in obj]
+    if isinstance(obj, (bool, np.bool_)):
+        return bool(obj)
+    if isinstance(obj, (int, np.integer)):
+        return int(obj)
+    if isinstance(obj, (float, np.floating)):
+        x = float(obj)
+        return float(f"{x:.10g}") if math.isfinite(x) else None
+    if obj is None or isinstance(obj, str):
+        return obj
+    return str(obj)
 
 
 def _rel_l2_by_seed(run_dirs: list) -> list[dict]:
@@ -364,7 +385,17 @@ def check_pr12(run_dirs_quantum: list) -> dict:
 
 
 if __name__ == "__main__":
+    import argparse
     import sys
+
+    parser = argparse.ArgumentParser(description="Adjudicate docs/predictions.md against the committed runs.")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help=f"also write the verdicts to {ADJUDICATION_PATH.relative_to(REPO_ROOT).as_posix()} "
+        "(the committed record CI compares against)",
+    )
+    cli = parser.parse_args()
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from cost_ledger import enumerate_core_matrix_run_ids
@@ -436,3 +467,7 @@ if __name__ == "__main__":
         report["PR-12"] = check_pr12(poisson["q_serial"])
 
     print(json.dumps(report, indent=2, default=str))
+    if cli.write:
+        ADJUDICATION_PATH.write_text(
+            json.dumps(portable_record(report), indent=2) + "\n", encoding="utf-8", newline="\n"
+        )

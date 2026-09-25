@@ -29,9 +29,22 @@ from adjudicate_predictions import (
     check_pr10,
     check_pr11,
     check_pr12,
+    portable_record,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_portable_record_rounds_floats_and_nulls_non_finite_values():
+    # results/adjudication.json must compare exactly across machines, whose BLAS/SIMD
+    # differences only move the last bits of a float.
+    record = portable_record(
+        {"p": 3.2183876980196e-05, "gap": np.float64(-8.366129626162898), "nan": float("nan"),
+         "n": np.int64(18), "ok": np.bool_(True), "pairs": [(6, 2)], "verdict": "REFUTED"}
+    )
+    assert record == {"p": 3.218387698e-05, "gap": -8.366129626, "nan": None, "n": 18, "ok": True,
+                      "pairs": [[6, 2]], "verdict": "REFUTED"}
+    assert json.loads(json.dumps(record)) == record
 
 # Same real smoke-scale run pair test_phase3_figures.py already pinned (both clean
 # 2-checkpoint smoke runs sharing the same eval grid) -- reused here rather than

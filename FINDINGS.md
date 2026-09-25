@@ -255,7 +255,8 @@ only the depolarizing surrogate was checked this run (F12).
 
 Added after the WISER 2026 BQP Challenge; the judged version is tag `v1.0-submission`
 (`d20e961`). The pre-registered thresholds and all 15 verdicts are unchanged
-(`python scripts/adjudicate_predictions.py`). Every number below was re-derived from the
+(`python scripts/adjudicate_predictions.py`; machine-readable record:
+`results/adjudication.json`). Every number below was re-derived from the
 committed `results/runs/` data, not copied from earlier notes. E1–E3 are corrections;
 E4–E6 are caveats the findings above understate.
 
@@ -283,7 +284,8 @@ card's four encoding scalings (π, 3π, 9π, 27π) as Ω instead of the realised
 band in `ntk_spectrum_p1`/`p4` were wrong in v1.0. Adjudication always used the correct
 Ω, so no number or verdict was affected. The adjudicator and `tasks.py figures` also
 wrote the same file names with different content, and the PDFs embedded a timestamp.
-Figures are now regenerated from one Ω source, byte-for-byte reproducibly.
+Figures are now regenerated from one Ω source: byte-for-byte on the machine that drew
+them, and within a pixel tolerance across platforms (`scripts/compare_figures.py`).
 
 **E4 — PR-9 (F1): the coverage evidence is thinner than "n=18, p=3.2×10⁻⁵" and depends
 on training budget.**
