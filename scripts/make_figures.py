@@ -1129,7 +1129,9 @@ def regenerate_all(strict: bool = False) -> dict:
         label_by_run_id = enumerate_core_matrix_run_ids()
         run_dirs = sorted(runs_dir / rid for rid in label_by_run_id if (runs_dir / rid / "metrics.json").is_file())
         ledger = build_cost_ledger(run_dirs, label_by_run_id=label_by_run_id)
-        (REPO_ROOT / "results" / "cost_ledger.json").write_text(_json.dumps(ledger, indent=2), encoding="utf-8")
+        (REPO_ROOT / "results" / "cost_ledger.json").write_text(
+            _json.dumps(ledger, indent=2), encoding="utf-8", newline="\n"
+        )
         return {"n_production_runs": ledger["n_production_runs"], "n_entries": len(ledger["entries"])}
 
     _attempt("cost_ledger_table", _cost_ledger)

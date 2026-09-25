@@ -75,7 +75,8 @@ def save_figure(fig, name: str, run_ids: list[str] | None = None) -> dict[str, P
         with MANIFEST_PATH.open(encoding="utf-8") as f:
             manifest = json.load(f)
     manifest[name] = {"run_ids": list(run_ids or [])}
-    with MANIFEST_PATH.open("w", encoding="utf-8") as f:
+    # newline="\n": the same bytes on every OS (text mode would write CRLF on Windows).
+    with MANIFEST_PATH.open("w", encoding="utf-8", newline="\n") as f:
         json.dump(manifest, f, indent=2, sort_keys=True)
 
     return {"pdf": pdf_path, "png": png_path}

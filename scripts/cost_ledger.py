@@ -196,7 +196,7 @@ def main() -> None:
     )
     ledger = build_cost_ledger(run_dirs, label_by_run_id=label_by_run_id)
     out_path = REPO_ROOT / "results" / "cost_ledger.json"
-    out_path.write_text(json.dumps(ledger, indent=2), encoding="utf-8")
+    out_path.write_text(json.dumps(ledger, indent=2), encoding="utf-8", newline="\n")
     print(f"wrote {out_path} ({ledger['n_production_runs']} production runs, "
           f"{len(ledger['entries'])} (family, problem) entries)")
     print()
