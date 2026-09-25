@@ -12,8 +12,10 @@ Every number below is measured against this session's actual runs, not estimated
 \item \textbf{Determinism:} \texttt{qapinn.seeding.set\_global\_seed} seeds Python,
   NumPy, and Torch (CPU+CUDA) from one integer and enables
   \texttt{torch.use\_deterministic\_algorithms}; an explicit \texttt{torch.Generator}
-  is threaded through every sampling call, so two runs at the same seed produce
-  bit-identical \texttt{metrics.json} (T0.20).
+  is threaded through every sampling call, so two runs at the same seed on the same device
+  produce bit-identical \texttt{metrics.json} (T0.20). A CPU run and a CUDA run of the same
+  configuration round differently (by $10^{-15}$ in rel-$L^2$ on a smoke run we re-checked;
+  training can amplify such differences), and the run ID does not include the device.
 \item \textbf{Seeds used} (state explicitly, cut from a pre-registered $n=5$ under the
   Aug 7 deadline --- Section~\ref{sec:limitations}, \texttt{FINDINGS.md} F10):
   \texttt{core\_matrix} $\{0,1\}$; \texttt{coverage\_sweep}/\texttt{alpha\_sweep}/
@@ -24,9 +26,10 @@ Every number below is measured against this session's actual runs, not estimated
   concurrent CUDA context creation on this specific machine, not a VRAM limit).
 \item \textbf{Measured wall-clock:} \texttt{tasks.py repro-quick} (CPU-only, 42
   combinations, implemented this session): \textbf{513.7\,s ($\approx$8.6 min)}, 42/42
-  OK, under the 15-min target. \texttt{tasks.py test} (384 tests): 361.8\,s.
-  \texttt{tasks.py figures} (18 figures from committed data, no GPU): under a minute.
-  A single composite \texttt{repro-all} time was not measured --- that command is not
-  implemented as one entry point this session; per-experiment costs are in
-  \texttt{results/cost\_ledger.json} instead.
+  OK, under the 15-min target. \texttt{tasks.py test} (385 tests, post-submission
+  revision): 244\,s CPU-only. \texttt{tasks.py figures} (20 figures from committed data, no GPU,
+  byte-reproducible): about 30\,s. \texttt{tasks.py repro-all} (added after submission):
+  re-derives every figure and verdict from the committed runs in 56\,s; retraining all
+  197 runs from scratch is 67.2\,h of training wall-clock on this machine (the sum of
+  the runs' recorded \texttt{wall\_clock\_s}; \texttt{core\_matrix} alone is 58.5\,h).
 \end{itemize}

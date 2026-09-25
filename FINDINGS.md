@@ -4,6 +4,13 @@
 (2026-08-02T21:00:03+05:30). Mechanically verified (T3.10) to predate every completed
 run's `provenance.json` `git_sha` in the real T3.1-T3.6 experiment matrix.
 
+> **Post-submission errata (2026-09-25).** The version judged at the WISER 2026 BQP
+> Challenge is tag `v1.0-submission`. After the competition we found two stale or
+> mis-computed numbers (F3, F4), wrong frequency bands in the paper figures, and four
+> caveats that the findings below understate (F1, F2, F5, F13). **All 15 pre-registered
+> verdicts are unchanged.** Details and reproduction commands:
+> [Post-submission errata](#post-submission-errata-2026-09-25).
+
 ## Headline finding
 
 At the sample size this run achieved (**n=2 seeds, not the pre-registered n=5** — cut
@@ -27,7 +34,9 @@ n=18 points, 6 coverage targets × 3 seeds — the one sweep never seed-cut). He
 large-n signal); **verdict REFUTED overall** since the adjudication rule takes the
 worst case across problems. Caveat: two problem instances is a thin basis for "coverage
 predicts accuracy" as a general claim; the mechanism may be problem-dependent in a way
-this run cannot characterize further.
+this run cannot characterize further. *Post-submission: the 18 Poisson points are 9
+distinct measurements from a reduced training budget, and the ordering reverses at full
+budget — see erratum E4 before citing ρ or p.*
 
 **F2 — `q_serial` underperforms every classical family checked, on Poisson, at n=2
 (PR-1, PR-2, PR-3).** Figure: `paper/figures/ablation_matched.pdf`. Median rel-L2:
@@ -35,6 +44,8 @@ this run cannot characterize further.
 — n=2 seeds, no paired test can reach significance at this sample size (see F10). Caveat:
 direction is consistent (q\_serial loses to all three), which is at least not
 random-looking, but consistency across 2 points is weak evidence on its own.
+*Post-submission: `c_mlp` and `c_ff` were not size-matched to `q_serial` (8,513 and 129
+parameters vs 14) — see erratum E6.*
 
 **F3 — NTK spectrum is steeper, not flatter, inside the encoded band, where
 measurable (PR-7).** Figure: `paper/figures/ntk_spectrum_{poisson,helmholtz_k10}_pr7.pdf`,
@@ -42,7 +53,8 @@ read from each run's committed `xai/ntk_step*.npz` (an earlier version of this c
 reconstructed models from `results/runs/*/checkpoints/*.pt`, which is deliberately
 gitignored — that made the check silently unreproducible from a clean clone; caught by
 actually running the T5.14 clean-clone verification, not by inspection). Helmholtz\_k10:
-gap (outside-exponent minus inside-exponent, predicted ≥+0.5) = −9.67, REFUTED. Poisson:
+gap (outside-exponent minus inside-exponent, predicted ≥+0.5) = −8.37 (stated as −9.67
+in v1.0; erratum E1), REFUTED. Poisson:
 **INSUFFICIENT\_DATA**, not REFUTED — fewer than 2 positive eigenvalues fall in the
 outside-band index range of this run's committed NTK spectrum, so the outside-band decay
 exponent is undefined there, not just noisy; reported honestly rather than silently
@@ -53,9 +65,9 @@ representative run per family, not seed-averaged; **n/a** on Poisson.
 
 **F4 — Per-frequency improvement concentrates in Ω on Poisson; there is no improvement
 to attribute on Helmholtz\_k10 (PR-8).** Figure:
-`paper/figures/freq_heatmap_{poisson,helmholtz_k10}.pdf`. Poisson: 71.3% of a real,
-positive total improvement (13,751 accumulated units) lands inside Ω — **CONFIRMED**,
-past the 70% bar. Helmholtz\_k10: `q_serial` beats `c_mlp` at zero frequencies
+`paper/figures/freq_heatmap_{poisson,helmholtz_k10}.pdf`. Poisson: 99.9% (stated as
+71.3% in v1.0; erratum E2) of a real, positive total improvement (13,751 accumulated
+units) lands inside Ω — **CONFIRMED**, well past the 70% bar. Helmholtz\_k10: `q_serial` beats `c_mlp` at zero frequencies
 (total\_improvement=0) — REFUTED, and not narrowly: there is nothing for the mechanism
 to explain. **Confidence: medium-high on Poisson** (clean measurement, large effect);
 n/a on Helmholtz\_k10.
@@ -67,7 +79,9 @@ n/a on Helmholtz\_k10.
 **low** on the interpretation as "quantum advantage grows with k" — at k=20 the ratio is
 still ≈1 (parity, not advantage), and the trend is dominated by how badly `q_serial`
 fails at k=4 (error ~5 orders of magnitude larger than `c_mlp`'s), not by a genuine
-crossover into quantum outperforming classical.
+crossover into quantum outperforming classical. *Post-submission: at k=10 and k=20 every
+family's median rel-L2 is 0.977–1.089, i.e. nothing learned either solution — see
+erratum E5.*
 
 **F6 — P2's negative-result mechanism holds for 3 of 4 quantum families; `q_serial`
 itself is the one quantum exception (PR-4).** Measured benefit over `c_mlp`: `q_serial`
@@ -162,6 +176,8 @@ trend and not a single-point artifact, but every individual comparison is still 
 n=2 read. This is the one place in this run's data where "no longer a clear quantum
 disadvantage" (not the same as an advantage) shows up, and only the single-problem
 (Poisson) view in the original T4.2 scope would have missed it entirely.
+*Post-submission: the two CONFIRMED instances are parity between models that all
+failed (rel-L2 ≈ 1) — see erratum E5.*
 
 **F14 — Baseline-tuning check (T4.9) reinforces PR-2's REFUTED verdict and leaves PR-1
 unaffected, for two different reasons.** A 12-config exploratory grid
@@ -189,7 +205,7 @@ comparison budget.
 |---|---|---|
 | C1 — SMCD constructive map | **Not supported at this sample size, one qualified exception** | Falsifier PR-6 INCONCLUSIVE (both problems, n=2 floor — F10); direct ablation PR-1/2/3 REFUTED on Poisson (F2), and confirmed not an under-tuned-baseline artifact (T4.9, F14); generalized to all 6 problems, REFUTED on 4, but genuinely CONFIRMED (statistical parity, not advantage) on Helmholtz_k10/k20 — the two highest-wavenumber instances (F13) |
 | C2 — Quantum-NTK block flattening | **Reversed where measurable** | PR-7 REFUTED on Helmholtz_k10 — spectrum steeper, not flatter, inside Ω; Poisson INSUFFICIENT_DATA (undefined outside-band exponent, not computed) (F3) |
-| C3 — Spectral-bias relief mechanism | **Holds on Poisson only** | PR-8 CONFIRMED (Poisson, 71.3%), REFUTED (Helmholtz_k10, 0% — no improvement exists) (F4) |
+| C3 — Spectral-bias relief mechanism | **Holds on Poisson only** | PR-8 CONFIRMED (Poisson, 99.9% — 71.3% in v1.0, erratum E2), REFUTED (Helmholtz_k10, 0% — no improvement exists) (F4) |
 | C4 — Negative-result map | **Mechanism partially right, uniform threshold REFUTED** | PR-4 REFUTED (3 families cross 5%), but 3 of 4 *quantum* families underperform as predicted; only `q_serial` is a quantum exception (F6) |
 | C5 — XAI protocol | **Demonstrated** | All 12 predictions mechanically adjudicated from committed artifacts, no `?` left; caught real bugs in its own tooling (PR-8 NaN mishandling, PR-10 degenerate fit, `specerr.npz` corruption, PR-7 silently unreproducible from a clean clone + a second masked NaN) rather than silently propagating them |
 
@@ -234,3 +250,81 @@ max-error tail (1058%) from its typical case to confirm it is a relative-error-n
 artifact and not a genuine surrogate failure mode; and validate the shot-noise surrogate
 (the one arm actually used in `noise_study.yaml`) against a density-matrix reference —
 only the depolarizing surrogate was checked this run (F12).
+
+## Post-submission errata (2026-09-25)
+
+Added after the WISER 2026 BQP Challenge; the judged version is tag `v1.0-submission`
+(`d20e961`). The pre-registered thresholds and all 15 verdicts are unchanged
+(`python scripts/adjudicate_predictions.py`). Every number below was re-derived from the
+committed `results/runs/` data, not copied from earlier notes. E1–E3 are corrections;
+E4–E6 are caveats the findings above understate.
+
+**E1 — PR-7 (F3): the Helmholtz\_k10 gap is −8.37, not −9.67.** The −9.67 predates
+`16ff015`, which moved PR-7 from reloading gitignored checkpoints to the committed
+`xai/ntk_step*.npz`; the committed adjudicator has reported −8.37 since then. Still
+REFUTED (bar ≥ +0.5). Corrected in F3 and the paper.
+
+**E2 — PR-8 (F4): 99.9% of Poisson's improvement lies inside Ω, not 71.3%.** Poisson's
+error spectrum sits on a two-sided FFT axis, and Ω holds both +ω and −ω, but the
+overlap code folded Ω onto |ω|. So the mirrored negative half of Ω counted as "outside".
+The improvement mass is symmetric: 3,943.6 at ω < 0, 3,943.6 at ω > 0 and 5,863.6 at
+ω = 0. Counting both halves, 13,742 of 13,751 units (99.94%) fall inside Ω. The verdict
+is the same (CONFIRMED, bar ≥ 70%), but it is not the marginal pass 71.3% suggested.
+Fixed in `scripts/make_figures.py::_omega_lines_from_design_card`, with a regression test
+in `tests/test_phase3_figures.py`. The other five problems use a radially binned axis
+(64 bins, about 35 rad/unit wide), too coarse to resolve Ω. For Helmholtz all of Ω falls
+in the first bin, so their heatmaps show where the error sits, not Ω's shape. No verdict
+depends on this: Helmholtz\_k10's PR-8 is REFUTED because no improvement exists at any
+frequency.
+
+**E3 — The paper figures marked the wrong band.** `tasks.py figures` passed the design
+card's four encoding scalings (π, 3π, 9π, 27π) as Ω instead of the realised frequency set
+(81 frequencies for Poisson). As a result, every `freq_heatmap_*` overlay and the shaded
+band in `ntk_spectrum_p1`/`p4` were wrong in v1.0. Adjudication always used the correct
+Ω, so no number or verdict was affected. The adjudicator and `tasks.py figures` also
+wrote the same file names with different content, and the PDFs embedded a timestamp.
+Figures are now regenerated from one Ω source, byte-for-byte reproducibly.
+
+**E4 — PR-9 (F1): the coverage evidence is thinner than "n=18, p=3.2×10⁻⁵" and depends
+on training budget.**
+- `coverage_sweep` trained at 1500+150 steps, not the core matrix's 20000+2000
+  (`configs/exp/coverage_sweep.yaml`); F1 did not say so.
+- On Poisson, SMCD's coverage de-tuning builds only three circuits. Targets 0.4 and 0.6
+  give the same 8-parameter circuit (1 qubit, 1 layer), and 0.8, 0.9 and 1.0 give the
+  same 14-parameter circuit (1 qubit, 4 layers), with bit-identical rel-L2. Target 0.2
+  gives a third 8-parameter circuit. The 18 points are therefore 9 distinct measurements
+  (3 circuits × 3 seeds), and the p-value treats the duplicates as independent. Coverage
+  is also confounded with parameter count (8 vs 14).
+- What holds at this budget: the full-coverage circuit beats every under-covering one on
+  every seed (rel-L2 0.718–0.729 vs 0.909–1.084).
+- At the full 20000+2000 budget the order reverses on 2 of 3 seeds. The 18 superseded
+  full-budget runs are still in `results/runs/`. There the 1-layer circuits reach
+  0.66–0.70 on seeds 0–1 (and diverge to 11–21 on seed 2), while the 4-layer circuit
+  stays at 1.54–1.58.
+- On Helmholtz\_k10 all six targets build the same 20-parameter circuit (3 qubits, 1
+  layer), and every run scores 0.991–1.002. Its ρ = +0.28 is rank noise among
+  near-identical failures.
+
+**E5 — PR-5 and PR-3 (F5, F13): "parity" at Helmholtz k=10 and k=20 is parity among
+failures.** On these two instances every family's median rel-L2 is 0.977–1.089. A model
+that outputs u ≡ 0 scores exactly 1.0, so no family learned either solution. F13's two
+CONFIRMED verdicts (`q_serial` ≈ `c_rff_matched`) and F5's ratios near 1 reflect shared
+failure, not matched capability. They should not be read as "the quantum model catches up
+at high k". SMCD's own a-priori `predicted_benefit` is 0.0 at k=4 and k=10 (and 1.0 at
+k=20; `results/design_cards.json`).
+
+**E6 — F2: the classical baselines were not size-matched.** On Poisson, `q_serial` has
+14 parameters, `c_mlp` 8,513, `c_ff` 129 and `q_parallel` 1,166. Only `c_rff_matched`
+(13), `q_random` (14) and `q_octave` (13) are within ±10% of `q_serial`; other problems
+show the same pattern. `results/size_matching.json` shows that matched configurations
+exist for every family, but the core matrix trained each family at its default size
+(`configs/model/*.yaml`). The capacity-matched comparison on Poisson is `q_serial` vs
+`c_rff_matched` (PR-3): 1.702 vs 0.400.
+
+**Reproducibility notes (no effect on any number).** F14's four full-budget
+confirmation runs were launched without a config file. `configs/exp/baseline_tuning_confirm.yaml`
+now reproduces their exact run IDs, and a test pins them. The twelve
+`baseline_tuning` runs record a commit (`d4c6877`) that never reached the published
+history. Pre-registration ordering is therefore verified for the 181 runs of the six
+pre-registered experiments (`python scripts/verify_preregistration.py`: 0 violations);
+T4.9 was a post-adjudication fairness check, not a prediction.

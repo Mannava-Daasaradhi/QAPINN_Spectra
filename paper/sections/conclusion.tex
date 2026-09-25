@@ -14,11 +14,13 @@ shows \texttt{q\_serial} \emph{underperforming} \texttt{c\_mlp}, \texttt{c\_ff},
 \texttt{c\_rff\_matched} alike. Generalizing PR-3 to all six instances (\S\ref{sec:results})
 sharpens this: REFUTED (classical decisively wins) on four of six, but genuinely
 CONFIRMED --- matched-capacity statistical equivalence --- on the two highest-wavenumber
-instances, Helmholtz\_k10 and Helmholtz\_k20, consistent with PR-5's $k$-scaling trend.
-Read together, the honest statement is not "SMCD doesn't work" but "this run finds no
+instances, Helmholtz\_k10 and Helmholtz\_k20, consistent with PR-5's $k$-scaling trend
+(though there every family, classical and quantum, scores rel-$L^2\approx1$:
+\S\ref{sec:errata}, E5).
+Read together, the honest statement is not ``SMCD doesn't work'' but ``this run finds no
 evidence of a quantum \emph{advantage} anywhere, and finds the quantum
 \emph{disadvantage} narrowing to statistical parity specifically at the hardest,
-highest-wavenumber instances" --- a real, qualified finding, not the clean constructive
+highest-wavenumber instances'' --- a real, qualified finding, not the clean constructive
 win C1 was written to claim.
 
 \textbf{C2 (quantum-NTK block decomposition, flattened decay inside $\Omega$) is
@@ -29,8 +31,8 @@ outside-band index range of this run's committed NTK spectrum, so the comparison
 prediction needs is undefined there, reported as such rather than guessed at.
 
 \textbf{C3 (spectral-bias relief as mechanism) holds on one instance, not the other.}
-PR-8 CONFIRMED on Poisson (71.3\% of the real, positive improvement lands inside
-$\Omega$) but REFUTED on Helmholtz\_k10, where \texttt{q\_serial} does not beat
+PR-8 CONFIRMED on Poisson (99.9\% of the real, positive improvement lands inside
+$\Omega$; 71.3\% in the submitted version, \S\ref{sec:errata}) but REFUTED on Helmholtz\_k10, where \texttt{q\_serial} does not beat
 \texttt{c\_mlp} at any frequency at all --- there is no improvement for the mechanism
 to explain on the harder instance.
 

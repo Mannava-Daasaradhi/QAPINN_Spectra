@@ -1,0 +1,37 @@
+\section{Post-submission errata (2026-09-25)}
+\label{sec:errata}
+
+Added after the WISER 2026 BQP Challenge; the version that was judged is repository tag
+\texttt{v1.0-submission}. The pre-registered thresholds and all 15 verdicts are unchanged.
+Every number below was re-derived from the committed runs; \texttt{FINDINGS.md} gives
+the reproduction commands. E1--E3 are corrections, E4--E6 caveats the results understate.
+
+\begin{description}
+\item[E1 (PR-7).] The Helmholtz\_k10 decay-exponent gap is $-8.37$, not $-9.67$. The old
+  value came from reloading gitignored checkpoints, before PR-7 was switched to the
+  committed \texttt{xai/ntk\_step*.npz}. Still REFUTED.
+\item[E2 (PR-8).] 99.9\%, not 71.3\%, of Poisson's improvement lies inside $\Omega$.
+  Poisson's error spectrum is two-sided and $\Omega=-\Omega$, but the overlap code folded
+  $\Omega$ onto $|\omega|$. So the mirrored half of the improvement (3{,}944 of 13{,}751
+  units; 5{,}864 sit at $\omega=0$) counted as outside $\Omega$. Still CONFIRMED.
+\item[E3 (figures).] The submitted heatmaps and \texttt{ntk\_spectrum\_p1/p4} shaded the
+  design card's four encoding scalings ($\pi,3\pi,9\pi,27\pi$) as $\Omega$ instead of the
+  realised frequency set (81 frequencies for Poisson). Adjudication always used the
+  correct $\Omega$; the figures in this revision are regenerated.
+\item[E4 (PR-9).] The coverage sweep trained at 1500+150 steps. Its six targets build
+  only three distinct Poisson circuits: 0.4 and 0.6 give one, 0.8, 0.9 and 1.0 give
+  another, and 0.2 gives a third. The 18 points are therefore 9 distinct measurements,
+  and coverage is confounded with parameter count (8 vs.\ 14). At this budget full
+  coverage wins on every seed (0.718--0.729 vs.\ 0.909--1.084). At the full 20000+2000
+  budget the order reverses on two of three seeds: 1-layer circuits reach 0.66--0.70,
+  while the 4-layer circuit stays at 1.54--1.58. Helmholtz\_k10 builds a single circuit
+  at every target and scores 0.991--1.002 throughout.
+\item[E5 (PR-3, PR-5).] At $k=10$ and $k=20$ every family's median rel-$L^2$ is
+  0.977--1.089, while predicting $u\equiv0$ scores exactly 1. The CONFIRMED parity there
+  is shared failure, not matched capability. SMCD's own predicted benefit is 0 at $k=4$
+  and $k=10$.
+\item[E6 (PR-1, PR-2).] The core matrix trained each family at its default size. On
+  Poisson \texttt{q\_serial} has 14 parameters, \texttt{c\_mlp} 8{,}513 and
+  \texttt{c\_ff} 129. Only \texttt{c\_rff\_matched} (13), \texttt{q\_random} (14) and
+  \texttt{q\_octave} (13) are size-matched.
+\end{description}

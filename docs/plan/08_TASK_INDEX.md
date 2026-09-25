@@ -206,7 +206,12 @@ test suite mutates already-committed smoke-fixture `results/runs/*` files (e.g.
 unexplained violation of T0.20's "same seed ⇒ bit-identical" determinism contract for
 smoke-mode runs specifically. Reverted those 564 incidental modifications before
 committing (`git checkout --`) to keep the originally-verified fixture data intact;
-worth a real investigation later, not this deadline.
+worth a real investigation later, not this deadline. *Resolved post-submission
+(2026-09-25): not same-device nondeterminism. Unisolated tests wrote into
+`results/runs/`; one deleted a committed CPU smoke run and another recreated it on CUDA.
+CPU and CUDA round differently (1e-15 in rel-L2 on the run re-checked; training can
+amplify such differences). The tests are now isolated (`tests/conftest.py`); see
+`CHANGELOG.md`.*
 
 **T4.10's Phase 4 gate now
 passes for real**: every dependency (T4.1–T4.9) has genuine, verified evidence, no
@@ -292,10 +297,14 @@ corrected data supports.
 - [x] Every C1–C5 marked confirmed / refuted / inconclusive / partially — `FINDINGS.md`'s
       table (none left as a bare `?`)
 - [x] Clean-clone `repro-quick` succeeds — 42/42, 536.8s, verified from a real fresh clone
-- [ ] Repository public, MIT licensed — `LICENSE` added (MIT); GitHub visibility is a
+- [x] Repository public, MIT licensed — `LICENSE` added (MIT); GitHub visibility is a
       hosting setting, not a file, and is left for the repository owner to flip
+      (*done: confirmed public on 2026-09-25*)
 
 9/10 complete; the 10th is a one-click owner action, not remaining engineering work.
+*Post-submission (2026-09-25): 10/10. The `v1.0-submission` tag this task called for was
+never created at the time; it now marks `d20e961`, the judged commit. Later changes are
+listed in `CHANGELOG.md`.*
 
 ---
 

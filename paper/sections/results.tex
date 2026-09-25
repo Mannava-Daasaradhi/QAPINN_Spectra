@@ -14,7 +14,7 @@ a real, structural consequence of the seed cut, not a weak result reported as an
 one --- every verdict below is exactly what the pre-registered thresholds say, unmodified.
 
 \subsection{The headline figure: coverage vs.\ error (PR-9)}
-\texttt{coverage\_vs\_error} (\texttt{paper/figures/coverage\_vs\_error.pdf}): median
+Figure~\ref{fig:coverage}: median
 relative-$L^2$ error vs.\ SMCD's achieved coverage $|\hat S\cap\Omega|/|\hat S|$, one
 series per problem (poisson, helmholtz\_k10), Spearman $\rho$ per problem, at $n=18$
 points per problem (6 coverage targets $\times$ 3 seeds --- \texttt{coverage\_sweep} is
@@ -25,32 +25,72 @@ higher SMCD coverage did not track lower error on the harder, more quantum-heavy
 problem instance. The adjudication rule takes the worst case across problems, so the
 verdict is REFUTED even though one problem instance individually confirms the claim;
 this is the headline figure and it ships exactly as measured, per this project's own
-"ships whatever it says" rule.
+``ships whatever it says'' rule. \emph{Post-submission caveat} (\S\ref{sec:errata}, E4):
+the sweep trained at 1500+150 steps, the six coverage targets produce only three distinct
+Poisson circuits (so the 18 points are 9 distinct measurements), and at the full
+20000+2000 budget the ordering reverses on two of three seeds.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.62\linewidth]{figures/coverage_vs_error.pdf}
+  \caption{Coverage vs.\ error (PR-9, \texttt{coverage\_sweep}, 1500+150 training steps):
+    median rel-$L^2$ over seeds, grouped by achieved weighted coverage; shaded bands are
+    the interquartile range and labels give $(n_{\text{qubits}}, L)$ of the circuit SMCD
+    built. Helmholtz\_k10 builds the same circuit at every target and scores
+    rel-$L^2\approx1$ throughout.}
+  \label{fig:coverage}
+\end{figure}
 
 \subsection{NTK spectroscopy (PR-7)}
-\texttt{ntk\_spectrum\_\{p1,p4,poisson\_pr7,helmholtz\_k10\_pr7\}}: classical-vs-hybrid
+Figure~\ref{fig:ntk} (also \texttt{ntk\_spectrum\_\{p1,p4\}}): classical-vs-hybrid
 eigenvalue spectra with $\Omega$ shaded, decay exponent measured inside vs.\ outside the
 band, from each run's committed \texttt{xai/ntk\_step*.npz} only. \textbf{Helmholtz\_k10:
-REFUTED}, gap $=-9.67$ (need $\ge+0.5$) --- steeper, not flatter, inside $\Omega$.
+REFUTED}, gap $=-8.37$ (need $\ge+0.5$; the submitted version stated $-9.67$,
+\S\ref{sec:errata}, E1) --- steeper, not flatter, inside $\Omega$.
 \textbf{Poisson: INSUFFICIENT\_DATA}, not REFUTED --- fewer than 2 positive eigenvalues
 fall in the outside-band range, so that exponent is undefined, not just noisy; reported
 as such rather than letting \texttt{NaN}$\ge 0.5$ silently evaluate false. Where measurable, the quantum block's NTK does not show the
 predicted eigen-concentration at the encoded frequencies.
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.48\linewidth]{figures/ntk_spectrum_poisson_pr7.pdf}\hfill
+  \includegraphics[width=0.48\linewidth]{figures/ntk_spectrum_helmholtz_k10_pr7.pdf}
+  \caption{Residual NTK eigenvalue spectra at the final checkpoint, \texttt{c\_mlp} vs.\
+    \texttt{q\_serial}, with the top-$|\Omega|$ index range shaded (PR-7). Left: Poisson,
+    $|\Omega|=81$, which leaves fewer than two eigenvalues outside the band
+    (INSUFFICIENT\_DATA). Right: Helmholtz\_k10, $|\Omega|=15$ (REFUTED, gap $-8.37$).}
+  \label{fig:ntk}
+\end{figure}
+
 \subsection{Per-frequency error trajectories (PR-8)}
-\texttt{freq\_heatmap\_\{poisson,heat,burgers,helmholtz\_k4,helmholtz\_k10,helmholtz\_k20\}}
-(all six problem instances render; see \S\ref{sec:xai} note on the crash-retry
+Figure~\ref{fig:heatmaps} (all six problem instances render as
+\texttt{freq\_heatmap\_*}; see \S\ref{sec:xai} note on the crash-retry
 \texttt{specerr.npz} corruption found and fixed while building this figure).
-\textbf{Split verdict.} Poisson: \textbf{CONFIRMED} --- 71.3\% of the total error
-improvement lands inside $\Omega$, past the 70\% bar, on real positive total
-improvement (13{,}751 in the accumulated per-frequency metric). Helmholtz\_k10:
+\textbf{Split verdict.} Poisson: \textbf{CONFIRMED} --- 99.9\% of the total error
+improvement lands inside $\Omega$, well past the 70\% bar, on real positive total
+improvement (13{,}751 in the accumulated per-frequency metric). The submitted version
+reported 71.3\%: it counted only the positive-frequency half of the symmetric set
+$\Omega$ on Poisson's two-sided spectrum (\S\ref{sec:errata}, E2). Helmholtz\_k10:
 \textbf{REFUTED}, and not narrowly --- \texttt{q\_serial} does not outperform
 \texttt{c\_mlp} at \emph{any} frequency (total\_improvement $=0$), so there is no
 improvement for PR-8's premise to attribute to $\Omega$ in the first place, independent
 of the 70\% threshold.
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/freq_heatmap_poisson.pdf}\\[4pt]
+  \includegraphics[width=\linewidth]{figures/freq_heatmap_helmholtz_k10.pdf}
+  \caption{Per-frequency error $|\hat e(\omega)|$ over training, \texttt{c\_mlp} (left)
+    vs.\ \texttt{q\_serial} (right), with $\Omega$ overlaid as thin white lines (PR-8).
+    Top: Poisson, two-sided spectrum, shown within $\pm2\max|\Omega|$. Bottom:
+    Helmholtz\_k10, radially binned spectrum; all of $\Omega$ ($|\omega|\le19$) falls in
+    the lowest bin.}
+  \label{fig:heatmaps}
+\end{figure}
+
 \subsection{Ablation: is it the design, or just being quantum? (PR-1, PR-2, PR-3, PR-6)}
-\texttt{ablation\_matched}: \texttt{q\_serial} vs.\ \texttt{c\_mlp}, \texttt{c\_ff},
+Figure~\ref{fig:ablation}: \texttt{q\_serial} vs.\ \texttt{c\_mlp}, \texttt{c\_ff},
 \texttt{c\_rff\_matched} (matched spectrum, no quantum), and \texttt{q\_random}
 (quantum, unmatched spectrum), paired Wilcoxon and Cliff's delta on Poisson (P1), $n=2$
 shared seeds. \textbf{All four REFUTED}, and in the same direction: \texttt{q\_serial}'s
@@ -68,10 +108,23 @@ sample-size note above), so it is reported as inconclusive rather than confirmed
 favorable-looking ratio alone. \emph{Adversarial check (T4.9):} were \texttt{c\_mlp}/
 \texttt{c\_ff} simply under-tuned, faking these REFUTED verdicts? A learning-rate/width
 sweep, re-run at the real comparison budget, says no --- \texttt{c\_ff}'s mild
-under-tuning makes its win over \texttt{q\_serial} \emph{larger} (≈18$\times$, not
+under-tuning makes its win over \texttt{q\_serial} \emph{larger} ($\approx$18$\times$, not
 smaller), and \texttt{c\_mlp}'s apparent reduced-budget improvement was worse, not
 better, once tested at the actual 20000-step schedule (\texttt{docs/self\_review.md},
-\texttt{FINDINGS.md} F14).
+\texttt{FINDINGS.md} F14). Note that only \texttt{c\_rff\_matched} and \texttt{q\_random}
+are size-matched to \texttt{q\_serial} (13--14 parameters on Poisson); \texttt{c\_mlp}
+and \texttt{c\_ff} ran at their default sizes, 8{,}513 and 129 parameters
+(\S\ref{sec:errata}, E6).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/ablation_matched.pdf}
+  \caption{Final rel-$L^2$ (log scale) per problem for \texttt{q\_serial},
+    \texttt{c\_rff\_matched}, \texttt{q\_random} and \texttt{c\_ff}, $n=2$ seeds per box
+    (PR-1--3, PR-6, T4.2). On Helmholtz\_k10 and k20 every family sits at
+    rel-$L^2\approx1$, the score of predicting $u\equiv0$.}
+  \label{fig:ablation}
+\end{figure}
 
 \subsection{The matched-capacity equivalence, across all six instances (PR-3 generalized, C1/T4.2)}
 PR-3's own falsifier (\texttt{q\_serial} $\approx$ \texttt{c\_rff\_matched}, ratio within
@@ -87,12 +140,14 @@ marginally \emph{ahead}). The pattern is consistent with PR-5's k-scaling trend:
 wavenumber, matched-capacity classical Fourier features decisively beat \texttt{q\_serial};
 at the two highest-wavenumber instances, the two are statistically indistinguishable at
 this sample size. This does not establish a quantum \emph{advantage} anywhere --- the
-best this run's data supports is "no longer a clear quantum \emph{disadvantage}" on the
+best this run's data supports is ``no longer a clear quantum \emph{disadvantage}'' on the
 hardest two instances, which is itself a real, non-obvious finding this single-problem
-view would have missed.
+view would have missed. \emph{Post-submission caveat} (\S\ref{sec:errata}, E5): on those
+two instances every family's median rel-$L^2$ is 0.977--1.089, so the parity is between
+models that all failed to learn the solution.
 
 \subsection{Decision map: predicted vs.\ measured benefit, and P4's k-scaling (PR-5)}
-\texttt{decision\_map}: SMCD's a-priori predicted benefit against the measured benefit
+Figure~\ref{fig:decision}: SMCD's a-priori predicted benefit against the measured benefit
 of \texttt{q\_serial} over \texttt{c\_mlp}, one point per problem. Separately, P4's
 $k$-scaling prediction (PR-5, \textbf{CONFIRMED}): the \texttt{c\_mlp}/\texttt{q\_serial}
 rel-$L^2$ ratio increases monotonically across $k=4\to10\to20$
@@ -103,6 +158,18 @@ extremity is itself the finding, not a clean win: a ratio of $8.79\times10^{-6}$
 monotonic trend is real, but it is driven by quantum failing worst at the easiest
 instance and only nearly catching up at $k=20$ (ratio $1.02$, i.e.\ still not actually
 ahead), not by quantum's advantage growing from a positive baseline.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.62\linewidth]{figures/decision_map.pdf}
+  \caption{SMCD's a-priori predicted benefit vs.\ the measured benefit of
+    \texttt{q\_serial} over \texttt{c\_mlp},
+    $(\mathrm{med}_{\texttt{c\_mlp}}-\mathrm{med}_{\texttt{q\_serial}})/\mathrm{med}_{\texttt{c\_mlp}}$,
+    one point per problem (C4, PR-5). The $y$ axis is symmetric-logarithmic (linear
+    within $\pm1$): on Helmholtz\_k4 \texttt{q\_serial}'s error is about $10^5$ times
+    \texttt{c\_mlp}'s.}
+  \label{fig:decision}
+\end{figure}
 
 \subsection{P2's negative control (PR-4) and the barren-plateau frontier (PR-10)}
 See \S\ref{sec:negative} for PR-4 (heat/P2, C4's core claim). PR-10 (gradient variance

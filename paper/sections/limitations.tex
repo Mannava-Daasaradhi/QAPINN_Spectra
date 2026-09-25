@@ -66,5 +66,6 @@ recent, post-crash-recovery --- row for each real checkpoint step is kept, disca
 the stale row written before the crash. This is a mechanical cleanup of an accumulation
 artifact, not new data; it recovered two figures (\texttt{freq\_heatmap\_poisson},
 \texttt{freq\_heatmap\_helmholtz\_k4}) and one prediction (PR-8/poisson, from
-INSUFFICIENT\_DATA to a real CONFIRMED at 71.3\% overlap) that would otherwise have been
+INSUFFICIENT\_DATA to a real CONFIRMED; 99.9\% overlap after the post-submission
+correction in \S\ref{sec:errata}) that would otherwise have been
 reported as missing or excluded rather than fixed.

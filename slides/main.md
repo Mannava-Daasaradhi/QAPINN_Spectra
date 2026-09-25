@@ -142,7 +142,7 @@ is replaced by a flat response inside the encoded band.
 
 ## Headline figure: coverage vs. error
 
-![width:900px](../paper/figures/coverage_vs_error.png)
+![height:420px](../paper/figures/coverage_vs_error.png)
 
 SMCD's achieved coverage $|\hat S \cap \Omega|/|\hat S|$ vs. median relative-$L^2$ error —
 the direct empirical validation of the design methodology.
@@ -151,7 +151,7 @@ the direct empirical validation of the design methodology.
 
 ## NTK spectroscopy: the predicted signature
 
-![width:850px](../paper/figures/ntk_spectrum_p1.png)
+![height:420px](../paper/figures/ntk_spectrum_p1.png)
 
 Classical vs. hybrid eigenvalue spectrum, encoded band $\Omega$ shaded — Prop. 4's
 flattened-eigenvalue prediction, measured directly.
