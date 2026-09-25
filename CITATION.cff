@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite it as below."
+title: "QAPINN-Spectra: Spectrum-Matched Circuit Design for Quantum-Assisted Physics-Informed Neural Networks"
+type: software
+authors:
+  - family-names: Katta
+    given-names: Lahari
+  - family-names: Mannava
+    given-names: Daasaradhi
+version: 1.1.0
+date-released: 2026-09-25
+license: MIT
+repository-code: "https://github.com/Mannava-Daasaradhi/QAPINN_Spectra"
+abstract: >-
+  Spectrum-Matched Circuit Design (SMCD) reads a PDE's target spectral support from its
+  operator symbol and constructs a data-re-uploading quantum circuit whose frequency set
+  covers it, with no architecture search. Six explainable-AI instruments, run identically
+  on matched classical and hybrid physics-informed neural networks, test twelve
+  pre-registered predictions about where the quantum layer helps. Finalist, WISER Summer
+  Program 2026 Industry Challenge (BQP Challenge).
+keywords:
+  - physics-informed neural networks
+  - quantum machine learning
+  - variational quantum circuits
+  - spectral bias
+  - explainable AI

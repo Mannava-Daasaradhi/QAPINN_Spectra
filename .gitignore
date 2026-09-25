@@ -23,7 +23,18 @@ paper/*.aux
 paper/*.log
 paper/*.out
 paper/*.toc
+paper/*.bbl
+paper/*.blg
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.xdv
 paper/*.synctex.gz
+
+# Packaging / notebooks
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
 
 # Claude-flow / tooling scratch
 .claude-flow/
@@ -34,3 +45,5 @@ paper/*.synctex.gz
 Thumbs.db
 .vscode/
 .idea/
+.metals/
+.bloop/

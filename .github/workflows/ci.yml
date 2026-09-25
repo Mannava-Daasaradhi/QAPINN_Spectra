@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.11.8"
+      - name: Ruff (the version pinned in uv.lock)
+        run: uvx ruff@0.16.0 check src tests scripts tasks.py
+
+  test:
+    # CPU-only runner: qapinn resolves its device to CPU when CUDA is unavailable.
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: Free disk space for the CUDA build of PyTorch that uv.lock pins
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.11.8"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install the locked environment
+        run: uv sync --frozen
+      - name: Test suite
+        run: uv run --frozen python tasks.py test
+      - name: Tests left the committed tree untouched
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+      - name: Figures, verdicts and run index regenerate exactly from committed results
+        run: |
+          uv run --frozen python tasks.py figures --strict
+          uv run --frozen python scripts/adjudicate_predictions.py > /dev/null
+          uv run --frozen python scripts/verify_preregistration.py > /dev/null
+          uv run --frozen python scripts/index_runs.py
+          git status --porcelain
+          test -z "$(git status --porcelain)"
