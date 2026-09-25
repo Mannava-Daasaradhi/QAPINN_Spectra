@@ -114,10 +114,10 @@ def make_ntk_spectrum_comparison(
     from qapinn.pdes import build as build_pde
     from qapinn.train.checkpoint import load_checkpoint
 
-    def _load(run_dir: Path | str):
-        run_dir = Path(run_dir)
-        data = yaml_mod.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8"))
-        cfg = ExpConfig(**data)
+    def _cfg(run_dir: Path | str) -> ExpConfig:
+        return ExpConfig(**yaml_mod.safe_load((Path(run_dir) / "config.yaml").read_text(encoding="utf-8")))
+
+    def _load(run_dir: Path | str, cfg: ExpConfig):
         pde = build_pde(cfg.pde)
         model = build_model(
             cfg.model,
@@ -126,16 +126,19 @@ def make_ntk_spectrum_comparison(
             smcd_eps=cfg.smcd_eps,
             smcd_coverage_target=cfg.smcd_coverage_target,
         )
-        load_checkpoint(model, run_dir / "checkpoints" / f"step_{step}.pt")
-        return cfg, pde, model
+        load_checkpoint(model, Path(run_dir) / "checkpoints" / f"step_{step}.pt")
+        return pde, model
 
-    cfg_a, pde_a, model_a = _load(run_dir_a)
-    cfg_b, pde_b, model_b = _load(run_dir_b)
+    cfg_a, cfg_b = _cfg(run_dir_a), _cfg(run_dir_b)
+    # Checked before any checkpoint is loaded: the mismatch is a caller error either way,
+    # and the checkpoints are gitignored, so they may not exist on this machine.
     if cfg_a.pde.name != cfg_b.pde.name:
         raise ValueError(
             f"{family_a} and {family_b} runs must be on the same PDE to be compared, "
             f"got {cfg_a.pde.name!r} vs {cfg_b.pde.name!r}"
         )
+    pde_a, model_a = _load(run_dir_a, cfg_a)
+    pde_b, model_b = _load(run_dir_b, cfg_b)
 
     band_size = len(omega_set)
     whole_decay = make_ntk_spectrum_figure(
@@ -334,13 +337,21 @@ def make_staircase_figure(
     plt.close(fig)
 
 
-def _omega_lines_from_design_card(omega_set: list[list[float]]) -> np.ndarray:
+def _omega_lines_from_design_card(omega_set: list[list[float]], signed_axis: bool = False) -> np.ndarray:
     """Design cards store Omega as a list of frequency VECTORS (one component per PDE
-    dimension the circuit encodes, T2.8). The heatmap's frequency axis is always 1-D
-    (radially binned for 2-D problems, `spectral_error.per_frequency_error`), so each
-    vector is reduced to its Euclidean norm -- a no-op for 1-D problems (norm of a
-    single component is just its magnitude) and the same radial reduction the heatmap
-    itself already applies for 2-D problems."""
+    dimension the circuit encodes, T2.8). The heatmap's frequency axis is always 1-D, so
+    each vector is mapped onto it:
+
+    - radially binned axis (2-D and time-dependent problems, omega >= 0): the Euclidean
+      norm, the same radial reduction `spectral_error.per_frequency_error` applies;
+    - signed axis (Poisson's two-sided FFT, omega in [-W, W]): the signed component
+      itself. Omega is symmetric (it holds both +w and -w), and so is a real field's error
+      spectrum. Folding to |w| here left the mirrored negative half of Omega counted as
+      "outside" in PR-8, which is how v1.0 reported Poisson's overlap as 71.3% instead of
+      99.9% (FINDINGS.md, post-submission errata).
+    """
+    if signed_axis and all(len(w) == 1 for w in omega_set):
+        return np.array([float(w[0]) for w in omega_set])
     return np.array([float(np.linalg.norm(w)) for w in omega_set])
 
 
@@ -396,19 +407,30 @@ def make_freq_heatmap_figure(
     vmin = float(np.log10(np.clip(np.minimum(traj_a_sub, traj_b_sub), 1e-300, None)).min())
     vmax = float(np.log10(np.clip(np.maximum(traj_a_sub, traj_b_sub), 1e-300, None)).max())
 
-    omega_lines = _omega_lines_from_design_card(omega_set)
+    signed_axis = bool((omega < 0).any())
+    omega_lines = _omega_lines_from_design_card(omega_set, signed_axis=signed_axis)
     if freq_range is not None:
         omega_lines = omega_lines[(omega_lines >= freq_range[0]) & (omega_lines <= freq_range[1])]
 
     fig, axes = plt.subplots(1, 2, figsize=FIGSIZE["double"], sharey=True)
     for ax, traj_sub, family in ((axes[0], traj_a_sub, family_a), (axes[1], traj_b_sub, family_b)):
         log_traj = np.log10(np.clip(traj_sub, 1e-300, None)).T  # [n_freq_sub, n_checkpoints]
-        mesh = ax.pcolormesh(steps_plot, omega_sorted, log_traj, shading="auto", cmap="viridis", vmin=vmin, vmax=vmax)
+        # rasterized: as vector quads, every cell edge rendered as a thin light seam in PDF
+        # viewers, indistinguishable from the Omega overlay lines drawn on top.
+        mesh = ax.pcolormesh(
+            steps_plot, omega_sorted, log_traj, shading="auto", cmap="viridis", vmin=vmin, vmax=vmax, rasterized=True
+        )
         for w in omega_lines:
-            ax.axhline(w, color="white", linewidth=0.5, alpha=0.6)
+            ax.axhline(w, color="white", linewidth=0.4, alpha=0.35)
         ax.set_xscale("log")
         ax.set_xlabel("training step")
         ax.set_title(family, color=family_color(family))
+    if signed_axis and freq_range is None and len(omega_lines) > 0:
+        # A two-sided axis spans +-Nyquist (~+-3200 for Poisson) while Omega sits within
+        # +-40*pi; show 2x Omega's reach so the band is readable. Plot window only -- the
+        # PR-8 numbers below always use the full axis.
+        reach = 2.0 * float(np.abs(omega_lines).max())
+        axes[0].set_ylim(max(-reach, float(omega_sorted.min())), min(reach, float(omega_sorted.max())))
     axes[0].set_ylabel(r"$\omega$")
     fig.colorbar(mesh, ax=axes, label=r"$\log_{10}|\hat{e}(\omega)|$")
 
@@ -499,28 +521,26 @@ def make_coverage_vs_error_figure(run_dirs_by_problem: dict[str, list]) -> dict[
         q1 = [float(np.percentile(errs, 25)) for errs in errs_by_cov]
         q3 = [float(np.percentile(errs, 75)) for errs in errs_by_cov]
 
+        all_covs = [p[0] for p in points]
+        all_errs = [p[1] for p in points]
+        rho, pval = scipy_stats.spearmanr(all_covs, all_errs)
+
+        # rho/p go in the legend: free-floating annotations collided with the data points,
+        # and a fixed-point p format printed Poisson's 3.2e-5 as "p=0.000".
         color = family_color("q_serial")  # every coverage_sweep run is q_serial (T3.3)
-        line = ax.plot(covs_sorted, medians, "o-", label=problem, color=color if len(results) == 0 else None)[0]
+        label = rf"{problem}: $\rho$={rho:+.2f}, p={pval:.2g}"
+        line = ax.plot(covs_sorted, medians, "o-", label=label, color=color if len(results) == 0 else None)[0]
         ax.fill_between(covs_sorted, q1, q3, alpha=0.15, color=line.get_color())
         for c, m in zip(covs_sorted, medians):
             n_q, n_l = by_coverage[c][0][1], by_coverage[c][0][2]
             ax.annotate(f"({n_q},{n_l})", (c, m), fontsize=6, xytext=(2, 2), textcoords="offset points")
 
-        all_covs = [p[0] for p in points]
-        all_errs = [p[1] for p in points]
-        rho, pval = scipy_stats.spearmanr(all_covs, all_errs)
         results[problem] = {"spearman_rho": float(rho), "spearman_p": float(pval), "n_points": len(points)}
-        ax.annotate(
-            rf"$\rho$={rho:.2f} (p={pval:.3f})",
-            xy=(0.05, 0.95 - 0.08 * len(results)),
-            xycoords="axes fraction",
-            fontsize=7,
-        )
 
     ax.set_xlabel("coverage (weighted, achieved)")
     ax.set_ylabel("median rel-L2 error")
     ax.set_yscale("log")
-    ax.legend()
+    ax.legend(fontsize=7)
     fig.tight_layout()
 
     save_figure(fig, "coverage_vs_error", run_ids=None)
@@ -691,11 +711,17 @@ def make_ablation_matched_figure(run_dirs_by_problem: dict) -> dict:
     from qapinn.stats import paired_comparison
 
     problems = list(run_dirs_by_problem)
-    fig, axes = plt.subplots(1, len(problems), figsize=(FIGSIZE["single"][0] * len(problems), FIGSIZE["single"][1]), squeeze=False)
+    # At most 3 panels per row: six panels in one row made a 21-inch-wide figure whose
+    # text shrank to ~3pt at page width.
+    ncols = min(3, len(problems))
+    nrows = math.ceil(len(problems) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(FIGSIZE["double"][0], 2.3 * nrows), squeeze=False)
+    for ax in axes.flat[len(problems):]:
+        ax.set_visible(False)
     results: dict = {}
 
     for i, problem in enumerate(problems):
-        ax = axes[0][i]
+        ax = axes.flat[i]
         by_family = run_dirs_by_problem[problem]
         runs_by_family = {fam: _rel_l2_runs_by_seed(by_family[fam]) for fam in _ABLATION_FAMILIES if fam in by_family}
         n_seeds = {fam: len(runs) for fam, runs in runs_by_family.items()}
@@ -787,13 +813,22 @@ def make_decision_map_figure(run_dirs_by_problem: dict) -> dict:
     xs = [r["predicted_benefit"] for r in results.values()]
     ys = [r["measured_benefit"] for r in results.values()]
     ax.scatter(xs, ys, color=family_color("q_serial"))
+    # Label above for gains, below for losses: heat (+0.08) and helmholtz_k10 (-0.09)
+    # sit next to each other near the origin.
     for problem, r in results.items():
-        ax.annotate(problem, (r["predicted_benefit"], r["measured_benefit"]), fontsize=6, xytext=(3, 3), textcoords="offset points")
-    lo, hi = min(xs + ys + [0.0]), max(xs + ys + [0.01])
+        ax.annotate(
+            problem, (r["predicted_benefit"], r["measured_benefit"]), fontsize=6,
+            xytext=(4, 3) if r["measured_benefit"] >= 0 else (4, -9), textcoords="offset points",
+        )
+    lo, hi = min(xs + [0.0]), max(xs + [0.01])
     ax.plot([lo, hi], [lo, hi], "k--", linewidth=0.8, label="y = x")
+    # symlog: helmholtz_k4's measured "benefit" is ~ -1e5 (q_serial fails catastrophically
+    # where c_mlp reaches ~1e-4), which on a linear axis collapsed every other problem
+    # into one unreadable point at the origin. Linear within +-1, logarithmic beyond.
+    ax.set_yscale("symlog", linthresh=1.0)
     ax.set_xlabel("predicted benefit (SMCD a-priori)")
     ax.set_ylabel("measured benefit (q_serial vs c_mlp)")
-    ax.legend()
+    ax.legend(loc="lower right")
     fig.tight_layout()
 
     save_figure(fig, "decision_map", run_ids=None)
@@ -921,63 +956,40 @@ def regenerate_all(strict: bool = False) -> dict:
     is skipped or errors -- the real T5.1 DoD check, meant to be run once T3.4/T3.5 are
     both complete. Returns {"produced": {...}, "skipped": {...}, "errors": {...}}.
 
-    Known gap, not covered here yet: `attribution_{p3,p4}`, `fisher_effdim`, `probes_cka`,
-    `landscape_grid` (T1.6/T1.7/T1.10/T1.11 instruments) have no selection logic wired up
-    yet -- left for a follow-up pass rather than guessed at here.
+    Every Omega band (heatmap overlays, NTK band shading) comes from
+    `results/design_cards.json`'s `omega_set` -- the same source
+    `scripts/adjudicate_predictions.py` uses. Before 2026-09-25 this driver passed the
+    card's 4 encoding `scalings` instead, so the committed heatmaps and ntk_spectrum_p1/p4
+    marked the wrong band, and running the adjudicator afterwards redrew the same files
+    with different content.
     """
+    import json as _json
     import sys as _sys
     from pathlib import Path as _Path
-
-    import yaml as _yaml
 
     scripts_dir = _Path(__file__).resolve().parent
     if str(scripts_dir) not in _sys.path:
         _sys.path.insert(0, str(scripts_dir))
     from check_specerr_integrity import specerr_has_duplicate_steps
-    from cost_ledger import build_cost_ledger, enumerate_core_matrix_run_ids, render_markdown_table
-    from qapinn.runner import enumerate_runs as _enumerate_runs
+    from cost_ledger import build_cost_ledger, enumerate_core_matrix_run_ids
+
+    from qapinn.runner import enumerate_labeled_runs
 
     runs_dir = REPO_ROOT / "results" / "runs"
     exp_dir = REPO_ROOT / "configs" / "exp"
-
-    def _enumerate_labeled_run_ids(exp_cfg_path):
-        """run_id -> {'problem': label, 'family': ..., 'seed': ...} for ANY configs/exp/
-        *.yaml, including ones using the `axes` extension (coverage_sweep, depth_sweep,
-        alpha_sweep, noise_study) -- unlike cost_ledger.enumerate_core_matrix_run_ids,
-        which its own docstring documents as NOT supporting `axes` (it was written only
-        for core_matrix.yaml). Using that function here for axes-based configs silently
-        produced the wrong (pre-axes-override) run_ids, which then never matched any real
-        completed run -- e.g. it reported coverage_sweep as "0/6 runs, not launched yet"
-        even with all 36 real runs done, because it counted problems x families x seeds
-        only, ignoring the 6-value smcd_coverage_target axis entirely, and hashed
-        run_ids without that axis's override applied. This mirrors `enumerate_runs`'s own
-        iteration order (problem -> family -> seed -> axis_combo) exactly, so zipping its
-        ExpConfig output by index against that same order is safe."""
-        with Path(exp_cfg_path).open("r", encoding="utf-8") as f:
-            spec = _yaml.safe_load(f)
-        axis_combos = [{}]
-        for axis in spec.get("axes", []):
-            axis_combos = [dict(c, **{axis["key"]: v}) for c in axis_combos for v in axis["values"]]
-
-        cfgs = _enumerate_runs(exp_cfg_path)
-        mapping = {}
-        i = 0
-        for problem in spec["problems"]:
-            for family in spec["families"]:
-                for seed in spec["seeds"]:
-                    for _combo in axis_combos:
-                        mapping[cfgs[i].run_id] = {"problem": problem, "family": family, "seed": seed}
-                        i += 1
-        assert i == len(cfgs)
-        return mapping
+    design_cards = _json.loads((REPO_ROOT / "results" / "design_cards.json").read_text(encoding="utf-8"))
 
     def _done_run_dirs(exp_cfg_path):
-        run_ids = _enumerate_labeled_run_ids(exp_cfg_path)
+        """run_id -> {'problem', 'family', 'seed'} for every finished run of an experiment
+        config, plus the enumerated total. Labels come from `enumerate_labeled_runs`, which
+        applies `axes` overrides -- a core-matrix-only helper once made this driver report
+        coverage_sweep as "0/6 runs, not launched yet" with all 36 runs done (T3.10)."""
+        labeled = enumerate_labeled_runs(exp_cfg_path)
         out = {}
-        for rid, meta in run_ids.items():
-            if (runs_dir / rid / "metrics.json").is_file():
-                out[rid] = meta
-        return out, len(run_ids)
+        for problem, cfg in labeled:
+            if (runs_dir / cfg.run_id / "metrics.json").is_file():
+                out[cfg.run_id] = {"problem": problem, "family": cfg.model.family, "seed": cfg.seed}
+        return out, len(labeled)
 
     def _first_clean(run_dirs: list):
         """First run_dir in the list whose specerr.npz isn't crash-retry-contaminated
@@ -996,6 +1008,7 @@ def regenerate_all(strict: bool = False) -> dict:
 
     produced: dict = {}
     skipped: dict[str, str] = {}
+    excluded: dict[str, str] = {}  # deliberate, permanent exclusions -- strict mode tolerates these
     errors: dict[str, str] = {}
 
     def _attempt(name, fn):
@@ -1010,6 +1023,10 @@ def regenerate_all(strict: bool = False) -> dict:
         skipped[name] = reason
         print(f"  SKIP  {name}: {reason}")
 
+    def _exclude(name, reason):
+        excluded[name] = reason
+        print(f"  EXCL  {name}: {reason}")
+
     print(f"Regenerating figures from results/runs/ (core_matrix: {len(core_done)}/{core_total} runs available)...")
 
     # staircase_cmlp_p1 (T1.5): DELIBERATELY NOT CALLED HERE. build_staircase_data()
@@ -1020,8 +1037,9 @@ def regenerate_all(strict: bool = False) -> dict:
     # (run_ids 0280f156172b, a5f1ca54add5, 5669659249e2, alpha=0.05 -- NOT this function's
     # alpha=0.3 default, which BENCH.md documents as non-convergent). A real npz-based
     # regeneration needs its own per-mode-amplitude artifact saved at data-generation time;
-    # left as a known follow-up rather than guessed at here.
-    _skip("staircase_cmlp_p1", "build_staircase_data() retrains from scratch -- needs an npz-based rewrite first")
+    # left as a known follow-up rather than guessed at here. Reported as EXCLUDED, not
+    # SKIPPED, so `--strict` can pass: it fails on a missing sweep, not on this.
+    _exclude("staircase_cmlp_p1", "build_staircase_data() retrains from scratch -- needs an npz-based rewrite first")
 
     # coverage_vs_error (T3.7, THE headline figure) -- needs coverage_sweep.yaml runs.
     cov_done, cov_total = _done_run_dirs(exp_dir / "coverage_sweep.yaml")
@@ -1040,16 +1058,9 @@ def regenerate_all(strict: bool = False) -> dict:
             _skip(label, f"{problem} missing c_mlp or q_serial runs")
             continue
         run_dir_a, run_dir_b = _first_clean(fams["c_mlp"]), _first_clean(fams["q_serial"])
-        card_path = run_dir_b / "design_card.json"
-        if not card_path.is_file():
-            _skip(label, f"{run_dir_b} has no design_card.json")
-            continue
 
-        def _ntk(run_dir_a=run_dir_a, run_dir_b=run_dir_b, card_path=card_path, label=label):
-            import json as _json
-
-            card = _json.loads(card_path.read_text(encoding="utf-8"))
-            omega_set = card["scalings"]
+        def _ntk(run_dir_a=run_dir_a, run_dir_b=run_dir_b, label=label, problem=problem):
+            omega_set = design_cards[problem]["omega_set"]
             steps_a = {int(p.stem.removeprefix("ntk_step")) for p in (run_dir_a / "xai").glob("ntk_step*.npz")}
             steps_b = {int(p.stem.removeprefix("ntk_step")) for p in (run_dir_b / "xai").glob("ntk_step*.npz")}
             shared = steps_a & steps_b
@@ -1062,6 +1073,28 @@ def regenerate_all(strict: bool = False) -> dict:
 
         _attempt(label, _ntk)
 
+    # ntk_spectrum_{poisson,helmholtz_k10}_pr7: the figures check_pr7 draws while
+    # adjudicating PR-7 -- same runs (first core_matrix c_mlp/q_serial run), final
+    # checkpoint and Omega -- so `tasks.py figures` alone covers every figure the paper cites.
+    for problem in ("poisson", "helmholtz_k10"):
+        name = f"ntk_spectrum_{problem}_pr7"
+        fams = by_problem_family.get(problem, {})
+        if not fams.get("c_mlp") or not fams.get("q_serial"):
+            _skip(name, f"{problem} missing c_mlp or q_serial runs")
+            continue
+
+        def _ntk_pr7(run_dir_a=fams["c_mlp"][0], run_dir_b=fams["q_serial"][0], problem=problem, name=name):
+            import yaml as yaml_mod
+
+            from qapinn.config import ExpConfig
+
+            cfg = ExpConfig(**yaml_mod.safe_load((run_dir_a / "config.yaml").read_text(encoding="utf-8")))
+            return make_ntk_spectrum_comparison_from_npz(
+                run_dir_a, run_dir_b, _final_step(cfg), design_cards[problem]["omega_set"], name
+            )
+
+        _attempt(name, _ntk_pr7)
+
     # freq_heatmap_{6 instances}: c_mlp vs q_serial, one per problem.
     for problem in ("poisson", "heat", "burgers", "helmholtz_k4", "helmholtz_k10", "helmholtz_k20"):
         name = f"freq_heatmap_{problem}"
@@ -1070,16 +1103,9 @@ def regenerate_all(strict: bool = False) -> dict:
             _skip(name, f"{problem} missing c_mlp or q_serial runs")
             continue
         run_dir_a, run_dir_b = _first_clean(fams["c_mlp"]), _first_clean(fams["q_serial"])
-        card_path = run_dir_b / "design_card.json"
-        if not card_path.is_file():
-            _skip(name, f"{run_dir_b} has no design_card.json")
-            continue
 
-        def _heat(run_dir_a=run_dir_a, run_dir_b=run_dir_b, card_path=card_path, problem=problem):
-            import json as _json
-
-            card = _json.loads(card_path.read_text(encoding="utf-8"))
-            return make_freq_heatmap_figure(problem, run_dir_a, run_dir_b, card["scalings"])
+        def _heat(run_dir_a=run_dir_a, run_dir_b=run_dir_b, problem=problem):
+            return make_freq_heatmap_figure(problem, run_dir_a, run_dir_b, design_cards[problem]["omega_set"])
 
         _attempt(name, _heat)
 
@@ -1153,13 +1179,14 @@ def regenerate_all(strict: bool = False) -> dict:
         else:
             _attempt("landscape_grid", lambda: make_landscape_grid_figure(q_serial_poisson, landscape_step, "q_serial"))
 
-    total = len(produced) + len(skipped) + len(errors)
+    total = len(produced) + len(skipped) + len(excluded) + len(errors)
     print(
-        f"\n{len(produced)}/{total} produced, {len(skipped)} skipped, {len(errors)} errored"
+        f"\n{len(produced)}/{total} produced, {len(skipped)} skipped, "
+        f"{len(excluded)} excluded by design, {len(errors)} errored"
     )
     if strict and (skipped or errors):
         raise RuntimeError(f"regenerate_all(strict=True): {len(skipped)} skipped, {len(errors)} errored")
-    return {"produced": produced, "skipped": skipped, "errors": errors}
+    return {"produced": produced, "skipped": skipped, "excluded": excluded, "errors": errors}
 
 
 if __name__ == "__main__":

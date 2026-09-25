@@ -24,7 +24,8 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from make_figures import (  # noqa: E402
+from make_figures import (
+    _omega_lines_from_design_card,
     make_ablation_matched_figure,
     make_barren_frontier_figure,
     make_coverage_vs_error_figure,
@@ -34,8 +35,9 @@ from make_figures import (  # noqa: E402
     read_grad_var_final,
 )
 
-import qapinn.viz.style as style_mod  # noqa: E402
-from qapinn.config import load_config  # noqa: E402
+import qapinn.viz.style as style_mod
+from qapinn.config import load_config
+from qapinn.runner import enumerate_runs
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DESIGN_CARDS_PATH = REPO_ROOT / "results" / "design_cards.json"
@@ -60,6 +62,13 @@ def _require_smoke_fixtures():
             pytest.skip(f"smoke fixture run missing: {run_dir} (results/runs/ state has changed)")
 
 
+def _require_smoke_checkpoints():
+    # checkpoints/ is gitignored: only the machine that trained the fixtures has them.
+    for run_dir in (POISSON_C_MLP_SMOKE_RUN, POISSON_Q_SERIAL_SMOKE_RUN):
+        if not (run_dir / "checkpoints" / "step_0.pt").is_file():
+            pytest.skip(f"{run_dir.name}/checkpoints/ not present (gitignored)")
+
+
 def test_freq_heatmap_figure_renders_with_omega_overlay_and_pr8_metric():
     _require_smoke_fixtures()
     cards = json.loads(DESIGN_CARDS_PATH.read_text(encoding="utf-8"))
@@ -75,33 +84,53 @@ def test_freq_heatmap_figure_renders_with_omega_overlay_and_pr8_metric():
     assert result["total_improvement"] > 0.0  # q_serial beats c_mlp in this smoke fixture
 
 
-def test_freq_heatmap_figure_rejects_mismatched_eval_grids():
-    _require_smoke_fixtures()
-    cards = json.loads(DESIGN_CARDS_PATH.read_text(encoding="utf-8"))
-    # A run on a DIFFERENT PDE has a different eval grid/checkpoint schedule -- must be
-    # rejected rather than silently plotted on a mismatched shared axis.
-    other_pde_run = None
-    for candidate_dir in (REPO_ROOT / "results" / "runs").iterdir():
-        cfg_path = candidate_dir / "config.yaml"
-        specerr_path = candidate_dir / "xai" / "specerr.npz"
-        if not cfg_path.is_file() or not specerr_path.is_file():
-            continue
-        cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
-        if cfg.get("pde", {}).get("name") == "heat" and cfg.get("pde", {}).get("n_collocation") == 256:
-            other_pde_run = candidate_dir
-            break
-    if other_pde_run is None:
-        pytest.skip("no smoke-scale heat run available to test the mismatch guard")
+def test_omega_lines_keep_their_sign_on_a_signed_frequency_axis():
+    omega_set = [[-2.0], [-1.0], [0.0], [1.0], [2.0]]
+    assert _omega_lines_from_design_card(omega_set, signed_axis=True).tolist() == [-2.0, -1.0, 0.0, 1.0, 2.0]
+    assert _omega_lines_from_design_card(omega_set).tolist() == [2.0, 1.0, 0.0, 1.0, 2.0]
+    # multi-component vectors always map to their norm (the radially binned axis)
+    assert _omega_lines_from_design_card([[3.0, 4.0]], signed_axis=True).tolist() == [5.0]
+
+
+def _write_specerr(run_dir: Path, omega: np.ndarray, errors: np.ndarray) -> Path:
+    (run_dir / "xai").mkdir(parents=True)
+    np.savez(run_dir / "xai" / "specerr.npz", omega=omega, errors=errors, steps=np.array([0, 10]))
+    return run_dir
+
+
+def test_pr8_overlap_counts_both_halves_of_a_symmetric_spectrum(tmp_path):
+    # Regression for the post-submission PR-8 erratum: Omega is symmetric (+w and -w) and
+    # so is a real field's error spectrum on Poisson's two-sided FFT axis. An improvement
+    # that sits entirely inside Omega must score 1.0, not the ~0.5-plus-DC that folding
+    # Omega onto |w| produced (v1.0 reported 71.3% for what is really 99.9%).
+    omega = np.arange(-8.0, 9.0)  # signed axis, unit bins
+    baseline = np.ones((2, omega.size))
+    improved = baseline.copy()
+    improved[1, np.abs(omega) <= 2] = 0.0  # improvement only at |w| <= 2, mirrored
+    run_a = _write_specerr(tmp_path / "a", omega, baseline)
+    run_b = _write_specerr(tmp_path / "b", omega, improved)
+
+    result = make_freq_heatmap_figure("poisson", run_a, run_b, [[w] for w in (-2.0, -1.0, 0.0, 1.0, 2.0)])
+
+    assert result["total_improvement"] == pytest.approx(5.0)
+    assert result["overlap_fraction"] == pytest.approx(1.0)
+
+
+def test_freq_heatmap_figure_rejects_mismatched_eval_grids(tmp_path):
+    # Runs on different eval grids (e.g. two different PDEs) must be rejected rather than
+    # silently plotted on one shared frequency axis. Synthetic runs, so the check never
+    # depends on which development runs happen to be present in results/runs/.
+    run_a = _write_specerr(tmp_path / "a", np.arange(-8.0, 9.0), np.ones((2, 17)))
+    run_b = _write_specerr(tmp_path / "b", np.arange(0.0, 17.0), np.ones((2, 17)))
 
     with pytest.raises(ValueError, match="must share the same eval grid"):
-        make_freq_heatmap_figure(
-            "poisson", POISSON_C_MLP_SMOKE_RUN, other_pde_run, cards["poisson"]["omega_set"]
-        )
+        make_freq_heatmap_figure("poisson", run_a, run_b, [[1.0]])
 
 
 @pytest.mark.slow
 def test_ntk_spectrum_comparison_renders_with_band_and_inside_outside_decay():
     _require_smoke_fixtures()
+    _require_smoke_checkpoints()
     cards = json.loads(DESIGN_CARDS_PATH.read_text(encoding="utf-8"))
     omega_set = cards["poisson"]["omega_set"]
 
@@ -124,18 +153,13 @@ def test_ntk_spectrum_comparison_renders_with_band_and_inside_outside_decay():
 def test_ntk_spectrum_comparison_rejects_mismatched_pdes():
     _require_smoke_fixtures()
     cards = json.loads(DESIGN_CARDS_PATH.read_text(encoding="utf-8"))
-    other_pde_run = None
-    for candidate_dir in (REPO_ROOT / "results" / "runs").iterdir():
-        cfg_path = candidate_dir / "config.yaml"
-        ckpt_path = candidate_dir / "checkpoints" / "step_0.pt"
-        if not cfg_path.is_file() or not ckpt_path.is_file():
-            continue
-        cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
-        if cfg.get("pde", {}).get("name") == "heat" and cfg.get("model", {}).get("family") == "q_serial":
-            other_pde_run = candidate_dir
-            break
-    if other_pde_run is None:
-        pytest.skip("no smoke-scale heat/q_serial run available to test the mismatch guard")
+    # Any committed heat run works: the PDE mismatch is detected from config.yaml before
+    # a (gitignored) checkpoint is ever loaded.
+    heat_q_serial = next(
+        c for c in enumerate_runs(REPO_ROOT / "configs" / "exp" / "core_matrix.yaml")
+        if c.pde.name == "heat" and c.model.family == "q_serial"
+    )
+    other_pde_run = REPO_ROOT / "results" / "runs" / heat_q_serial.run_id
 
     with pytest.raises(ValueError, match="must be on the same PDE"):
         make_ntk_spectrum_comparison(

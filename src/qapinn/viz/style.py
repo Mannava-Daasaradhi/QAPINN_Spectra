@@ -57,12 +57,17 @@ def family_color(family: str) -> str:
 
 def save_figure(fig, name: str, run_ids: list[str] | None = None) -> dict[str, Path]:
     """Writes <name>.pdf (paper) and <name>.png (slides, 200 dpi) into paper/figures/, and
-    appends an entry to results/manifest.json mapping figure name -> the run_ids used."""
+    appends an entry to results/manifest.json mapping figure name -> the run_ids used.
+
+    Output is byte-reproducible: the PDF carries no CreationDate (matplotlib otherwise
+    stamps the wall-clock time, so every regeneration rewrote every committed PDF), and
+    the tight bounding box keeps axis labels that sit outside the axes from being clipped.
+    """
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     pdf_path = FIGURES_DIR / f"{name}.pdf"
     png_path = FIGURES_DIR / f"{name}.png"
-    fig.savefig(pdf_path)
-    fig.savefig(png_path, dpi=200)
+    fig.savefig(pdf_path, bbox_inches="tight", pad_inches=0.02, metadata={"CreationDate": None})
+    fig.savefig(png_path, dpi=200, bbox_inches="tight", pad_inches=0.02)
 
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     manifest: dict = {}

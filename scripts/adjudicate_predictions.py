@@ -181,7 +181,7 @@ def check_pr7(run_dir_c_mlp, run_dir_q_serial, problem: str, step: int) -> dict:
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
-    from make_figures import make_ntk_spectrum_comparison_from_npz  # noqa: E402
+    from make_figures import make_ntk_spectrum_comparison_from_npz
 
     if not DESIGN_CARDS_PATH.is_file():
         return {"verdict": "INSUFFICIENT_DATA", "reason": "results/design_cards.json missing"}
@@ -233,7 +233,7 @@ def check_pr8(run_dir_c_mlp, run_dir_q_serial, problem: str) -> dict:
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from check_specerr_integrity import specerr_has_duplicate_steps
-    from make_figures import make_freq_heatmap_figure  # noqa: E402
+    from make_figures import make_freq_heatmap_figure
 
     if not DESIGN_CARDS_PATH.is_file():
         return {"verdict": "INSUFFICIENT_DATA", "reason": "results/design_cards.json missing"}
@@ -287,7 +287,7 @@ def check_pr9(run_dirs_by_problem: dict) -> dict:
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
-    from make_figures import make_coverage_vs_error_figure  # noqa: E402
+    from make_figures import make_coverage_vs_error_figure
 
     result = make_coverage_vs_error_figure(run_dirs_by_problem)
     worst_rho = max(r["spearman_rho"] for r in result.values())
@@ -304,7 +304,7 @@ def check_pr10(run_dirs: list) -> dict:
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
-    from make_figures import make_barren_frontier_figure  # noqa: E402
+    from make_figures import make_barren_frontier_figure
 
     result = make_barren_frontier_figure(run_dirs)
     if result.get("pr10_holds") is None:
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from cost_ledger import enumerate_core_matrix_run_ids
 
-    from qapinn.runner import enumerate_runs
+    from qapinn.runner import enumerate_labeled_runs, enumerate_runs
 
     label_by_run_id = enumerate_core_matrix_run_ids()
     by_problem_family: dict = {}
@@ -412,15 +412,15 @@ if __name__ == "__main__":
                 family_dirs["c_mlp"][0], family_dirs["q_serial"][0], problem_label
             )
 
-    # PR-9: coverage_sweep (T3.5), already complete -- group its own run_ids by problem.
+    # PR-9: coverage_sweep (T3.5), already complete -- group its own run_ids by problem
+    # instance label, the same grouping (and so the same figure) `tasks.py figures` uses.
     coverage_cfg = REPO_ROOT / "configs" / "exp" / "coverage_sweep.yaml"
     if coverage_cfg.is_file():
-        cov_cfgs = enumerate_runs(coverage_cfg)
         cov_by_problem: dict = {}
-        for cfg in cov_cfgs:
+        for problem_label, cfg in enumerate_labeled_runs(coverage_cfg):
             run_dir = RUNS_DIR / cfg.run_id
             if (run_dir / "metrics.json").is_file():
-                cov_by_problem.setdefault(cfg.pde.name, []).append(run_dir)
+                cov_by_problem.setdefault(problem_label, []).append(run_dir)
         report["PR-9"] = check_pr9(cov_by_problem)
 
     # PR-10: depth_sweep (T3.5) -- reports INSUFFICIENT_DATA cleanly if not complete yet.
