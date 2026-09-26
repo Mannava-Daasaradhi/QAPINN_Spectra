@@ -22,8 +22,9 @@
 
 \begin{center}
 \small\emph{Revised 2026-09-25, after the WISER 2026 BQP Challenge. The submitted version
-is repository tag \texttt{v1.0-submission}. This revision embeds the figures and lists
-corrections in Section~\ref{sec:errata}; no pre-registered verdict changed.}
+is repository tag \texttt{v1.0-submission}. This revision states the results in the
+abstract, embeds the figures and lists corrections in Section~\ref{sec:errata}; no
+pre-registered verdict changed.}
 \end{center}
 
 \begin{abstract}
@@ -38,8 +39,15 @@ joins those two facts into a constructive design rule, Spectrum-Matched Circuit 
 analytically from the operator symbol and forcing/boundary data, then construct the
 encoding generators, re-uploading depth, and qubit count so the circuit's realized
 frequency set covers it --- no architecture search. We use six explainable-AI instruments,
-run identically on matched classical and hybrid models, as the measurement instrument that
-proves the mechanism rather than merely reporting an accuracy delta.
+run identically on matched classical and hybrid models, to test that mechanism rather than
+merely report an accuracy delta. Against twelve predictions committed before any
+experiment ran and adjudicated by a script, at two seeds per configuration the hybrid model
+does not outperform the classical baselines: a classical model given the same frequencies
+matches or beats it on every problem, and the predicted NTK flattening is reversed where
+measurable. The design rule itself holds up: the circuit's output stays within its designed
+frequency set, 99.9\% of its per-frequency improvement on the Poisson problem lies inside
+that set, and on the heat equation it reaches $12\times$ lower error than a same-size
+random circuit, though two seeds cannot establish significance.
 \end{abstract}
 
 \input{sections/intro}

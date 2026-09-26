@@ -22,6 +22,9 @@ Fixes found by the first CI runs on GitHub's Linux runners. No result changed.
   commit ancestry, which a depth-1 clone lacks). Regenerated figures are uploaded as a
   build artifact.
 - `tasks.py repro-all` refreshes `results/adjudication.json`.
+- The paper's abstract now states the results. It described only the method, and said
+  the XAI instruments "prove the mechanism", which the adjudicated results do not
+  support.
 
 ## 1.1.0 — 2026-09-25 (post-submission)
 
