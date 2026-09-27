@@ -308,4 +308,16 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
 
     history.to_parquet(run_dir / "history.parquet")
 
+    if pde.name == "groundwater":
+        # v2 showcase: the practical answer (waterlogged length, G-5) needs the predicted
+        # water table itself, and checkpoints are not committed. 1-D, n_eval values.
+        with torch.no_grad():
+            out = model(final_eval_grid)
+            u_pred = pde.apply_hard_bc(final_eval_grid, out) if train_cfg.bc_mode == "hard" else out
+        np.savez(
+            run_dir / "prediction.npz",
+            x=final_eval_grid.detach().cpu().numpy()[:, 0],
+            u=u_pred.detach().cpu().numpy()[:, 0],
+        )
+
     return RunResult(run_id=run_id, run_dir=run_dir, metrics=metrics, cfg=cfg, history=history)
