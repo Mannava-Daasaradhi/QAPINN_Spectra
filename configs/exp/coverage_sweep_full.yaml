@@ -1,0 +1,10 @@
+# v1 completion (2026-09-28, post-submission): coverage_sweep at the core matrix's full
+# 20000+2000 budget with default instruments, the configuration it was launched with
+# before the 2026-08-06 deadline cuts (see coverage_sweep.yaml's header). 26 of these 36
+# runs finished before the cut and are reused by run_id; only the rest are trained.
+problems: [poisson, helmholtz_k10]
+families: [q_serial]
+seeds: [0, 1, 2]
+axes:
+  - key: smcd_coverage_target
+    values: [0.2, 0.4, 0.6, 0.8, 0.9, 1.0]

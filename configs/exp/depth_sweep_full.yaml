@@ -1,0 +1,19 @@
+# v1 completion (2026-09-28, post-submission): depth_sweep as planned before the
+# 2026-08-06 deadline cuts, minus the sizes that do not fit this machine's memory (see
+# depth_sweep.yaml's header: n_qubits=8 and n_layers=6 hit CUDA OOM). PR-10 fits a slope
+# of gradient variance against n_qubits, so it needs at least two qubit counts; the cut
+# to n_qubits=6 alone left it INSUFFICIENT_DATA. Planned seeds were 3. The 100+20 step
+# budget (gradient variance near initialisation) is kept, so the 4 committed runs are
+# reused by run_id.
+problems: [helmholtz_k10]
+families: [q_serial]
+seeds: [0, 1, 2]
+train:
+  steps_adam: 100
+  steps_lbfgs: 20
+  instruments: [gradvar]
+axes:
+  - key: model.n_layers
+    values: [2, 3, 4, 5]
+  - key: model.n_qubits
+    values: [4, 6]

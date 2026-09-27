@@ -1,0 +1,12 @@
+# v1 completion (2026-09-28, post-submission): the core matrix at the seed count that
+# docs/predictions.md pre-registered ("median rel-L2 over 5 seeds"). core_matrix.yaml
+# records the deadline cut to {0, 1}; this file restores the planned {0..4} and changes
+# nothing else, so every run already on disk with the same config (the same run_id) is
+# reused and only the missing seeds are trained. Adjudicated by
+# `scripts/adjudicate_predictions.py --protocol full` with the unchanged checks.
+problems: [poisson, heat, burgers, helmholtz_k4, helmholtz_k10, helmholtz_k20]
+families: [c_mlp, c_ff, c_rff_matched, q_serial, q_parallel, q_random, q_octave]
+seeds: [0, 1, 2, 3, 4]
+train:
+  bc_mode: hard
+  noise: none
