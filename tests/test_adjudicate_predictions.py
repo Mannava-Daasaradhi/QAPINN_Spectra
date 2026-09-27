@@ -409,3 +409,14 @@ def test_real_core_matrix_pr1_pr2_pr6_run_without_crashing():
     for check in (check_pr1, check_pr2, check_pr6):
         result = check(by_family)
         assert result["verdict"] in ("CONFIRMED", "REFUTED", "INCONCLUSIVE", "INSUFFICIENT_DATA")
+
+
+def test_every_protocol_points_at_existing_configs():
+    """--protocol full must read the completed-protocol configs, and 'submitted' must keep
+    reading the configs judged at WISER 2026 (so results/adjudication.json is unchanged)."""
+    from adjudicate_predictions import PROTOCOLS, REPO_ROOT
+
+    assert PROTOCOLS["submitted"]["core_matrix"] == "core_matrix"
+    for spec in PROTOCOLS.values():
+        for key in ("core_matrix", "coverage_sweep", "depth_sweep"):
+            assert (REPO_ROOT / "configs" / "exp" / f"{spec[key]}.yaml").is_file()

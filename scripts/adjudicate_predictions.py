@@ -41,6 +41,25 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNS_DIR = REPO_ROOT / "results" / "runs"
 DESIGN_CARDS_PATH = REPO_ROOT / "results" / "design_cards.json"
 ADJUDICATION_PATH = REPO_ROOT / "results" / "adjudication.json"
+
+# Which experiment configs each protocol reads. "submitted" is the deadline-cut version
+# judged at WISER 2026; "full" is the protocol docs/predictions.md pre-registered (5 seeds,
+# two qubit counts for PR-10, full budget for PR-9), completed after submission. The
+# checks are identical; only the set of runs they read differs.
+PROTOCOLS = {
+    "submitted": {
+        "core_matrix": "core_matrix",
+        "coverage_sweep": "coverage_sweep",
+        "depth_sweep": "depth_sweep",
+        "output": ADJUDICATION_PATH,
+    },
+    "full": {
+        "core_matrix": "core_matrix_full",
+        "coverage_sweep": "coverage_sweep_full",
+        "depth_sweep": "depth_sweep_full",
+        "output": REPO_ROOT / "results" / "adjudication_v1_full.json",
+    },
+}
 N5_P_FLOOR = 0.0625  # smallest achievable two-sided Wilcoxon p at n=5 (project.md SS8)
 PR12_DRIFT_THRESHOLD = 0.2
 PR11_CHECKPOINT_STEP = 5000
@@ -392,17 +411,32 @@ if __name__ == "__main__":
     parser.add_argument(
         "--write",
         action="store_true",
-        help=f"also write the verdicts to {ADJUDICATION_PATH.relative_to(REPO_ROOT).as_posix()} "
-        "(the committed record CI compares against)",
+        help="also write the verdicts to the protocol's committed record "
+        "(results/adjudication.json for 'submitted', which CI compares against)",
+    )
+    parser.add_argument(
+        "--protocol",
+        choices=sorted(PROTOCOLS),
+        default="submitted",
+        help="'submitted': the runs judged at WISER 2026 (default); 'full': the protocol "
+        "docs/predictions.md pre-registered, completed after submission",
     )
     cli = parser.parse_args()
+    protocol = PROTOCOLS[cli.protocol]
+    exp_dir = REPO_ROOT / "configs" / "exp"
+    if cli.protocol != "submitted":
+        # The checks draw their figures as a side effect. The paper's figures show the
+        # submitted runs, so other protocols draw into their own directory.
+        import qapinn.viz.style as _style
+
+        _style.FIGURES_DIR = REPO_ROOT / "results" / "figures" / cli.protocol
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from cost_ledger import enumerate_core_matrix_run_ids
 
     from qapinn.runner import enumerate_labeled_runs, enumerate_runs
 
-    label_by_run_id = enumerate_core_matrix_run_ids()
+    label_by_run_id = enumerate_core_matrix_run_ids(exp_dir / f"{protocol['core_matrix']}.yaml")
     by_problem_family: dict = {}
     for run_id, info in label_by_run_id.items():
         run_dir = RUNS_DIR / run_id
@@ -445,7 +479,7 @@ if __name__ == "__main__":
 
     # PR-9: coverage_sweep (T3.5), already complete -- group its own run_ids by problem
     # instance label, the same grouping (and so the same figure) `tasks.py figures` uses.
-    coverage_cfg = REPO_ROOT / "configs" / "exp" / "coverage_sweep.yaml"
+    coverage_cfg = exp_dir / f"{protocol['coverage_sweep']}.yaml"
     if coverage_cfg.is_file():
         cov_by_problem: dict = {}
         for problem_label, cfg in enumerate_labeled_runs(coverage_cfg):
@@ -455,7 +489,7 @@ if __name__ == "__main__":
         report["PR-9"] = check_pr9(cov_by_problem)
 
     # PR-10: depth_sweep (T3.5) -- reports INSUFFICIENT_DATA cleanly if not complete yet.
-    depth_cfg = REPO_ROOT / "configs" / "exp" / "depth_sweep.yaml"
+    depth_cfg = exp_dir / f"{protocol['depth_sweep']}.yaml"
     if depth_cfg.is_file():
         depth_cfgs = enumerate_runs(depth_cfg)
         depth_dirs = [RUNS_DIR / cfg.run_id for cfg in depth_cfgs if (RUNS_DIR / cfg.run_id / "metrics.json").is_file()]
@@ -468,6 +502,6 @@ if __name__ == "__main__":
 
     print(json.dumps(report, indent=2, default=str))
     if cli.write:
-        ADJUDICATION_PATH.write_text(
+        protocol["output"].write_text(
             json.dumps(portable_record(report), indent=2) + "\n", encoding="utf-8", newline="\n"
         )
