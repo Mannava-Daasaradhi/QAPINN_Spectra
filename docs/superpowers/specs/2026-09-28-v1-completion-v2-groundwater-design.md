@@ -120,6 +120,28 @@ Likely to improve: R-1, R-2, R-6, R-8. Likely to fail however good the model:
 R-4 (predicts nobody beats `c_mlp` on heat), R-5 and R-9 on Helmholtz k=10/20 (every
 model scores rel-L2 ≈ 1 there), R-7 on Poisson (unmeasurable, as above).
 
+## Amendments (2026-09-28 02:50 IST, before any lab result existed)
+
+1. **Candidate 1 replaced.** A readout over <X>, <Y>, <Z> adds nothing on Poisson: SMCD
+   gives it a single qubit, and a linear head over one qubit's X, Y, Z is equivalent to
+   v1's final trainable rotation plus head scale. The v2 candidate is instead
+   `n_replicas`: K copies of the designed circuit (same scalings, so the same Ω; own
+   angles) reading the one encoded input, mixed by the head. **Candidate 2 dropped:**
+   dividing the residual by a constant does not change Adam's or L-BFGS's steps, so it
+   cannot help. It is replaced by a learning-rate axis {1e-3 (v1), 1e-2}. Lab config:
+   `configs/exp/lab_quantum.yaml` (K ∈ {1, 2, 4, 8} × 2 learning rates × seeds 0-2).
+2. **Selection rule, with parsimony:** the chosen configuration is the one with the
+   smallest K whose median rel-L2 is within 10% of the best configuration's. (Larger K
+   costs K times the compute, and the Helmholtz runs already take ~100 min at K = 1.)
+3. **v2 re-test scope (seeds 10-14):** each problem runs the families its claims read.
+   Poisson: `c_mlp`, `c_ff`, `c_rff_matched`, `q_serial_v2`, `q_random_v2`. Heat: all seven
+   families (R-4 reads every family), with `q_serial_v2` and `q_random_v2` in place of their v1
+   versions. Helmholtz k4/k10/k20: `c_mlp`, `q_serial_v2`. Burgers: none (no claim reads
+   it). Instruments run only where a claim reads them: NTK, spectral error and drift for
+   Poisson and Helmholtz k10 (`c_mlp`, `q_serial_v2`); none elsewhere, since rel-L2 does
+   not depend on them. R-9 uses `coverage_sweep_full`'s settings and R-10 uses
+   `depth_sweep_full`'s, with the v2 model.
+
 ## Compute
 
 One GPU process at a time (concurrent CUDA processes have crashed this laptop). Phase A
