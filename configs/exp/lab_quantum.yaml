@@ -1,0 +1,16 @@
+# v2 Phase B lab (2026-09-28): tune the v2 quantum model on v1's Poisson problem only,
+# seeds 0-2, full 20000+2000 budget. Axes: copies of the designed circuit (1 = the v1
+# model) and learning rate. Selection rule (design spec): lowest median rel-L2. The
+# classical families get the same number of configurations in lab_classical.yaml.
+problems: [poisson]
+families: [q_serial]
+seeds: [0, 1, 2]
+train:
+  bc_mode: hard
+  noise: none
+  instruments: []
+axes:
+  - key: model.n_replicas
+    values: [1, 2, 4, 8]
+  - key: train.lr
+    values: [0.001, 0.01]

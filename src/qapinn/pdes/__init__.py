@@ -4,6 +4,7 @@ from __future__ import annotations
 from qapinn.config import PDEConfig
 from qapinn.pdes.base import PDE, Domain
 from qapinn.pdes.burgers import Burgers
+from qapinn.pdes.groundwater import Groundwater
 from qapinn.pdes.heat import Heat
 from qapinn.pdes.helmholtz import Helmholtz
 from qapinn.pdes.poisson import Poisson
@@ -13,6 +14,7 @@ _REGISTRY: dict[str, type[PDE]] = {
     "heat": Heat,
     "burgers": Burgers,
     "helmholtz": Helmholtz,
+    "groundwater": Groundwater,
 }
 
 
@@ -27,4 +29,4 @@ def build(cfg: PDEConfig) -> PDE:
     return cls(**cfg.params)
 
 
-__all__ = ["PDE", "Burgers", "Domain", "Heat", "Helmholtz", "Poisson", "build"]
+__all__ = ["PDE", "Burgers", "Domain", "Groundwater", "Heat", "Helmholtz", "Poisson", "build"]

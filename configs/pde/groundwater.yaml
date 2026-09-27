@@ -1,0 +1,16 @@
+# v2 showcase (2026-09-28): water table between two rivers 2 km apart under farmland
+# irrigated by 6 leaking canals. Scenario values within textbook ranges (Freeze & Cherry
+# 1979; Todd & Mays 2005), not calibrated to one site. See src/qapinn/pdes/groundwater.py.
+name: groundwater
+params:
+  length_m: 2000.0        # distance between the rivers
+  transmissivity: 100.0   # m^2/day, silty-sand aquifer
+  recharge: 0.0004        # m/day (0.4 mm/day), rain + irrigation return flow
+  canal_seepage: 0.4      # m^3/day leaked per metre of canal
+  n_canals: 6.0           # equally spaced, ~333 m apart
+  canal_width_m: 30.0     # width scale of each canal's seepage strip
+  head_left: 1.0          # upstream river level, m above datum
+  head_right: 0.0         # downstream river level
+n_collocation: 4096
+n_boundary: 512
+n_eval: 1024

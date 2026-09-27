@@ -30,7 +30,15 @@ PROBLEM_INSTANCES: list[tuple[str, str, dict | None]] = [
     ("helmholtz_k10", "helmholtz", None),
     ("helmholtz_k20", "helmholtz", {"pde.params.k": 20.0, "pde.params.a1": 6.0, "pde.params.a2": 2.0}),
 ]
-_PROBLEM_BY_LABEL = {label: (pde_yaml, overrides) for label, pde_yaml, overrides in PROBLEM_INSTANCES}
+# v2 (2026-09-28): problems outside the v1 matrix. Sweepable by label, but not part of
+# PROBLEM_INSTANCES, so the 42-combination smoke matrix is unchanged.
+EXTRA_PROBLEM_INSTANCES: list[tuple[str, str, dict | None]] = [
+    ("groundwater", "groundwater", None),
+]
+_PROBLEM_BY_LABEL = {
+    label: (pde_yaml, overrides)
+    for label, pde_yaml, overrides in PROBLEM_INSTANCES + EXTRA_PROBLEM_INSTANCES
+}
 
 
 def _merge_overrides(*dicts: dict | None) -> dict:

@@ -16,6 +16,7 @@ import numpy as np
 
 from qapinn.pdes.base import PDE
 from qapinn.pdes.burgers import Burgers
+from qapinn.pdes.groundwater import Groundwater
 from qapinn.pdes.heat import Heat
 from qapinn.pdes.helmholtz import Helmholtz
 from qapinn.pdes.poisson import Poisson
@@ -60,6 +61,8 @@ def reference_solution(pde: PDE, grid: np.ndarray) -> np.ndarray:
         )
     elif isinstance(pde, Helmholtz):
         u = helmholtz_exact(grid[:, 0], grid[:, 1], pde.params["a1"], pde.params["a2"])
+    elif isinstance(pde, Groundwater):
+        u = pde.head_m(grid[:, 0] * pde.params["length_m"])
     elif isinstance(pde, Burgers):
         u = cached_burgers_colehopf(grid[:, 0], grid[:, 1], pde.params["nu"])
     else:

@@ -44,12 +44,12 @@ from pathlib import Path
 import yaml
 
 from qapinn.config import load_config
-from qapinn.runner import PROBLEM_INSTANCES
+from qapinn.runner import _PROBLEM_BY_LABEL as _RUNNER_PROBLEM_BY_LABEL
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNS_DIR = REPO_ROOT / "results" / "runs"
 CORE_MATRIX_CFG = REPO_ROOT / "configs" / "exp" / "core_matrix.yaml"
-_PROBLEM_BY_LABEL = {label: (pde_yaml, overrides) for label, pde_yaml, overrides in PROBLEM_INSTANCES}
+_PROBLEM_BY_LABEL = _RUNNER_PROBLEM_BY_LABEL
 
 
 def enumerate_core_matrix_run_ids(exp_cfg_path: Path = CORE_MATRIX_CFG) -> dict:
