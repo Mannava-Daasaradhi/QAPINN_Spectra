@@ -436,13 +436,20 @@ if __name__ == "__main__":
 
     from qapinn.runner import enumerate_labeled_runs, enumerate_runs
 
-    label_by_run_id = enumerate_core_matrix_run_ids(exp_dir / f"{protocol['core_matrix']}.yaml")
+    # A protocol's core matrix may span several configs (v2 tunes the learning rate per
+    # family, so each family group is its own file). v2 model configs are named
+    # "<v1 family>_v2"; the checks read them under the v1 family name they stand in for.
+    core_names = protocol["core_matrix"]
+    label_by_run_id = {}
+    for name in [core_names] if isinstance(core_names, str) else core_names:
+        label_by_run_id.update(enumerate_core_matrix_run_ids(exp_dir / f"{name}.yaml"))
     by_problem_family: dict = {}
     for run_id, info in label_by_run_id.items():
         run_dir = RUNS_DIR / run_id
         if not (run_dir / "metrics.json").is_file():
             continue
-        by_problem_family.setdefault(info["problem"], {}).setdefault(info["family"], []).append(run_dir)
+        family = info["family"].removesuffix("_v2")
+        by_problem_family.setdefault(info["problem"], {}).setdefault(family, []).append(run_dir)
 
     poisson = by_problem_family.get("poisson", {})
     heat = by_problem_family.get("heat", {})
