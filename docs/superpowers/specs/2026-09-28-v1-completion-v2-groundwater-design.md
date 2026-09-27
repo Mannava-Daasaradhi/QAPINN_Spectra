@@ -142,6 +142,20 @@ model scores rel-L2 ≈ 1 there), R-7 on Poisson (unmeasurable, as above).
    not depend on them. R-9 uses `coverage_sweep_full`'s settings and R-10 uses
    `depth_sweep_full`'s, with the v2 model.
 
+4. **(04:30 IST, after the first 6 lab runs, before any run of the new arm.)** Those runs
+   showed full-budget Poisson rel-L2 of 1.6 for one copy, and 0.69 for a 500-step pilot:
+   more training made it worse. Diagnosis: v1's hard ansatz u = B + x(1-x)·N makes N
+   learn u/(x(1-x)), which is not band-limited even though u = sin πx + 0.3 sin 15πx lies
+   inside Ω. So v1's boundary treatment defeated SMCD's premise for every family.
+   New ansatz `bc_mode: hard_affine` (`models.base.AffineBCWrapper`): subtract N's own
+   boundary values, interpolated linearly per spatial axis, and N at t = 0; exact
+   whenever N equals the solution minus the lift. The boundary treatment becomes a
+   tuned choice **for every family**: `lab_quantum_affine.yaml` and
+   `lab_classical_affine.yaml` repeat the two labs under `hard_affine`, so quantum and
+   classical each get 16 configurations. Selection per family: the best (ansatz, lr) —
+   for the quantum model also K — by median rel-L2 over seeds 0-2, with the parsimony
+   rule on K from amendment 2 applied across all 16 quantum configurations.
+
 ## Compute
 
 One GPU process at a time (concurrent CUDA processes have crashed this laptop). Phase A

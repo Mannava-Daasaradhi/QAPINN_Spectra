@@ -112,7 +112,7 @@ def _run_specerr(model: PINNModel, pde: PDE, cfg: ExpConfig, step: int, run_dir,
     n_eval = cfg.pde.n_eval
     eval_grid = pde.eval_grid(n_eval).to(_device(model))
     with torch.no_grad():
-        if cfg.train.bc_mode == "hard":
+        if cfg.train.bc_mode.startswith("hard"):
             u_pred = pde.apply_hard_bc(eval_grid, model(eval_grid))
         else:
             u_pred = model(eval_grid)

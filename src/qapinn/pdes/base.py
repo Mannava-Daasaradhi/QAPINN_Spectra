@@ -64,7 +64,14 @@ class PDE(ABC):
     def bc_mask(self, x: Tensor) -> Tensor:
         """D(x): [B,d] -> [B,1], vanishes on the constrained set"""
 
+    # "mask" (v1): u = B + D N. "affine" (v2, bc_mode: hard_affine): the model is wrapped
+    # in models.base.AffineBCWrapper, whose output already vanishes on the constrained
+    # set, so u = B + that output.
+    bc_ansatz: str = "mask"
+
     def apply_hard_bc(self, x: Tensor, n_out: Tensor) -> Tensor:
+        if self.bc_ansatz == "affine":
+            return self.bc_lift(x) + n_out
         return self.bc_lift(x) + self.bc_mask(x) * n_out
 
     # --- soft-BC variant (D6) -------------------------------------------

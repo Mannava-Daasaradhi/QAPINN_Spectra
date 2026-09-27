@@ -1,0 +1,13 @@
+# v2 Phase B lab, affine boundary arm (spec amendment 4): same as lab_classical.yaml under bc_mode hard_affine. the classical families get the same tuning effort as the
+# v2 quantum model (lab_quantum.yaml: 8 configurations x seeds 0-2 on Poisson), here as
+# 8 learning rates each. The selected learning rate per family is used in the v2 re-test.
+problems: [poisson]
+families: [c_mlp, c_ff, c_rff_matched]
+seeds: [0, 1, 2]
+train:
+  bc_mode: hard_affine
+  noise: none
+  instruments: []
+axes:
+  - key: train.lr
+    values: [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02]

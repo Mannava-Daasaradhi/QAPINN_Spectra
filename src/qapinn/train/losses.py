@@ -23,7 +23,7 @@ def pinn_loss(
     """
     x_r = batch["x_r"]
 
-    if cfg.bc_mode == "hard":
+    if cfg.bc_mode.startswith("hard"):  # "hard" (v1) or "hard_affine" (v2)
         u_r = pde.apply_hard_bc(x_r, model(x_r))
         residual = pde.residual(x_r, u_r)
         residual_loss = torch.mean(residual**2)
@@ -55,4 +55,4 @@ def pinn_loss(
         terms["loss"] = loss.detach().item()
         return loss, terms
 
-    raise ValueError(f"unknown bc_mode {cfg.bc_mode!r} (expected 'hard' or 'soft')")
+    raise ValueError(f"unknown bc_mode {cfg.bc_mode!r} (expected 'hard', 'hard_affine' or 'soft')")

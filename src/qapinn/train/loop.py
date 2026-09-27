@@ -95,7 +95,7 @@ def _residual_sq_sum_chunked(model: PINNModel, pde: PDE, eval_grid: Tensor, bc_m
     n = eval_grid.shape[0]
     for start in range(0, n, _RESIDUAL_CHUNK_SIZE):
         chunk = eval_grid[start : start + _RESIDUAL_CHUNK_SIZE].clone().requires_grad_(True)
-        if bc_mode == "hard":
+        if bc_mode.startswith("hard"):
             u = pde.apply_hard_bc(chunk, model(chunk))
         else:
             u = model(chunk)
@@ -106,7 +106,7 @@ def _residual_sq_sum_chunked(model: PINNModel, pde: PDE, eval_grid: Tensor, bc_m
 
 def _compute_metrics(model: PINNModel, pde: PDE, eval_grid: Tensor, bc_mode: str) -> dict[str, float]:
     with torch.no_grad():
-        if bc_mode == "hard":
+        if bc_mode.startswith("hard"):
             u_pred = pde.apply_hard_bc(eval_grid, model(eval_grid))
         else:
             u_pred = model(eval_grid)
@@ -174,6 +174,11 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
     ).to(device)
 
     design_card = _design_card_summary(model, cfg.model.family, pde)
+    if train_cfg.bc_mode == "hard_affine":
+        from qapinn.models.base import AffineBCWrapper
+
+        pde.bc_ansatz = "affine"
+        model = AffineBCWrapper(model, pde).to(device)
 
     run_id = cfg.run_id
     run_dir = RESULTS_ROOT / run_id
@@ -313,7 +318,7 @@ def train(cfg: ExpConfig, *, smoke: bool = False) -> RunResult:
         # water table itself, and checkpoints are not committed. 1-D, n_eval values.
         with torch.no_grad():
             out = model(final_eval_grid)
-            u_pred = pde.apply_hard_bc(final_eval_grid, out) if train_cfg.bc_mode == "hard" else out
+            u_pred = pde.apply_hard_bc(final_eval_grid, out) if train_cfg.bc_mode.startswith("hard") else out
         np.savez(
             run_dir / "prediction.npz",
             x=final_eval_grid.detach().cpu().numpy()[:, 0],

@@ -33,6 +33,62 @@ class PINNModel(nn.Module, ABC):
         return None
 
 
+class AffineBCWrapper(PINNModel):
+    """v2 (2026-09-28) boundary ansatz, `bc_mode: hard_affine`. v1's hard ansatz
+    u = B + D(x) N(x) makes the network learn (u - B) / D, which is not band-limited even
+    when u is (P1: (sin(pi x) + a sin(15 pi x)) / (x (1 - x))), so a circuit whose
+    frequency set covers u's spectrum still cannot represent what it is asked to learn.
+    This wrapper instead outputs Pi[N], N minus its own boundary values interpolated
+    linearly across each spatial axis (and minus N at t = t0 for a time axis):
+    Pi = prod_axes (I - P_axis), a Coons-style projector that vanishes on every
+    constrained face. With pde.bc_ansatz = "affine", pde.apply_hard_bc(x, Pi[N](x)) =
+    B + Pi[N], exact whenever N = u - B, so a band-limited u stays representable.
+
+    Delegates parameter groups and every other attribute (encoder_A, circuit, ...) to
+    the wrapped model."""
+
+    def __init__(self, net: PINNModel, pde):
+        super().__init__()
+        self.net = net
+        self._axes = [
+            (axis, lo, hi, axis == pde.domain.time_axis) for axis, (lo, hi) in enumerate(pde.domain.bounds)
+        ]
+
+    @staticmethod
+    def _with_coord(x: Tensor, axis: int, value: float) -> Tensor:
+        col = torch.full_like(x[:, axis : axis + 1], value)
+        return torch.cat([x[:, :axis], col, x[:, axis + 1 :]], dim=1)
+
+    def forward(self, x: Tensor) -> Tensor:
+        f = self.net
+        for axis, lo, hi, is_time in self._axes:
+            f = self._project(f, axis, lo, hi, is_time)
+        return f(x)
+
+    def _project(self, f, axis: int, lo: float, hi: float, is_time: bool):
+        with_coord = self._with_coord
+
+        def g(x: Tensor) -> Tensor:
+            if is_time:
+                return f(x) - f(with_coord(x, axis, lo))
+            s = (x[:, axis : axis + 1] - lo) / (hi - lo)
+            return f(x) - (1.0 - s) * f(with_coord(x, axis, lo)) - s * f(with_coord(x, axis, hi))
+
+        return g
+
+    def param_groups(self) -> dict[str, list[nn.Parameter]]:
+        return self.net.param_groups()
+
+    def realised_frequencies(self) -> np.ndarray | None:
+        return self.net.realised_frequencies()
+
+    def __getattr__(self, name: str):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self._modules["net"], name)
+
+
 def match_param_count(family: str, target: int, tol: float = 0.10, raise_on_miss: bool = True, **kw) -> ModelConfig:
     """Binary-search the MLP width (or n_features) so n_params lands within tol of target.
     Raises if unreachable, UNLESS raise_on_miss=False, in which case the closest
