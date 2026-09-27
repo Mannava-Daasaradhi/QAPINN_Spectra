@@ -143,6 +143,7 @@ def build(
                 observable=card.observable,
                 input_dim=pde.dim,
                 noise_model=build_noise_model(noise, card.n_layers),
+                n_replicas=cfg.n_replicas or 1,
             )
         if cfg.family == "q_random":
             from qapinn.models.noise import build_noise_model
@@ -157,6 +158,7 @@ def build(
                 observable=card.observable,
                 input_dim=pde.dim,
                 noise_model=build_noise_model(noise, card.n_layers),
+                n_replicas=cfg.n_replicas or 1,
             )
         if cfg.family == "q_parallel":
             return ParallelHybrid(

@@ -45,6 +45,9 @@ class ModelConfig:
     observable: str | None = None
     encoder: str = "affine"
     target_params: int | None = None
+    # v2 (2026-09-28): copies of the designed circuit in SerialHybrid (q_serial/q_random).
+    # Left out of the run_id hash while None, so every v1 run keeps its run_id.
+    n_replicas: int | None = None
 
 
 @pydantic_dataclass(config=_STRICT, frozen=True)
@@ -142,10 +145,18 @@ def load_config(
     return ExpConfig(**data)
 
 
+# Fields added after runs were committed. Omitted from the hash while unset, so adding
+# them does not change the run_id of any existing run.
+_HASH_OMIT_IF_NONE = (("model", "n_replicas"),)
+
+
 def canonical_json(cfg: ExpConfig) -> str:
     """Deterministic JSON: sorted keys, no extra whitespace. Two configs differing only
     in source YAML key order (or dict insertion order) hash identically (D11)."""
     data = dataclasses.asdict(cfg)
+    for section, key in _HASH_OMIT_IF_NONE:
+        if data[section][key] is None:
+            del data[section][key]
     return json.dumps(data, sort_keys=True, separators=(",", ":"))
 
 

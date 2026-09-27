@@ -85,8 +85,11 @@ class SerialHybrid(PINNModel):
         observable: str = "z0",
         input_dim: int | None = None,
         noise_model: nn.Module | None = None,
+        n_replicas: int = 1,
     ):
         super().__init__()
+        if n_replicas < 1:
+            raise ValueError(f"n_replicas must be >= 1, got {n_replicas}")
         # input_dim defaults to the circuit's own dimensionality (correct for a STEADY
         # PDE, where every physical input dim is spatial and encoded). For a TIME-
         # DEPENDENT PDE, TargetSpectrum omits the time axis (T2.8: its weight already
@@ -105,8 +108,25 @@ class SerialHybrid(PINNModel):
             entangler=entangler,
             observable=observable,
         )
-        self.head = nn.Linear(1, 1)
-        nn.init.ones_(self.head.weight)
+        # v2 (2026-09-28): n_replicas > 1 adds copies of the same designed circuit (same
+        # scalings, so the same frequency set Omega) with their own trainable angles, all
+        # reading the one encoded input, mixed by the linear head. v1's single circuit
+        # sets every Fourier amplitude through ~10 shared angles and one output number;
+        # the copies give the head independent handles on those amplitudes. n_replicas=1
+        # is exactly the v1 model.
+        self.extra_circuits = nn.ModuleList(
+            ReuploadCircuit(
+                n_qubits=n_qubits,
+                n_layers=n_layers,
+                scalings=scalings,
+                wire_to_dim=wire_to_dim,
+                entangler=entangler,
+                observable=observable,
+            )
+            for _ in range(n_replicas - 1)
+        )
+        self.head = nn.Linear(n_replicas, 1)
+        nn.init.constant_(self.head.weight, 1.0 / n_replicas)
         nn.init.zeros_(self.head.bias)
         # T3.5 prep: noise surrogates (T2.11's ShotNoise/GlobalDepolarizing) act on the
         # circuit's raw expval, BEFORE the classical head -- applied here, not to the
@@ -117,7 +137,10 @@ class SerialHybrid(PINNModel):
         self.noise_model = noise_model
 
     def forward(self, x: Tensor) -> Tensor:
-        expval = self.circuit(self.encoder(x))
+        z = self.encoder(x)
+        expval = self.circuit(z)
+        if len(self.extra_circuits):
+            expval = torch.cat([expval] + [c(z) for c in self.extra_circuits], dim=-1)
         if self.noise_model is not None:
             expval = self.noise_model(expval)
         return self.head(expval)
@@ -125,7 +148,7 @@ class SerialHybrid(PINNModel):
     def param_groups(self) -> dict[str, list[nn.Parameter]]:
         return {
             "classical": list(self.encoder.parameters()) + list(self.head.parameters()),
-            "quantum": list(self.circuit.parameters()),
+            "quantum": list(self.circuit.parameters()) + list(self.extra_circuits.parameters()),
         }
 
     def realised_frequencies(self) -> np.ndarray | None:
