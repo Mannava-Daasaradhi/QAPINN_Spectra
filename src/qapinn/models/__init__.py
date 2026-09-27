@@ -96,6 +96,7 @@ def build(
                 entangler=card.entangler,
                 observable=card.observable,
                 input_dim=pde.dim,
+                n_replicas=cfg.n_replicas or 1,  # v2: size-match to q_serial_v2
             )
             # T2.14 DoD: realised_frequencies() must CONTAIN the target support AND the
             # param count must match q_serial within 10% -- the bare target support alone
