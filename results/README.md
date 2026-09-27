@@ -39,5 +39,6 @@ reference solutions, rebuilt on demand).
 | `t1.5_staircase` | 3 | The spectral-bias staircase gate runs (T1.5, `paper/figures/staircase_cmlp_p1`). |
 | `test_fixture` | 2 | Smoke-scale runs pinned by the test suite. |
 
-Directories under `runs/` that are not in the index are development smoke runs or
-incomplete runs from Phases 0–2. No figure, verdict or test reads them.
+Every directory under `runs/` is in the index. Version 1.1.1 removed 298 development
+smoke runs and incomplete runs from Phases 0–2 that no figure, verdict or test read; they
+remain in the history and in tag `v1.0-submission`.

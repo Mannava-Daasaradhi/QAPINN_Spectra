@@ -114,7 +114,7 @@ is the adversarial self-review. The derivations behind each proposition are in
   author  = {Katta, Lahari and Mannava, Daasaradhi},
   title   = {{QAPINN-Spectra}: Spectrum-Matched Circuit Design for Quantum-Assisted Physics-Informed Neural Networks},
   year    = {2026},
-  version = {1.1.0},
+  version = {1.1.1},
   url     = {https://github.com/Mannava-Daasaradhi/QAPINN_Spectra}
 }
 ```

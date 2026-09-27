@@ -1,6 +1,6 @@
 [project]
 name = "qapinn-spectra"
-version = "1.1.0"
+version = "1.1.1"
 description = "Spectral-bias-aware quantum-classical hybrid PINNs via SMCD (Spectrum-Matched Circuit Design)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"

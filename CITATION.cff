@@ -7,8 +7,8 @@ authors:
     given-names: Lahari
   - family-names: Mannava
     given-names: Daasaradhi
-version: 1.1.0
-date-released: 2026-09-25
+version: 1.1.1
+date-released: 2026-09-27
 license: MIT
 repository-code: "https://github.com/Mannava-Daasaradhi/QAPINN_Spectra"
 abstract: >-

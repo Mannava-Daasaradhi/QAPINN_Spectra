@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.1.1 — 2026-09-27
 
-Fixes found by the first CI runs on GitHub's Linux runners. No result changed.
+Fixes found by the first CI runs on GitHub's Linux runners, a corrected abstract, and a
+smaller `results/`. No result changed.
+
+- Removed 298 development smoke runs and incomplete runs from `results/runs/` (4,974
+  files, 9.3 MB). No figure, verdict or test read them, and none was in
+  `results/runs_index.csv`. They remain in the history and in tag `v1.0-submission`.
 
 - `results/adjudication.json`: all 15 verdicts and their numbers as a committed,
   machine-readable record (`python scripts/adjudicate_predictions.py --write`). Floats
@@ -50,7 +55,7 @@ Changes after the WISER 2026 BQP Challenge. The judged version is tag `v1.0-subm
 - Figure regeneration is deterministic. PDFs no longer embed a timestamp, and the
   adjudicator and `tasks.py figures` draw identical figures from one Ω source, so on a
   given machine running either leaves the working tree clean. (Across operating systems
-  raster pixels still differ slightly; see Unreleased.)
+  raster pixels still differ slightly; see 1.1.1.)
 - The test suite no longer writes into the committed `results/`. `test_runner.py` and
   one XAI test trained into `results/runs/`, and one of them deleted a committed smoke run
   that a later test recreated on CUDA. That is the "determinism violation" noted during
@@ -82,7 +87,7 @@ Changes after the WISER 2026 BQP Challenge. The judged version is tag `v1.0-subm
 ### Added
 
 - CI (GitHub Actions): lint, the test suite, and checks that regenerating from committed
-  results reproduces the committed files (see Unreleased for the final form).
+  results reproduces the committed files (see 1.1.1 for the final form).
 - `tasks.py repro-all`, previously a stub: every experiment sweep (resumable), figures,
   adjudication and the pre-registration check.
 - `configs/exp/baseline_tuning_confirm.yaml`: the config behind F14's four full-budget
