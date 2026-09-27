@@ -26,16 +26,16 @@ def _run_git(*args: str) -> str:
     return result.stdout.strip()
 
 
-def preregistration_commit_sha() -> str:
+def preregistration_commit_sha(predictions_path: Path = PREDICTIONS_PATH) -> str:
     """The commit that FIRST added docs/predictions.md (`--diff-filter=A`, not just the
     latest commit to touch it -- T3.1's own DoD anticipates a later commit recording this
     SHA into FINDINGS.md, which must not be mistaken for a second pre-registration)."""
-    if not PREDICTIONS_PATH.is_file():
-        raise FileNotFoundError(f"{PREDICTIONS_PATH} does not exist -- pre-registration was never committed")
-    log = _run_git("log", "--diff-filter=A", "--format=%H", "--", str(PREDICTIONS_PATH.relative_to(REPO_ROOT)))
+    if not predictions_path.is_file():
+        raise FileNotFoundError(f"{predictions_path} does not exist -- pre-registration was never committed")
+    log = _run_git("log", "--diff-filter=A", "--format=%H", "--", str(predictions_path.relative_to(REPO_ROOT)))
     commits = log.splitlines()
     if not commits:
-        raise RuntimeError(f"{PREDICTIONS_PATH} exists but git has no ADDING commit for it -- uncommitted?")
+        raise RuntimeError(f"{predictions_path} exists but git has no ADDING commit for it -- uncommitted?")
     return commits[-1]  # oldest first with --diff-filter=A across history; take the original add
 
 
@@ -58,7 +58,7 @@ def _is_ancestor_or_equal(ancestor_sha: str, descendant_sha: str) -> bool:
     raise ValueError(f"git could not resolve {descendant_sha!r}: {result.stderr.strip()}")
 
 
-def verify_predictions_precede_runs(run_dirs: list[Path]) -> dict:
+def verify_predictions_precede_runs(run_dirs: list[Path], predictions_path: Path = PREDICTIONS_PATH) -> dict:
     """Returns {'predictions_commit': sha, 'n_checked': int, 'violations': [run_id, ...],
     'missing_provenance': [run_dir_name, ...], 'unknown_sha': [(run_id, sha), ...]}.
 
@@ -67,7 +67,7 @@ def verify_predictions_precede_runs(run_dirs: list[Path]) -> dict:
     from 'violations' (a KNOWN commit that is genuinely NOT a descendant of
     pre-registration) since the two failure modes need different remediation.
     """
-    predictions_sha = preregistration_commit_sha()
+    predictions_sha = preregistration_commit_sha(predictions_path)
     violations: list[str] = []
     missing_provenance: list[str] = []
     unknown_sha: list[tuple[str, str]] = []
@@ -112,7 +112,20 @@ def verify_predictions_precede_runs(run_dirs: list[Path]) -> dict:
 PREREGISTERED_EXPERIMENTS = ("core_matrix", "coverage_sweep", "depth_sweep", "alpha_sweep", "noise_study", "soft_bc_ntk")
 
 
-def experiment_run_dirs() -> list[Path]:
+# v2 (docs/predictions_v2.md): the re-test and groundwater experiments. The lab
+# (lab_*.yaml) is deliberately absent: it ran before the v2 predictions, by design.
+PREDICTIONS_V2_PATH = REPO_ROOT / "docs" / "predictions_v2.md"
+V2_EXPERIMENTS = (
+    "v2_matrix_classical",
+    "v2_matrix_quantum",
+    "v2_coverage_sweep",
+    "v2_depth_sweep",
+    "v2_groundwater_classical",
+    "v2_groundwater_quantum",
+)
+
+
+def experiment_run_dirs(experiments: tuple[str, ...] = PREREGISTERED_EXPERIMENTS) -> list[Path]:
     """Every completed run of the pre-registered experiments. A raw glob of results/runs/
     also sweeps in Phase 0-2 development and smoke-test runs whose commits legitimately
     predate pre-registration -- which is what this CLI used to do, so it exited 1 (65
@@ -128,7 +141,8 @@ def experiment_run_dirs() -> list[Path]:
     runs_dir = REPO_ROOT / "results" / "runs"
     run_dirs = {
         runs_dir / cfg.run_id
-        for exp in PREREGISTERED_EXPERIMENTS
+        for exp in experiments
+        if (REPO_ROOT / "configs" / "exp" / f"{exp}.yaml").is_file()
         for cfg in enumerate_runs(REPO_ROOT / "configs" / "exp" / f"{exp}.yaml")
         if (runs_dir / cfg.run_id / "metrics.json").is_file()
     }
@@ -136,8 +150,15 @@ def experiment_run_dirs() -> list[Path]:
 
 
 if __name__ == "__main__":
-    run_dirs = experiment_run_dirs()
-    report = verify_predictions_precede_runs(run_dirs)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Check that pre-registration predates every run.")
+    parser.add_argument("--v2", action="store_true", help="check docs/predictions_v2.md against the v2 runs")
+    cli = parser.parse_args()
+    if cli.v2:
+        report = verify_predictions_precede_runs(experiment_run_dirs(V2_EXPERIMENTS), PREDICTIONS_V2_PATH)
+    else:
+        report = verify_predictions_precede_runs(experiment_run_dirs())
     print(json.dumps(report, indent=2))
     if report["violations"] or report["unknown_sha"]:
         raise SystemExit(1)
