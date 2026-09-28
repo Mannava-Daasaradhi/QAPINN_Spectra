@@ -1,0 +1,47 @@
+\section{Completing the pre-registered protocol}
+\label{sec:fullprotocol}
+
+The results above use the runs judged at the WISER 2026 challenge, which the deadline
+cut to two seeds, one qubit count for PR-10 and a reduced training budget for PR-9.
+After the challenge we ran the protocol as \texttt{docs/predictions.md} states it and
+re-adjudicated with the same, unchanged checks
+(\texttt{scripts/adjudicate\_predictions.py --protocol full}; record in
+\texttt{results/adjudication\_v1\_full.json}). No prediction, threshold or check was
+changed. Three configurations restore the plan:
+\texttt{core\_matrix\_full} (five seeds, 210 runs: 176 had finished before the deadline
+cut and were on disk, 34 were trained after the challenge),
+\texttt{depth\_sweep\_full} (PR-10 at 4 and 6 qubits, three seeds; 8 qubits does not fit
+in this machine's memory) and \texttt{coverage\_sweep\_full} (PR-9 at the full
+20{,}000+2{,}000 budget). Runs already on disk were reused by their content hash, so
+seeds 0--1 are the submitted runs themselves.
+
+\input{sections/full_protocol_table}
+
+\paragraph{What changed.} Three checks move to CONFIRMED and none moves the other way.
+\begin{itemize}
+  \item \textbf{PR-6 on heat} (design vs.\ random circuit): 6.5$\times$ lower error,
+    five of five seeds agreeing, which is exactly what the pre-registered significance
+    gate needs. \S\ref{sec:validation} shows the result survives bootstrap resampling
+    and removal of any one seed. This is the design rule's main positive result: the
+    same circuit with SMCD's frequencies beats it with random ones.
+  \item \textbf{PR-4} (the negative control: nothing beats \texttt{c\_mlp} on heat by
+    more than 5\%): at two seeds \texttt{q\_serial} appeared 7.7\% better; at five,
+    every family is worse than \texttt{c\_mlp}, \texttt{q\_serial} by 38\%. The
+    control holds, and it is a statement that the circuit does \emph{not} help on a
+    smoothing operator.
+  \item \textbf{PR-10} (barren plateaus): with two qubit counts the fit is defined. Its
+    slope, $b=0.31$, is below the pre-registered $\log2=0.69$, so the verdict is
+    CONFIRMED; but the fit explains almost none of the variation ($R^2=0.001$). The
+    honest reading is that gradient variance shows no measurable decay between 4 and 6
+    qubits, not that it decays slowly.
+\end{itemize}
+
+\paragraph{What did not change.} PR-1, PR-2 and PR-3 stay REFUTED with five seeds, and
+more decisively (\S\ref{sec:validation}). PR-6 on Poisson stays INCONCLUSIVE (1.84$\times$,
+but the seeds disagree). PR-8 on Poisson stays CONFIRMED (99.9\% inside $\Omega$). PR-9
+stays REFUTED and becomes clearer: at the full budget the Poisson correlation is
+$\rho=+0.29$, the wrong sign, against $-0.82$ at the reduced budget. PR-11 stays REFUTED
+and PR-12 CONFIRMED (encoder drift 0.13 over five seeds). PR-7 on Poisson remains
+unmeasurable, and cannot be measured by any run: the check splits the NTK spectrum at
+eigen-index $|\Omega|=81$, and \texttt{q\_serial} has 14 parameters, so its NTK has at
+most 14 non-zero eigenvalues.

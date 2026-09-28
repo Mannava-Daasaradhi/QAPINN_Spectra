@@ -1,0 +1,67 @@
+\section{Application: waterlogging under canal-irrigated farmland}
+\label{sec:groundwater}
+
+SMCD needs the frequencies of a solution before training. Real problems where those are
+known in advance come from regular structure: evenly spaced sources, periodic geometry.
+We apply the method to one such problem, posed and pre-registered after submission
+(\texttt{docs/predictions\_groundwater.md}, committed and pushed before any run).
+
+\subsection{The problem}
+Two rivers $L=2$\,km apart bound a confined aquifer beneath irrigated farmland. Water
+enters from background recharge $R_0$ (rain and irrigation return flow) and from six
+canals running parallel to the rivers at equal spacing, each leaking $q$ m$^3$/day per
+metre of its length into a strip of width $\sigma$. Dupuit's steady one-dimensional
+equation for the hydraulic head $h$ (water-table height above the river datum) is
+\begin{equation}
+  T\,h''(X) = -R(X),\qquad
+  R(X) = R_0 + \sum_{j=1}^{6}\frac{q}{\sigma\sqrt{2\pi}}\,e^{-(X-c_j)^2/2\sigma^2},
+  \qquad h(0)=h_A,\ h(L)=h_B,
+\end{equation}
+with $c_j=(j-\tfrac12)L/6$. The scenario uses values within textbook ranges
+\citep{freeze1979groundwater,todd2005groundwater}, not calibrated to one site:
+transmissivity $T=100$\,m$^2$/day (silty sand), $R_0=0.4$\,mm/day, $q=0.4$\,m$^2$/day,
+$\sigma=30$\,m, $h_A=1$\,m, $h_B=0$. On $x=X/L$ this is $-u''=f$, the same operator as
+our Poisson problem with non-zero boundary values, so every model, SMCD and every
+instrument apply unchanged. The canal spacing fixes the frequencies: harmonics of
+$2\pi\cdot6$ in $x$, which SMCD designs for (one qubit, four layers).
+
+Because $\sigma(z\Phi(z)+\phi(z))$ with $z=(X-c)/\sigma$ has second derivative
+$\phi(z)/\sigma$, the head has a closed form; it matches an independent finite-difference
+solution to $5\times10^{-8}$\,m, and that solver converges to it at order two
+(\S\ref{sec:validation}).
+
+\subsection{The practical question}
+A field is waterlogged where the water table rises within 1.5\,m of the land surface,
+into the crop root zone. With the surface 9\,m above the river datum, the water table
+peaks at 8.53\,m and 713\,m of the 2\,km field is waterlogged
+(Figure~\ref{fig:gwprofile}). The exact solution answers the planning questions a
+farmer or irrigation engineer would ask (Figure~\ref{fig:gwscenarios}):
+\begin{itemize}
+  \item \textbf{Lining the canals.} Cutting canal seepage by 20\% dries the whole field;
+    a 10\% cut reduces the waterlogged length from 713\,m to 494\,m.
+  \item \textbf{Soil.} The same canals waterlog 1{,}778\,m on clay loam
+    ($T=25$\,m$^2$/day) and none of the field on fine sand ($T\ge150$).
+  \item \textbf{Spacing.} Concentrating the same total seepage into two canals
+    waterlogs 1{,}066\,m and raises 84\,cm mounds under each canal; spreading it over
+    twelve reduces the mounds to 1\,cm.
+\end{itemize}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{../results/report/figures/groundwater_profile.png}
+  \caption{Exact water table between the two rivers (top) and the recharge that drives
+    it (bottom). Red: the 713\,m of field where the water table is within 1.5\,m of
+    the surface.}
+  \label{fig:gwprofile}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.62\linewidth]{../results/report/figures/groundwater_planning_map.png}
+  \caption{Waterlogged length for each combination of soil (transmissivity) and canal
+    lining (seepage cut), from the exact solution.}
+  \label{fig:gwscenarios}
+\end{figure}
+
+\subsection{Pre-registered predictions and results}
+\input{sections/groundwater_results}

@@ -1,0 +1,27 @@
+\section{Follow-up study (v2): pre-registered, in progress}
+\label{sec:followup}
+
+The diagnostics of \S\ref{sec:diagnostics} suggest specific changes to the quantum
+model. Testing them honestly needs the same discipline as v1: tune on old data, commit
+predictions, then test on runs that did not exist when the predictions were written.
+The study is designed and partly run; its re-test is not finished, and this paper
+reports none of its results as findings.
+
+\paragraph{Design} (\texttt{docs/superpowers/specs/2026-09-28-*-design.md}, committed
+before any run). The v2 quantum model keeps SMCD's circuit and adds $K$ copies of it
+(same encoding scalings, hence the same $\Omega$, each with its own angles) mixed by a
+linear head, so the head gets independent handles on the Fourier amplitudes that v1's
+single readout couples. The boundary ansatz becomes a tuned choice for every family,
+between v1's mask ansatz and the affine ansatz of \S\ref{sec:diagnostics}. Every
+classical family receives the same number of tuning configurations as the quantum
+model. Tuning uses only v1's Poisson problem with seeds 0--2; the re-test uses seeds
+10--14 and re-adjudicates v1's twelve claims, word for word, with the unchanged script.
+The selection rule, including a parsimony rule on $K$, was committed before the first
+lab result (\texttt{scripts/select\_v2\_config.py}).
+
+\paragraph{What the lab has shown so far} (exploratory, not a finding). At the full
+training budget on Poisson, two copies lower \texttt{q\_serial}'s median rel-$L^2$ from
+1.63 to 1.27, and the best classical configuration reaches 0.35. A learning rate of
+$10^{-2}$ makes the single circuit worse (3.55). The affine-ansatz arm and the larger
+$K$ are still running. We state now, as the design did, that the v2 model may not beat
+the classical baselines; the re-test will report whatever it finds.
