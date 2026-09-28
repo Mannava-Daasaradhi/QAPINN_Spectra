@@ -1,0 +1,4 @@
+# v2: a c_mlp with q_serial_v2's parameter count (91 = one hidden layer of 30), for G-2.
+family: c_mlp
+widths: [30]
+activation: tanh

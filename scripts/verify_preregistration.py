@@ -116,12 +116,12 @@ PREREGISTERED_EXPERIMENTS = ("core_matrix", "coverage_sweep", "depth_sweep", "al
 # (lab_*.yaml) is deliberately absent: it ran before the v2 predictions, by design.
 PREDICTIONS_V2_PATH = REPO_ROOT / "docs" / "predictions_v2.md"
 V2_EXPERIMENTS = (
-    "v2_matrix_classical",
-    "v2_matrix_quantum",
-    "v2_coverage_sweep",
-    "v2_depth_sweep",
-    "v2_groundwater_classical",
+    "v2_poisson_instrumented",
+    "v2_poisson_plain",
+    "v2_poisson_rff",
     "v2_groundwater_quantum",
+    "v2_groundwater_classical",
+    "v2_groundwater_rff",
 )
 
 

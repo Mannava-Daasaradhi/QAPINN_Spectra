@@ -33,9 +33,11 @@ RUNS_DIR = REPO_ROOT / "results" / "runs"
 # lab-selected learning rate). The tested and random-design models differ by set.
 MODEL_SETS = {
     "v1": {"experiments": ("groundwater_v1",), "q": "q_serial", "q_random": "q_random",
+           "matched_mlp": "c_mlp_matched", "rff": "c_rff_matched",
            "output": REPO_ROOT / "results" / "adjudication_groundwater_v1.json"},
-    "v2": {"experiments": ("v2_groundwater_classical", "v2_groundwater_quantum"), "q": "q_serial_v2",
-           "q_random": "q_random_v2", "output": REPO_ROOT / "results" / "adjudication_groundwater_v2.json"},
+    "v2": {"experiments": ("v2_groundwater_classical", "v2_groundwater_quantum", "v2_groundwater_rff"),
+           "q": "q_serial_v2", "q_random": "q_random_v2", "matched_mlp": "c_mlp_matched_v2",
+           "rff": "c_rff_matched_v2", "output": REPO_ROOT / "results" / "adjudication_groundwater_v2.json"},
 }
 THRESHOLD_M = 7.5  # water table within 1.5 m of a land surface at 9 m
 
@@ -72,7 +74,7 @@ def adjudicate(model_set: str = "v1") -> dict:
     exact_length = waterlogged_length_m(X, pde.head_m(X), THRESHOLD_M)
 
     runs = runs_by_family(spec["experiments"])
-    need = ("c_mlp", "c_mlp_matched", "c_rff_matched", q_name, random_name)
+    need = ("c_mlp", spec["matched_mlp"], spec["rff"], q_name, random_name)
     missing = [f for f in need if len(runs.get(f, [])) < 2]
     if missing:
         return {"verdict": "INSUFFICIENT_DATA", "reason": f"fewer than 2 runs for {missing}"}
@@ -87,7 +89,7 @@ def adjudicate(model_set: str = "v1") -> dict:
 
     g1 = report["families"][q_name]["median_rel_l2"]
     report["G-1"] = {"verdict": "CONFIRMED" if g1 <= 0.01 else "REFUTED", "median_rel_l2": g1, "threshold": 0.01}
-    report["G-2"] = _beats_by_ratio(q, runs["c_mlp_matched"], threshold=1.3)
+    report["G-2"] = _beats_by_ratio(q, runs[spec["matched_mlp"]], threshold=1.3)
     report["G-3"] = _beats_by_ratio(q, runs[random_name], threshold=1.5)
 
     from make_figures import make_freq_heatmap_figure

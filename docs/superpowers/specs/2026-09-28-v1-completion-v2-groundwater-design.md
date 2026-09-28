@@ -156,6 +156,18 @@ model scores rel-L2 ≈ 1 there), R-7 on Poisson (unmeasurable, as above).
    for the quantum model also K — by median rel-L2 over seeds 0-2, with the parsimony
    rule on K from amendment 2 applied across all 16 quantum configurations.
 
+5. **(11:00 IST 28 Sep; owner decision under a paper deadline 2 days away.)** The
+   affine-boundary arms are stopped: the quantum arm had not started; 2 of the 72
+   classical-arm runs had finished and are not read. Selection uses the 8 finished
+   quantum configurations and 8 learning rates per classical family (equal effort
+   kept). The selected configuration was seen before this amendment: on the lab seeds,
+   8 copies at learning rate 1e-2 reached median rel-L2 of about 0.003. That is why the
+   lab result is reported only as exploratory and the claim rests on the re-test.
+   **The re-test is cut to what finishes in time:** Poisson (R-1, R-2, R-3, R-6, R-7,
+   R-8, R-11, R-12) and the groundwater claims G-1 to G-5, seeds 10-14, on CPU. R-4,
+   R-5, R-6 on heat, R-7 and R-8 on Helmholtz k=10, R-9 and R-10 are not re-tested in
+   this round and are reported as not run, not as failed.
+
 ## Compute
 
 One GPU process at a time (concurrent CUDA processes have crashed this laptop). Phase A

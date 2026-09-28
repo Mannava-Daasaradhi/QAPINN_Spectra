@@ -6,6 +6,9 @@ n_replicas whose median rel-L2 over seeds 0-2 is within 10% of the best configur
 ties on n_replicas go to the lower median. Classical (lab_classical*.yaml): per family,
 the (bc_mode, learning rate) with the lowest median rel-L2.
 
+The affine-boundary arms (lab_*_affine.yaml) were stopped before the quantum arm ran,
+and are not read (design spec, amendment 5).
+
 Run: uv run python scripts/select_v2_config.py [--write]
 """
 from __future__ import annotations
@@ -39,7 +42,7 @@ def _median_rel_l2_by_config(exps: tuple[str, ...], key) -> dict:
 
 def select() -> dict:
     quantum = _median_rel_l2_by_config(
-        ("lab_quantum", "lab_quantum_affine"), lambda c: (c.model.n_replicas, c.train.bc_mode, c.train.lr)
+        ("lab_quantum",), lambda c: (c.model.n_replicas, c.train.bc_mode, c.train.lr)
     )
     best = min(v["median_rel_l2"] for v in quantum.values())
     eligible = [k for k, v in quantum.items() if v["median_rel_l2"] <= PARSIMONY * best]
@@ -47,7 +50,7 @@ def select() -> dict:
 
     classical = {}
     by_family = _median_rel_l2_by_config(
-        ("lab_classical", "lab_classical_affine"), lambda c: (c.model.family, c.train.bc_mode, c.train.lr)
+        ("lab_classical",), lambda c: (c.model.family, c.train.bc_mode, c.train.lr)
     )
     for family in sorted({f for f, _, _ in by_family}):
         rows = {(bc, lr): v for (f, bc, lr), v in by_family.items() if f == family}

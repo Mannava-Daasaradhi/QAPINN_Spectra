@@ -59,6 +59,14 @@ PROTOCOLS = {
         "depth_sweep": "depth_sweep_full",
         "output": REPO_ROOT / "results" / "adjudication_v1_full.json",
     },
+    # docs/predictions_v2.md: the v2 model re-tested on seeds 10-14, Poisson only in this
+    # round (design spec amendment 5); claims on other problems report INSUFFICIENT_DATA.
+    "v2": {
+        "core_matrix": ["v2_poisson_instrumented", "v2_poisson_plain", "v2_poisson_rff"],
+        "coverage_sweep": None,
+        "depth_sweep": None,
+        "output": REPO_ROOT / "results" / "adjudication_v2.json",
+    },
 }
 N5_P_FLOOR = 0.0625  # smallest achievable two-sided Wilcoxon p at n=5 (project.md SS8)
 PR12_DRIFT_THRESHOLD = 0.2
@@ -486,8 +494,10 @@ if __name__ == "__main__":
 
     # PR-9: coverage_sweep (T3.5), already complete -- group its own run_ids by problem
     # instance label, the same grouping (and so the same figure) `tasks.py figures` uses.
-    coverage_cfg = exp_dir / f"{protocol['coverage_sweep']}.yaml"
-    if coverage_cfg.is_file():
+    coverage_cfg = exp_dir / f"{protocol['coverage_sweep']}.yaml" if protocol["coverage_sweep"] else None
+    if coverage_cfg is None:
+        report["PR-9"] = {"verdict": "INSUFFICIENT_DATA", "reason": "not run in this protocol"}
+    elif coverage_cfg.is_file():
         cov_by_problem: dict = {}
         for problem_label, cfg in enumerate_labeled_runs(coverage_cfg):
             run_dir = RUNS_DIR / cfg.run_id
@@ -496,8 +506,10 @@ if __name__ == "__main__":
         report["PR-9"] = check_pr9(cov_by_problem)
 
     # PR-10: depth_sweep (T3.5) -- reports INSUFFICIENT_DATA cleanly if not complete yet.
-    depth_cfg = exp_dir / f"{protocol['depth_sweep']}.yaml"
-    if depth_cfg.is_file():
+    depth_cfg = exp_dir / f"{protocol['depth_sweep']}.yaml" if protocol["depth_sweep"] else None
+    if depth_cfg is None:
+        report["PR-10"] = {"verdict": "INSUFFICIENT_DATA", "reason": "not run in this protocol"}
+    elif depth_cfg.is_file():
         depth_cfgs = enumerate_runs(depth_cfg)
         depth_dirs = [RUNS_DIR / cfg.run_id for cfg in depth_cfgs if (RUNS_DIR / cfg.run_id / "metrics.json").is_file()]
         report["PR-10"] = check_pr10(depth_dirs)

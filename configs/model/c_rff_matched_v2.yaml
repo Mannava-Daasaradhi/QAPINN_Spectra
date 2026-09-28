@@ -1,0 +1,4 @@
+# v2: c_rff_matched size-matched to q_serial_v2 (8 copies) instead of v1's single circuit:
+# 83 parameters against q_serial_v2's 91 on Poisson/groundwater (within 10%).
+family: c_rff_matched
+n_replicas: 8

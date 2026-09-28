@@ -1,0 +1,6 @@
+# v2 quantum model (docs/predictions_v2.md): SMCD's q_serial circuit with 8 copies (same
+# scalings, same Omega, own angles) mixed by a linear head. n_replicas and the learning
+# rate (1e-2, set in the experiment configs) were chosen in the lab (results/lab_selection.json).
+family: q_serial
+scaling_mode: ternary
+n_replicas: 8

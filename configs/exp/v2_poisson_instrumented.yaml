@@ -1,0 +1,10 @@
+# v2 re-test (docs/predictions_v2.md, design spec amendment 5): seeds 10-14 never used
+# before, full 20000+2000 budget, v1's hard boundary ansatz, learning rate from the lab.
+problems: [poisson]
+families: [c_mlp, q_serial_v2]
+seeds: [10, 11, 12, 13, 14]
+train:
+  bc_mode: hard
+  noise: none
+  lr: 0.01
+  instruments: [ntk, specerr, drift]

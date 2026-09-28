@@ -1,0 +1,4 @@
+# v2 random-design twin: q_random's random scalings with the v2 architecture (8 copies).
+family: q_random
+scaling_mode: random
+n_replicas: 8
