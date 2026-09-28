@@ -125,6 +125,11 @@ V2_EXPERIMENTS = (
 )
 
 
+# The groundwater showcase with v1 models (docs/predictions_groundwater.md).
+PREDICTIONS_GROUNDWATER_PATH = REPO_ROOT / "docs" / "predictions_groundwater.md"
+GROUNDWATER_EXPERIMENTS = ("groundwater_v1",)
+
+
 def experiment_run_dirs(experiments: tuple[str, ...] = PREREGISTERED_EXPERIMENTS) -> list[Path]:
     """Every completed run of the pre-registered experiments. A raw glob of results/runs/
     also sweeps in Phase 0-2 development and smoke-test runs whose commits legitimately
@@ -154,8 +159,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Check that pre-registration predates every run.")
     parser.add_argument("--v2", action="store_true", help="check docs/predictions_v2.md against the v2 runs")
+    parser.add_argument("--groundwater", action="store_true",
+                        help="check docs/predictions_groundwater.md against the groundwater_v1 runs")
     cli = parser.parse_args()
-    if cli.v2:
+    if cli.groundwater:
+        report = verify_predictions_precede_runs(
+            experiment_run_dirs(GROUNDWATER_EXPERIMENTS), PREDICTIONS_GROUNDWATER_PATH
+        )
+    elif cli.v2:
         report = verify_predictions_precede_runs(experiment_run_dirs(V2_EXPERIMENTS), PREDICTIONS_V2_PATH)
     else:
         report = verify_predictions_precede_runs(experiment_run_dirs())

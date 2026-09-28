@@ -1,0 +1,7 @@
+# c_mlp_matched: a c_mlp sized to the SMCD q_serial model's parameter count (14 on the
+# groundwater problem; this has 13, within 10%, found by models.base.match_param_count).
+# Added 2026-09-28 for docs/predictions_groundwater.md (G-2): v1's c_mlp has ~8,500
+# parameters, so beating it says nothing about parameter efficiency.
+family: c_mlp
+widths: [4]
+activation: tanh

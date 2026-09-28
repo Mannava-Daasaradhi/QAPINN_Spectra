@@ -1,0 +1,10 @@
+# Groundwater showcase with the v1 model families (docs/predictions_groundwater.md).
+# Fresh seeds 10-14, the core matrix's full 20000+2000 budget and v1's hard boundary
+# ansatz and learning rate. specerr is recorded for G-4 (PR-8's overlap rule).
+problems: [groundwater]
+families: [c_mlp, c_mlp_matched, c_rff_matched, q_serial, q_random]
+seeds: [10, 11, 12, 13, 14]
+train:
+  bc_mode: hard
+  noise: none
+  instruments: [specerr]
