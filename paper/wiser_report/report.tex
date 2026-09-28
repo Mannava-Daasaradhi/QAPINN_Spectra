@@ -96,8 +96,9 @@ on six PDEs the design rule did what it promised: the circuit produces nothing o
 designed frequencies, and the designed circuit beat the same circuit with random
 frequencies by \HeatRatio$\times$ on the heat equation, on every seed. The quantum model did
 not beat the classical baselines, and our explainability instruments show why. We then
-applied the method to a real problem, waterlogging of farmland from leaking irrigation
-canals, and pre-registered an improved quantum model that is being re-tested now.
+took the method to a real problem, waterlogging of farmland from leaking irrigation
+canals. The exact solution gives a planning map; the original circuit failed to learn it,
+and an improved circuit, locked in git before testing, is being re-tested on it now.
 
 \section*{At a glance}
 \begin{center}
@@ -356,8 +357,10 @@ re-test decides.
   \item \textbf{Honest by construction.} Predictions were locked before the runs, a
     script decided every verdict, and the full protocol was completed after the
     challenge without moving a threshold.
-  \item \textbf{A real use.} The same machinery answers a planning question on
-    waterlogged farmland, and an improved model is being re-tested on it now.
+  \item \textbf{A real use, honestly scored.} The exact groundwater model answers a
+    planning question (lining canals by \GWDryCut\% dries the field). The original
+    circuit failed on it (1 of 5 locked predictions held); the improved circuit is being
+    re-tested on the same problem.
 \end{itemize}
 
 \section*{Links}

@@ -1,0 +1,80 @@
+{
+  "families": {
+    "c_mlp": {
+      "median_rel_l2": 0.02472210386,
+      "median_waterlogged_m": 787.9990666,
+      "n": 5
+    },
+    "c_mlp_matched": {
+      "median_rel_l2": 0.04955718867,
+      "median_waterlogged_m": 840.0815259,
+      "n": 5
+    },
+    "c_rff_matched": {
+      "median_rel_l2": 0.1575922045,
+      "median_waterlogged_m": 0.0,
+      "n": 5
+    },
+    "q_random": {
+      "median_rel_l2": 0.05956843346,
+      "median_waterlogged_m": 534.8379266,
+      "n": 5
+    },
+    "q_serial": {
+      "median_rel_l2": 0.5275604527,
+      "median_waterlogged_m": 0.0,
+      "n": 5
+    }
+  },
+  "exact_waterlogged_m": 713.2768033,
+  "G-1": {
+    "verdict": "REFUTED",
+    "median_rel_l2": 0.5275604527,
+    "threshold": 0.01
+  },
+  "G-2": {
+    "measured_ratio": 0.09393651176,
+    "threshold": 1.3,
+    "stats": {
+      "median_a": 0.5275604527,
+      "median_b": 0.04955718867,
+      "iqr_a": 0.05447643413,
+      "iqr_b": 0.002619911606,
+      "ratio_median": 10.64548791,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.0625,
+      "n_pairs": 5,
+      "cliffs_delta": 1.0
+    },
+    "verdict": "REFUTED"
+  },
+  "G-3": {
+    "measured_ratio": 0.1129130001,
+    "threshold": 1.5,
+    "stats": {
+      "median_a": 0.5275604527,
+      "median_b": 0.05956843346,
+      "iqr_a": 0.05447643413,
+      "iqr_b": 0.08061574829,
+      "ratio_median": 8.856376139,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.0625,
+      "n_pairs": 5,
+      "cliffs_delta": 1.0
+    },
+    "verdict": "REFUTED"
+  },
+  "G-4": {
+    "verdict": "CONFIRMED",
+    "threshold": 0.7,
+    "overlap_fraction": 0.9935615157,
+    "total_improvement": 184.9472986
+  },
+  "G-5": {
+    "verdict": "REFUTED",
+    "median_waterlogged_m": 0.0,
+    "exact_m": 713.2768033,
+    "relative_error": 1.0,
+    "threshold": 0.05
+  }
+}

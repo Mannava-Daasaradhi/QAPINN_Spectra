@@ -1,4 +1,27 @@
-% Filled in from results/adjudication_groundwater_v1.json once the 25 runs finish.
-Five predictions were committed before any run (Table~\ref{tab:gw}): seeds 10--14, the
-full training budget, v1's model families and settings, plus a 13-parameter
-\texttt{c\_mlp\_matched} for a same-size classical comparison. \textbf{[Results pending.]}
+Five predictions were committed and pushed before any run
+(\texttt{docs/predictions\_groundwater.md}): seeds 10--14, the full training budget,
+v1's model families and settings, plus a 13-parameter \texttt{c\_mlp\_matched} for a
+same-size classical comparison. The paper stated in advance that G-1 and G-2 were
+expected to fail.
+
+\input{sections/groundwater_tables}
+
+\textbf{One of five confirmed} (Table~\ref{tab:gwv1}, Figure~\ref{fig:gwmodels}). The
+SMCD circuit's improvement over \texttt{c\_mlp} lies almost entirely on its designed
+frequencies (G-4), but the circuit does not solve the problem: its median water table
+peaks near 4\,m instead of 8.5\,m, so it predicts no waterlogging at all. Unlike on the
+heat equation, the same circuit with random frequencies does better here, and so does
+a classical network with the same number of parameters (13), whose median error is
+5.0\% and whose waterlogged length is 840\,m against the exact 713\,m. The
+groundwater solution is dominated by a broad mound, not by the canal ripple, which is
+what SMCD designs for; our reading is that on this problem the design's high
+frequencies are a cost rather than a help. The v2 model (\S\ref{sec:followup}) is
+being tested on the same problem.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{../results/report/figures/groundwater_models_v1.png}
+  \caption{Predicted water table of each trained model (median of seeds 10--14) against
+    the exact solution. Dotted: the waterlogging threshold.}
+  \label{fig:gwmodels}
+\end{figure}

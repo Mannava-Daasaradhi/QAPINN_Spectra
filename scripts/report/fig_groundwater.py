@@ -147,8 +147,50 @@ def lining_vs_soil() -> dict:
     return {"seepage_cut": cuts.tolist(), "transmissivity": ts.tolist(), "waterlogged_m": grid.tolist()}
 
 
+def model_profiles(model_set: str = "v1") -> None:
+    """Each trained model's predicted water table (median over seeds 10-14) against the
+    exact one, for the pre-registered groundwater runs."""
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from adjudicate_groundwater import MODEL_SETS, runs_by_family
+
+    from report.common import LABELS, MARKERS
+
+    spec = MODEL_SETS[model_set]
+    runs = runs_by_family(spec["experiments"])
+    if not runs:
+        return
+    pde = Groundwater(**_base_params())
+    fig, ax = plt.subplots(figsize=(8, 3.8))
+    ax.plot(X, pde.head_m(X), color="#1f1f1f", linewidth=2.6, label="exact")
+    order = ["c_mlp", spec["matched_mlp"], spec["rff"], spec["q_random"], spec["q"]]
+    for name in order:
+        dirs = runs.get(name, [])
+        if not dirs:
+            continue
+        preds = []
+        for d in dirs:
+            with np.load(d / "prediction.npz") as p:
+                idx = np.argsort(p["x"])
+                preds.append(np.interp(X, p["x"][idx] * 2000.0, p["u"][idx]))
+        base = name.removesuffix("_v2").replace("_matched_v2", "_matched")
+        fam = base if base in COLORS else ("c_mlp" if base.startswith("c_mlp") else base)
+        label = {"c_mlp_matched": "MLP, same size as circuit"}.get(base, LABELS.get(base, name))
+        ax.plot(X, np.median(preds, axis=0), color=COLORS[fam], linewidth=1.8, marker=MARKERS[fam],
+                markevery=800, markersize=5, linestyle="--" if base == "c_mlp_matched" else "-", label=label)
+    ax.axhline(THRESHOLD_M, color=RISK, linewidth=1.2, linestyle=":", label="waterlogging threshold")
+    ax.set_xlabel("distance from the upstream river (m)")
+    ax.set_ylabel("water table (m)")
+    ax.set_title(f"Trained models vs the exact water table ({model_set} models, median of 5 fresh seeds)")
+    ax.legend(loc="lower center", fontsize=7, ncol=3)
+    save(fig, f"groundwater_models_{model_set}")
+
+
 def main() -> None:
     style()
+    for model_set in ("v1", "v2"):
+        model_profiles(model_set)
     summary = {
         "threshold_m": THRESHOLD_M,
         "base": profile(),

@@ -63,7 +63,8 @@ def main() -> None:
         "GWClay": f"{soil['clay loam']['waterlogged_m']:.0f}",
         "PRTenSlope": f"{full.get('PR-10', {}).get('slope_b', float('nan')):.2f}",
         "PRTenRsq": f"{full.get('PR-10', {}).get('fit_r2', float('nan')):.3f}",
-        "GWVOneConf": _confirmed({k: v for k, v in gw1.items() if k.startswith("G-")}) if gw1 else "---",
+        "GWVOneOverlap": f"{100 * gw1.get('G-4', {}).get('overlap_fraction', float('nan')):.1f}" if gw1 else "---",
+        "GWVOneConf":_confirmed({k: v for k, v in gw1.items() if k.startswith("G-")}) if gw1 else "---",
         "GWVTwoConf": _confirmed({k: v for k, v in gw2.items() if k.startswith("G-")}) if gw2 else "---",
         "VTwoConf": _confirmed({k: v for k, v in v2.items() if k in {
             "PR-1", "PR-2", "PR-3", "PR-6 (poisson)", "PR-7 (poisson)", "PR-8 (poisson)", "PR-11", "PR-12"}})

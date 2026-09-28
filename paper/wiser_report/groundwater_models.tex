@@ -1,2 +1,11 @@
-% Filled in from results/adjudication_groundwater_*.json when the runs finish.
-\textbf{Trained models on this problem:} results pending.
+\clearpage
+\subsection*{Can the trained models answer it?}
+Five predictions were locked in git before training on fresh seeds. The v1 quantum
+circuit does not solve this problem: its water table stops near 4\,m, so it misses the
+waterlogging entirely. A classical network with the same 13 parameters reaches about 5\% error.
+Only G-4 held: the circuit's improvement lands on its designed frequencies
+(\GWVOneOverlap\%).
+\begin{center}
+  \includegraphics[width=0.9\linewidth]{groundwater_models_v1}
+\end{center}
+\input{../sections/groundwater_tables}
