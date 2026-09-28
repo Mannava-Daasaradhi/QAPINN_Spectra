@@ -1,0 +1,9 @@
+# Scheduling only (2026-09-28): the core_matrix_full runs that can still change a v1
+# verdict (PR-5 reads c_mlp and q_serial at k=20), run before the rest of
+# core_matrix_full so the verdicts are final sooner. Same configs, same run_ids.
+problems: [helmholtz_k20]
+families: [c_mlp, q_serial]
+seeds: [0, 1, 2, 3, 4]
+train:
+  bc_mode: hard
+  noise: none
