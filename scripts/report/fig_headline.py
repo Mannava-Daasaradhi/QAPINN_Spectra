@@ -133,11 +133,49 @@ def staircase() -> None:
     save(fig, "staircase")
 
 
+def v2_retest() -> None:
+    """Every fresh-seed run (10-14) of the pre-registered v2 re-test on Poisson."""
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from cost_ledger import enumerate_core_matrix_run_ids
+
+    rows: dict = {}
+    for exp in ("v2_poisson_instrumented", "v2_poisson_plain", "v2_poisson_rff"):
+        for run_id, info in enumerate_core_matrix_run_ids(REPO_ROOT / "configs" / "exp" / f"{exp}.yaml").items():
+            m = REPO_ROOT / "results" / "runs" / run_id / "metrics.json"
+            if m.is_file():
+                d = json.loads(m.read_text(encoding="utf-8"))
+                rows.setdefault(info["family"], []).append((d["rel_l2"], d["n_params"]))
+    if not rows:
+        return
+    order = ["q_serial_v2", "c_rff_matched_v2", "c_mlp", "c_ff", "q_random_v2"]
+    names = {"q_serial_v2": "v2 circuit\n(SMCD, 8 copies)", "c_rff_matched_v2": "RFF matched\n(same frequencies)",
+             "c_mlp": "MLP", "c_ff": "Fourier\nfeatures", "q_random_v2": "v2 circuit,\nrandom frequencies"}
+    fig, ax = plt.subplots(figsize=(8, 3.6))
+    for i, fam in enumerate(f for f in order if f in rows):
+        vals = [v for v, _ in rows[fam]]
+        base = fam.removesuffix("_v2")
+        ax.scatter(i + np.linspace(-0.15, 0.15, len(vals)), vals, color=COLORS[base], s=36, zorder=3,
+                   edgecolor="white", linewidth=0.8)
+        ax.hlines(statistics.median(vals), i - 0.28, i + 0.28, color=COLORS[base], linewidth=2.5, zorder=4)
+        ax.annotate(f"{rows[fam][0][1]:,} par.", (i, max(vals)), xytext=(0, 8), textcoords="offset points",
+                    ha="center", fontsize=7, color=MUTED)
+    present = [f for f in order if f in rows]
+    ax.set_xticks(range(len(present)), [names[f] for f in present], fontsize=8)
+    ax.set_yscale("log")
+    ax.set_ylabel("relative L2 error (log)")
+    ax.set_title("v2 re-test on fresh seeds 10-14, Poisson: every run (bar = median)")
+    ax.grid(axis="x", visible=False)
+    save(fig, "headline_v2_retest")
+
+
 def main() -> None:
     style()
     design_vs_random(core_runs())
     v2_lab()
     staircase()
+    v2_retest()
 
 
 if __name__ == "__main__":

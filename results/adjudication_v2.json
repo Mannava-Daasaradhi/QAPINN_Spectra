@@ -1,0 +1,117 @@
+{
+  "PR-1": {
+    "measured_ratio": 337.7879881,
+    "threshold": 2.0,
+    "stats": {
+      "median_a": 0.00368112475,
+      "median_b": 1.243439723,
+      "iqr_a": 0.002410796442,
+      "iqr_b": 3.235072507,
+      "ratio_median": 0.002960436828,
+      "wilcoxon_stat": 1.0,
+      "p_value": 0.125,
+      "n_pairs": 5,
+      "cliffs_delta": -0.6
+    },
+    "verdict": "INCONCLUSIVE"
+  },
+  "PR-2": {
+    "measured_ratio": 1359.807117,
+    "threshold": 1.3,
+    "stats": {
+      "median_a": 0.00368112475,
+      "median_b": 5.005619632,
+      "iqr_a": 0.002410796442,
+      "iqr_b": 4.244265579,
+      "ratio_median": 0.0007353984162,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.0625,
+      "n_pairs": 5,
+      "cliffs_delta": -1.0
+    },
+    "verdict": "CONFIRMED"
+  },
+  "PR-3": {
+    "verdict": "REFUTED",
+    "measured_ratio": 3.302600708,
+    "band": [
+      0.7692307692,
+      1.3
+    ],
+    "stats": {
+      "median_a": 0.00368112475,
+      "median_b": 0.001114613929,
+      "iqr_a": 0.002410796442,
+      "iqr_b": 0.0167804329,
+      "ratio_median": 3.302600708,
+      "wilcoxon_stat": 5.0,
+      "p_value": 0.625,
+      "n_pairs": 5,
+      "cliffs_delta": 0.04
+    }
+  },
+  "PR-4": {
+    "verdict": "INSUFFICIENT_DATA",
+    "reason": "missing c_mlp runs on heat"
+  },
+  "PR-5": {
+    "verdict": "INSUFFICIENT_DATA",
+    "reason": "missing c_mlp or q_serial runs for helmholtz_k4"
+  },
+  "PR-6 (poisson)": {
+    "measured_ratio": 236.081052,
+    "threshold": 1.5,
+    "stats": {
+      "median_a": 0.00368112475,
+      "median_b": 0.8690438033,
+      "iqr_a": 0.002410796442,
+      "iqr_b": 0.3111238713,
+      "ratio_median": 0.004235833379,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.0625,
+      "n_pairs": 5,
+      "cliffs_delta": -1.0
+    },
+    "verdict": "CONFIRMED"
+  },
+  "PR-6 (heat)": {
+    "verdict": "INSUFFICIENT_DATA",
+    "reason": "missing q_serial or q_random runs"
+  },
+  "PR-7 (poisson)": {
+    "verdict": "CONFIRMED",
+    "measured_gap": 15.24886432,
+    "threshold": 0.5,
+    "decay_exponent_whole": -13.12702197,
+    "decay_exponent_inside_band": -12.49215834,
+    "decay_exponent_outside_band": -27.74102266,
+    "band_size": 81
+  },
+  "PR-8 (poisson)": {
+    "verdict": "CONFIRMED",
+    "threshold": 0.7,
+    "overlap_fraction": 0.9986052953,
+    "total_improvement": 31002.40617
+  },
+  "PR-9": {
+    "verdict": "INSUFFICIENT_DATA",
+    "reason": "not run in this protocol"
+  },
+  "PR-10": {
+    "verdict": "INSUFFICIENT_DATA",
+    "reason": "not run in this protocol"
+  },
+  "PR-11": {
+    "verdict": "REFUTED",
+    "median_hybrid_drift": 2.532077306,
+    "median_classical_drift": 97312.26777,
+    "n_hybrid": 5,
+    "n_classical": 5
+  },
+  "PR-12": {
+    "verdict": "CONFIRMED",
+    "median_frobenius": 0.0951972911,
+    "threshold": 0.2,
+    "n_runs": 5
+  }
+}
