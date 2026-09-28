@@ -119,13 +119,24 @@ def style() -> None:
         "axes.labelcolor": INK, "text.color": INK, "axes.titleweight": "bold",
         "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6, "axes.axisbelow": True,
         "lines.linewidth": 2.0,
+        # One typeface across the WISER report: its text is set in DejaVu Sans too.
+        "font.family": "sans-serif", "font.sans-serif": ["DejaVu Sans"], "mathtext.fontset": "dejavusans",
     })
 
 
 def save(fig, name: str) -> Path:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / f"{name}.png"
-    fig.savefig(path, dpi=200, bbox_inches="tight", pad_inches=0.05, metadata={"Software": None})
+    for attempt in range(5):  # Windows: a scanner can briefly lock a just-written file
+        try:
+            fig.savefig(path, dpi=200, bbox_inches="tight", pad_inches=0.05, metadata={"Software": None})
+            break
+        except OSError:
+            if attempt == 4:
+                raise
+            import time
+
+            time.sleep(1.0 + attempt)
     plt.close(fig)
     return path
 

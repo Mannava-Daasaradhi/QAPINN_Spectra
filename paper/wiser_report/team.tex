@@ -1,0 +1,26 @@
+% Cover and team details. Photos go in paper/wiser_report/figures/ (photo-lahari.jpg,
+% photo-daasaradhi.jpg). Until they exist, a grey placeholder box is drawn.
+\newcommand{\CoverLogos}{}  % e.g. \includegraphics[height=1.6cm]{wiser_logo}\hspace{1cm}\includegraphics[height=1.6cm]{ap_logo}
+\newcommand{\CoverProgram}{WISER Summer Program 2026 \textbullet{} Industry Challenge (BQP) \textbullet{} Top 10}
+\newcommand{\CoverDate}{September 2026}
+
+\newcommand{\photo}[1]{%
+  \IfFileExists{figures/#1}{\includegraphics[width=3.4cm,height=4.2cm,keepaspectratio]{#1}}%
+  {\fcolorbox{muted}{panel}{\parbox[c][4.2cm][c]{3.2cm}{\centering\small\color{muted} photo}}}}
+
+\newcommand{\member}[6]{% photo file, name, college, email, role, extra
+  \begin{minipage}[t]{0.47\linewidth}
+    \centering \photo{#1}\\[8pt]
+    {\Large\bfseries #2}\\[3pt]
+    {\color{muted} #3}\\[3pt]
+    \href{mailto:#4}{#4}\\[8pt]
+    \begin{minipage}{0.92\linewidth}\small\raggedright\textbf{Role.} #5 #6\end{minipage}
+  \end{minipage}}
+
+\newcommand{\TeamPage}{%
+  \vspace{0.5cm}
+  \noindent\member{photo-lahari.jpg}{Katta Lahari}{[College name]}{[email]}%
+    {[One or two lines on what Lahari did.]}{}\hfill
+  \member{photo-daasaradhi.jpg}{Mannava Daasaradhi}{[College name]}{daasaradhimannava@gmail.com}%
+    {[One or two lines on what Daasaradhi did.]}{}
+}

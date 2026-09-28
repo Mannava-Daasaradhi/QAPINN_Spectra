@@ -78,8 +78,8 @@ def groundwater_results() -> None:
             for f, v in sorted(rec["families"].items())
         )
         parts.append(
-            f"\\begin{{table}}[htbp]\n  \\centering\n  \\small\n  \\begin{{tabular}}{{lll}}\n  \\toprule\n"
-            f"  Claim & Verdict & Measured \\\\\n  \\midrule\n" + "\n".join(_gw_rows(rec, q)) +
+            "\\begin{table}[htbp]\n  \\centering\n  \\small\n  \\begin{tabular}{lll}\n  \\toprule\n"
+            "  Claim & Verdict & Measured \\\\\n  \\midrule\n" + "\n".join(_gw_rows(rec, q)) +
             f"\n  \\bottomrule\n  \\end{{tabular}}\\\\[6pt]\n"
             f"  \\begin{{tabular}}{{lrrr}}\n  \\toprule\n"
             f"  Model & median rel-$L^2$ & median waterlogged (m) & seeds \\\\\n  \\midrule\n{fam_rows}\n"
