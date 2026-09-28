@@ -97,14 +97,17 @@ designed frequencies, and the designed circuit beat the same circuit with random
 frequencies by \HeatRatio$\times$ on the heat equation, on every seed. The quantum model did
 not beat the classical baselines, and our explainability instruments show why. We then
 took the method to a real problem, waterlogging of farmland from leaking irrigation
-canals. The exact solution gives a planning map; the original circuit failed to learn it,
-and an improved circuit, locked in git before testing, is being re-tested on it now.
+canals. The exact solution gives a planning map; the original circuit failed to learn it.
+Finally we built an improved circuit from eight copies of the design, locked new
+predictions in git and tested it on fresh seeds: its Poisson error fell from 1.68 to
+0.0037 and 5 of 8 re-tested claims held, though a classical model given the same
+frequencies is still 3$\times$ more accurate.
 
 \section*{At a glance}
 \begin{center}
   \tile{\NConfFull/\NChecks}{pre-registered checks confirmed at the full protocol (\NConfSub/\NChecks{} at submission)}{good}\hfill
   \tile{\HeatRatio$\times$}{lower error: designed circuit vs.\ random circuit, heat equation}{quantum}\hfill
-  \tile{$10^{-15}$}{largest signal outside the designed frequencies (floating-point zero)}{classical}\\[8pt]
+  \tile{450$\times$}{lower Poisson error for the improved circuit on fresh seeds (1.68 $\rightarrow$ 0.0037)}{quantum}\\[8pt]
   \tile{\GWWet\,m}{of a 2\,km field waterlogged; the exact model shows how to fix it}{classical}\hfill
   \tile{\GWDryCut\%}{less canal seepage (lining) dries the whole field}{good}\hfill
   \tile{0}{thresholds changed after seeing results}{good}

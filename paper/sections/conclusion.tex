@@ -69,3 +69,26 @@ to make legible rather than obscure. A larger, unrushed replication at the origi
 planned $n=5$ seeds, and a \texttt{depth\_sweep} grid that retains $n_{\text{qubits}}$
 variation (needed to even attempt PR-10), are the two most direct next steps
 (Section~\ref{sec:limitations}).
+
+\subsection*{Update after completing the protocol (September 2026)}
+Both next steps were taken (\S\ref{sec:fullprotocol}), and two further studies were
+pre-registered and run (\S\ref{sec:groundwater}, \S\ref{sec:followup}).
+\begin{itemize}
+  \item \textbf{v1 at the pre-registered five seeds:} 6 of 15 checks confirmed, up from 3.
+    The design rule's own falsifier now holds on heat (PR-6: the SMCD circuit beats the same
+    circuit with random frequencies by 6.5$\times$ on every seed, robust to resampling and
+    to removing any seed), the heat negative control holds (PR-4), and PR-10 passes its
+    rule with no measurable trend. The Poisson comparisons against classical models stay
+    refuted, and the diagnostics trace why: the circuit's coupled amplitudes trade the
+    slow wave for the fast one (\S\ref{sec:diagnostics}).
+  \item \textbf{Groundwater application, v1 models:} 1 of 5 predictions held. The circuit's
+    improvement lands on its designed frequencies, but it does not learn the water table,
+    and a same-size classical network does.
+  \item \textbf{v2 (eight copies of the SMCD circuit), fresh seeds:} 5 of 8 re-tested claims
+    held. Error on Poisson fell from 1.68 to 0.0037, every seed below 0.02, and the
+    spectral mechanisms v1 could not show became visible (PR-7, PR-8). A classical model with
+    the same frequencies and nearly the same size remains 3.3$\times$ more accurate.
+\end{itemize}
+The design rule does what it specifies, and a circuit built from it can be trained to
+high accuracy; what we still do not find is an advantage over a classical model handed
+the same frequencies.
