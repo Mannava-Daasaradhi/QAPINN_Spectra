@@ -419,4 +419,7 @@ def test_every_protocol_points_at_existing_configs():
     assert PROTOCOLS["submitted"]["core_matrix"] == "core_matrix"
     for spec in PROTOCOLS.values():
         for key in ("core_matrix", "coverage_sweep", "depth_sweep"):
-            assert (REPO_ROOT / "configs" / "exp" / f"{spec[key]}.yaml").is_file()
+            names = spec[key] if isinstance(spec[key], list) else [spec[key]]
+            for name in names:
+                if name is not None:  # None: not run in that protocol
+                    assert (REPO_ROOT / "configs" / "exp" / f"{name}.yaml").is_file()
