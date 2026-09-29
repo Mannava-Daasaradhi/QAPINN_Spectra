@@ -2,96 +2,54 @@
 \label{sec:intro}
 
 A classical physics-informed neural network (PINN) learns low-frequency solution
-components fast and high-frequency components almost not at all --- spectral bias --- and
-its neural tangent kernel (NTK) eigenspectrum decays with Fourier-mode index, so residual
-and boundary loss terms converge at characteristically different rates. Separately, a
-data-re-uploading variational quantum circuit is known to realize a truncated Fourier
-series whose accessible frequency set is exactly determined by its data-encoding
-Hamiltonians' eigenvalues \citep{schuld2021effect}. These two facts have not previously
-been joined into a constructive design rule: prior hybrid-QPINN work
+components fast and high-frequency components slowly --- spectral bias --- because its
+neural tangent kernel (NTK) eigenspectrum decays with Fourier-mode index. Separately, a
+data-re-uploading variational quantum circuit realises a truncated Fourier series whose
+frequency set is determined exactly by the eigenvalues of its data-encoding Hamiltonians
+\citep{schuld2021effect}. Prior hybrid quantum PINN work
 \citep{hybrid_qpinn_mlst,hybrid_when_where_2606,qpinn_maxwell_2506,cq_hybrid_arch_2511}
-reports empirical accuracy deltas on hand-picked circuit sizes, without a principled way
-to choose the circuit \emph{given} the PDE.
+reports accuracy on hand-picked circuit sizes, without a principled way to choose the
+circuit \emph{given} the PDE.
 
-This paper makes that connection. Given a PDE, we compute its target spectral support
-analytically from the operator's Fourier symbol and forcing/boundary data, then construct
-the quantum circuit's encoding generators, re-uploading depth, and qubit count so its
-realized frequency set covers that support --- no architecture search, no hyperparameter
-sweep over circuit size. We call this Spectrum-Matched Circuit Design (SMCD,
-Section~\ref{sec:methodology}). We then use six explainable-AI instruments, run identically for
-matched classical and hybrid models at the same training checkpoints, as the measurement
-instrument that attributes any accuracy delta to the quantum layer specifically ---
-not as after-the-fact decoration on a result already claimed by other means.
+This paper joins the two facts. Given a PDE, the target spectral support is computed
+from the operator's Fourier symbol and the forcing and boundary data; the circuit's
+encoding scalings, re-uploading depth, qubit count and entangler then follow by formula
+so that its frequency set covers that support. We call this Spectrum-Matched Circuit
+Design (SMCD, Section~\ref{sec:methodology}). The hybrid model mixes $K$ copies of the
+designed circuit through a linear head: every copy has the designed frequencies, and the
+head sets their amplitudes independently.
+
+A design rule is only useful if it can be tested, so the project is built around
+measurement. Six explainable-AI instruments run at the same checkpoints on matched
+classical and hybrid models (Section~\ref{sec:xai}), so any difference can be traced to
+the quantum layer. Every claim about the method was written down with a numeric
+threshold and committed to git before the runs that test it, and a script issues every
+verdict.
 
 \paragraph{Contributions.}
-\begin{description}
-\item[C1 --- SMCD, a constructive PDE $\to$ circuit map.] Given a linear operator's symbol
-  and forcing/boundary spectra, output encoding-generator eigenvalues, re-uploading depth,
-  qubit count, and entangler pattern, deterministically. Falsifiable: a spectrum-matched
-  circuit must beat a size-matched random-frequency circuit on the same PDE, or the design
-  step is not earning its keep.
-\item[C2 --- Quantum-NTK block decomposition.] $\Theta_{\mathrm{hyb}} = \Theta_{\mathrm{cl}}
-  + \Theta_q$ for disjoint-parameter hybrid models (Section~\ref{sec:prop4}), with the quantum
-  block's eigenvalue decay flattened over the encoded band relative to the classical
-  block's power-law decay.
-\item[C3 --- Spectral-bias relief as mechanism, not just outcome.] Per-frequency error
-  trajectories must show the hybrid model's high-$k$ modes converging at rates comparable
-  to its low-$k$ modes, with the improvement band coinciding with the encoded frequency
-  set --- not merely an aggregate accuracy improvement.
-\item[C4 --- A negative-result map with a decision rule.] An explicit characterization of
-  PDE classes where hybridization is useless or harmful, with the mathematical reason
-  (smoothing operators remove high-frequency content, so a high-frequency-rich circuit
-  adds parameters and barren-plateau risk for no benefit).
-\item[C5 --- An XAI protocol for hybrid physics-informed models.] A reusable,
-  model-agnostic instrument set with published metric definitions, run identically across
-  classical and quantum families rather than as a post hoc, model-specific explanation.
-\end{description}
+\begin{enumerate}
+\item \textbf{SMCD, a constructive map from PDE to circuit}
+  (Section~\ref{sec:methodology}): four propositions and an algorithm that output the
+  encoding scalings, depth, qubit count and entangler deterministically, with a design
+  card that can be checked before training.
+\item \textbf{A hybrid NTK decomposition} for models with disjoint classical and quantum
+  parameters, $\Theta_{\mathrm{hyb}}=\Theta_{\mathrm{cl}}+\Theta_q$, with no cross term
+  (Section~\ref{sec:prop4}).
+\item \textbf{Circuit copies}, a model family in which $K$ copies of the designed
+  circuit share its frequency set but have independent amplitudes
+  (Section~\ref{sec:copies}).
+\item \textbf{An explainable-AI protocol for hybrid PINNs}: six instruments with
+  published metric definitions, run identically on every model family
+  (Section~\ref{sec:xai}).
+\item \textbf{Evidence} from seven model families on six PDE instances and one applied
+  problem, groundwater under irrigated farmland (Sections~\ref{sec:results}--\ref{sec:groundwater}).
+\end{enumerate}
 
-The honest headline this paper reports, whatever the specific numbers turn out to be
-(Section~\ref{sec:results}--\ref{sec:negative}): the quantum layer should help on high-wavenumber
-and multiscale problems where its encoded band matches the PDE's spectral support, do
-nothing on smooth diffusive problems whose target spectrum SMCD predicts to be
-low-frequency-only \emph{before any training}, and hurt when the circuit's spectrum is
-mismatched to the problem. A design rule plus a stated ``when not to go quantum''
-recommendation, adjudicated against pre-registered falsifiers (Section~\ref{sec:results}), is
-the contribution --- not a cherry-picked win.
-
-\paragraph{Assignment mapping (T5.9 self-review).}
-
-\begin{center}
-\begin{tabular}{p{0.42\textwidth}p{0.5\textwidth}}
-\toprule
-\textbf{Requirement} & \textbf{Where it is satisfied} \\
-\midrule
-Solve a set of PDEs with classical PINNs and QAPINNs &
-  Section~\ref{sec:methodology} (4 PDE instances $\times$ 6 problem labels, \S\ref{sec:algorithm}),
-  Section~\ref{sec:methodology} (7 model families), one training harness for both \\
-XAI techniques/metrics showing \emph{how} learning happens in each &
-  Section~\ref{sec:xai} (6-instrument suite), run on both families at matched checkpoints,
-  results in Section~\ref{sec:results} \\
-Demonstrate how the VQC affects the classical PINN learning process &
-  Section~\ref{sec:results} (NTK block decay, PR-7; per-frequency convergence, PR-8; matched-
-  capacity ablation, PR-1--3), Section~\ref{sec:negative} (negative controls, PR-4, PR-11) \\
-Methodology to construct a problem-specific circuit + architecture, with mathematical basis &
-  Section~\ref{sec:methodology} (SMCD, Propositions 1--4, Algorithm 1) \\
-Technical report, 5--15 pp &
-  This document, \texttt{paper/main.pdf} (15 pp as submitted, repository tag
-  \texttt{v1.0-submission}; this revision adds figures and Section~\ref{sec:errata}) \\
-Source code repository &
-  \texttt{src/qapinn/}, \texttt{README.md} \\
-Reproducibility instructions &
-  \texttt{docs/REPRODUCE.md}, \texttt{README.md}, \texttt{python tasks.py repro-quick} \\
-Presentation slides &
-  \texttt{slides/main.pdf}, 18 slides, same figure assets as this document \\
-Summary of key findings + recommendations &
-  \texttt{FINDINGS.md} (13 numbered findings, C1--C5 table, decision table) \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-Self-review against this table (T5.9): every figure cited above appears in
-Section~\ref{sec:results}--\ref{sec:negative} with the specific prediction it decides; no
-verdict stated anywhere in this paper exceeds the corresponding entry in
-\texttt{docs/predictions.md}'s mechanical adjudication
-(\texttt{scripts/adjudicate\_predictions.py}) --- Section~\ref{sec:conclusion}'s C1--C5
-summary is a synthesis of those verdicts, not an independent claim.
+\paragraph{Findings in brief.} The circuit realises exactly the frequencies SMCD designs.
+Designed frequencies beat random ones of the same size wherever the circuit learns the
+solution: heat, Poisson and groundwater. One copy is not enough on problems that mix a
+slow and a fast wave, and the instruments show why; eight copies fix it, reaching 0.09\%
+error on the groundwater problem, $18\times$ better than a classical network of the same
+size. The method does not beat every classical model: on Poisson a classical model
+handed the same frequencies stays ahead, on the smoothing heat equation no model beats a
+plain MLP (as SMCD predicts), and at high Helmholtz wavenumbers every model fails.

@@ -5,15 +5,7 @@ Every figure in this appendix is drawn from committed run artifacts by
 \texttt{scripts/report/} (no retraining) and is also in
 \texttt{results/report/figures/}. Colours follow one fixed family palette, checked for
 colour-vision deficiency; families are also distinguished by marker and position.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{../results/report/figures/accuracy_all_runs.png}
-  \caption{Final relative $L^2$ error of every core-matrix run at the pre-registered five
-    seeds. Filled: seeds 0--1 (submitted); hollow: seeds 2--4 (post-submission); bar:
-    median; dotted: the error of predicting zero.}
-  \label{fig:allruns}
-\end{figure}
+Circuits have one copy and runs use seeds 0--4 unless stated.
 
 \begin{figure}[htbp]
   \centering
@@ -37,15 +29,6 @@ colour-vision deficiency; families are also distinguished by marker and position
   \includegraphics[width=0.7\linewidth]{../results/report/figures/seed_spread.png}
   \caption{Seed sensitivity: worst-seed over best-seed error for each family and problem.}
   \label{fig:seedspread}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{../results/report/figures/xai_spectral_error_poisson.png}
-  \caption{Poisson: magnitude of the error spectrum at each checkpoint (seed 0), with the
-    solution's two frequencies $\pi$ and $15\pi$ dashed. \texttt{q\_serial} removes the
-    $15\pi$ error early and later loses the $\pi$ component.}
-  \label{fig:specerr_gallery}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -93,7 +76,7 @@ colour-vision deficiency; families are also distinguished by marker and position
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.85\linewidth]{../results/report/figures/xai_quantum_internals.png}
-  \caption{Quantum families: encoder drift $\|A-I\|_F$ (dotted: PR-12's limit 0.2) and
+  \caption{Quantum families: encoder drift $\|A-I\|_F$ (dotted: the 0.2 limit) and
     SMCD coverage of the target spectrum over training.}
   \label{fig:qinternals}
 \end{figure}

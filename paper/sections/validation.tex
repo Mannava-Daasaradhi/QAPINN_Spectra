@@ -1,56 +1,42 @@
-\section{Robustness and validation}
+\section{Robustness of the verdicts}
 \label{sec:validation}
 
-Every verdict above comes from one pre-registered rule applied to five seeds. This
-section asks how much those verdicts depend on that rule, on individual seeds, and on
-the tools that produce the numbers. All of it is computed from committed runs
+Every verdict comes from one pre-registered rule applied to five paired seeds. This
+section asks how much the verdicts on the six-problem matrix depend on that rule and on
+individual seeds. All of it is computed from the committed runs
 (\texttt{scripts/report/fig\_validation.py}, record in
 \texttt{results/report/validation.json}); no model was retrained.
 
 \paragraph{Bootstrap intervals.} Figure~\ref{fig:bootstrap} resamples the five paired
 seeds 5{,}000 times and gives a 95\% interval for each pre-registered error ratio. The
-heat ablation (PR-6) is the robust positive result: the SMCD circuit's error is 6.5$\times$
-lower than the same-size random circuit's, with the whole interval (2.5$\times$ to
-17.7$\times$) above the 1.5$\times$ bar. The Poisson claims fail decisively rather than
-narrowly: PR-1's interval (0.40 to 1.10) never reaches its 2$\times$ bar, PR-2's (0.01 to
-0.43) lies entirely on the wrong side of 1, and PR-3's (3.9 to 5.8) lies entirely outside
-its equivalence band. PR-6 on Poisson (1.84, interval 0.97 to 7.2) straddles its
-threshold, which is what INCONCLUSIVE should look like.
+heat design-versus-random result is robust: the designed circuit's error is 6.5$\times$
+lower, with the whole interval (2.5$\times$ to 17.7$\times$) above the 1.5$\times$ bar. The
+one-copy Poisson comparisons against classical models fail decisively rather than
+narrowly: against the MLP the interval is 0.40 to 1.10 (bar 2$\times$), against Fourier
+features 0.01 to 0.43, and against the frequency-matched model 3.9 to 5.8, entirely
+outside its equivalence band. The one-copy Poisson design-versus-random ratio (1.84,
+interval 0.97 to 7.2) straddles its threshold, as an inconclusive verdict should.
 
 \paragraph{Other tests.} With five paired seeds the smallest two-sided Wilcoxon $p$ is
-$1/16=0.0625$, however large the effect, so the pre-registered gate ($p\le0.0625$) can
-only be met by five out of five seeds agreeing. Figure~\ref{fig:alttests} applies three
-alternatives to the same pairs. They agree with every verdict, and they show what the
-Wilcoxon floor hides: on the heat ablation a paired $t$-test on log error gives
-$p=0.006$ and a Mann--Whitney test $p=0.008$.
+$1/16=0.0625$ however large the effect, so the confirmation rule can only be met by five
+seeds of five agreeing. Figure~\ref{fig:alttests} applies three alternatives to the same
+pairs. They agree with every verdict and show what the Wilcoxon floor hides: on the heat
+design-versus-random comparison a paired $t$-test on log error gives $p=0.006$ and a
+Mann--Whitney test $p=0.008$.
 
-\paragraph{Leave one seed out.} If one seed decided a verdict, dropping it would flip
-the ratio across its threshold. Figure~\ref{fig:loso} repeats each ratio five times with
-one seed removed. PR-6 on heat clears its bar in all five, PR-1 to PR-3 miss theirs in
-all five, and PR-6 on Poisson clears it in four of five: its INCONCLUSIVE verdict reflects
-disagreement across seeds, not one outlier.
-
-\paragraph{The circuit does what the design says.} For every one-dimensional problem,
-the SMCD circuit was evaluated at 40 random parameter settings and its output
-Fourier-transformed. The largest amplitude outside the designed set $\Omega$, relative to
-the largest overall, is at most $3.8\times10^{-15}$, i.e.\ floating-point zero
-(Figure~\ref{fig:circuitspec}). This repeats \texttt{tests/test\_circuit\_spectrum.py}
-across problems and random draws: the design rule builds exactly the frequency set it
-claims. (The two-dimensional Helmholtz designs are not covered by this one-dimensional
-check.)
-
-\paragraph{The reference solver.} The groundwater problem of \S\ref{sec:groundwater} is
-scored against a closed-form solution. A second-order finite-difference solver,
-independent of that formula, converges to it at measured order $2.00$ as the grid is
-refined from 100 to 6{,}400 intervals (Figure~\ref{fig:refconv}), which checks the
-closed form, the forcing and the boundary treatment together.
+\paragraph{Leave one seed out.} If one seed decided a verdict, dropping it would move the
+ratio across its threshold. Figure~\ref{fig:loso} repeats each ratio five times with one
+seed removed. The heat design-versus-random ratio clears its bar in all five, the
+one-copy Poisson comparisons against classical models miss theirs in all five, and the
+one-copy Poisson design-versus-random ratio clears it in four of five.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.9\linewidth]{../results/report/figures/validation_bootstrap_ratios.png}
-  \caption{Bootstrap 95\% intervals of the pre-registered error ratios (5 paired seeds,
-    5{,}000 resamples). Right of 1 means \texttt{q\_serial} is better; for PR-3 the ratio
-    is \texttt{q\_serial}/\texttt{c\_rff\_matched} and must lie between the two ticks.}
+  \caption{Bootstrap 95\% intervals of the pre-registered error ratios, one copy of the
+    circuit (5 paired seeds, 5{,}000 resamples). Right of 1 means the circuit is better;
+    for the frequency-matched comparison the ratio is circuit over baseline and must lie
+    between the two ticks.}
   \label{fig:bootstrap}
 \end{figure}
 
@@ -68,15 +54,4 @@ closed form, the forcing and the boundary treatment together.
   \caption{Each ratio recomputed with one seed left out (five points per row). Filled
     points clear the pre-registered threshold.}
   \label{fig:loso}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.48\linewidth]{../results/report/figures/validation_circuit_spectrum.png}\hfill
-  \includegraphics[width=0.46\linewidth]{../results/report/figures/validation_reference_convergence.png}
-  \caption{Left: largest Fourier amplitude outside $\Omega$ for each problem's SMCD
-    circuit, over 40 random parameter draws (line: $10^{-8}$). Right: finite-difference
-    error against the groundwater closed form as the grid refines.}
-  \label{fig:circuitspec}
-  \label{fig:refconv}
 \end{figure}

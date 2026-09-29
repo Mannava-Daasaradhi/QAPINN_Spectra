@@ -33,7 +33,7 @@ def main() -> None:
 
     heat_ratio = med("heat", "q_random") / med("heat", "q_serial")
     leak = max(v["worst_outside_relative"] for v in val["circuit_spectrum"].values())
-    boot = val["bootstrap"]["PR-6 heat"]["ci95"]
+    boot = val["bootstrap"]["designed vs random, heat"]["ci95"]
     lining = gw["canal_lining"]
     wet10 = lining["waterlogged_m"][lining["seepage_cut"].index(min(lining["seepage_cut"], key=lambda c: abs(c - 0.1)))]
     soil = gw["soil_type"]

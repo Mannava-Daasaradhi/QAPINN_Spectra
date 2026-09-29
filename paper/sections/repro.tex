@@ -1,35 +1,29 @@
-\section{Reproducibility appendix}
+\section{Reproducibility}
 \label{sec:repro}
 
-Every number below is measured against this session's actual runs, not estimated.
-
 \begin{itemize}
+\item \textbf{Code and data.} \texttt{src/qapinn/} holds the PDEs, models, SMCD, training
+  loop and instruments; \texttt{results/runs/} holds every run's metrics and instrument
+  records, from which every figure and verdict is computed without reloading a trained
+  model. \texttt{results/README.md} maps run IDs to experiments.
 \item \textbf{Hardware:} NVIDIA RTX 4090 Laptop GPU, 32 logical CPU cores
-  (\texttt{provenance.json}, recorded per run) --- one machine for every run in this paper.
+  (\texttt{provenance.json}, recorded per run); one machine for every run.
 \item \textbf{Software} (\texttt{docs/ENV\_RESOLVED.md}, pinned via \texttt{uv}):
   Python 3.12.13, \texttt{torch 2.11.0+cu128} (CUDA 12.8), \texttt{pennylane 0.45.1},
   \texttt{numpy 2.4.4}, \texttt{scipy 1.18.0}.
 \item \textbf{Determinism:} \texttt{qapinn.seeding.set\_global\_seed} seeds Python,
-  NumPy, and Torch (CPU+CUDA) from one integer and enables
-  \texttt{torch.use\_deterministic\_algorithms}; an explicit \texttt{torch.Generator}
-  is threaded through every sampling call, so two runs at the same seed on the same device
-  produce bit-identical \texttt{metrics.json} (T0.20). A CPU run and a CUDA run of the same
-  configuration round differently (by $10^{-15}$ in rel-$L^2$ on a smoke run we re-checked;
-  training can amplify such differences), and the run ID does not include the device.
-\item \textbf{Seeds used} (state explicitly, cut from a pre-registered $n=5$ under the
-  Aug 7 deadline --- Section~\ref{sec:limitations}, \texttt{FINDINGS.md} F10):
-  \texttt{core\_matrix} $\{0,1\}$; \texttt{coverage\_sweep}/\texttt{alpha\_sweep}/
-  \texttt{noise\_study}/\texttt{soft\_bc\_ntk} $\{0,1,2\}$; \texttt{depth\_sweep} $\{0\}$.
-\item \textbf{Concurrency:} \texttt{--workers 2 --mem-fraction 0.35} for every sweep
-  except \texttt{depth\_sweep} (\texttt{--workers 1 --mem-fraction 0.8}, forced down
-  after system-memory exhaustion on its larger circuits --- OS/driver contention under
-  concurrent CUDA context creation on this specific machine, not a VRAM limit).
-\item \textbf{Measured wall-clock:} \texttt{tasks.py repro-quick} (CPU-only, 42
-  combinations, implemented this session): \textbf{513.7\,s ($\approx$8.6 min)}, 42/42
-  OK, under the 15-min target. \texttt{tasks.py test} (385 tests, post-submission
-  revision): 244\,s CPU-only. \texttt{tasks.py figures} (20 figures from committed data, no GPU,
-  byte-identical on the same machine): about 30\,s. \texttt{tasks.py repro-all} (added after submission):
-  re-derives every figure and verdict from the committed runs in 56\,s; retraining all
-  197 runs from scratch is 67.2\,h of training wall-clock on this machine (the sum of
-  the runs' recorded \texttt{wall\_clock\_s}; \texttt{core\_matrix} alone is 58.5\,h).
+  NumPy and Torch from one integer and enables deterministic algorithms; an explicit
+  generator is threaded through every sampling call, so two runs at the same seed on the
+  same device produce bit-identical metrics. A CPU and a CUDA run of the same
+  configuration round differently (by $10^{-15}$ in relative $L^2$ on a checked run).
+\item \textbf{Seeds.} Six-problem matrix: 0--4. Coverage sweep: 0--2. Barren-plateau
+  sweep: 0--2 at 4 and 6 qubits. Model selection for circuit copies: 0--2. Held-out
+  evaluation of the eight-copy circuit and of all groundwater models: 10--14.
+\item \textbf{Commands} (\texttt{docs/REPRODUCE.md}). \texttt{tasks.py test} runs the
+  test suite in about 4 minutes on CPU; \texttt{tasks.py figures} redraws every figure
+  from the committed runs in about 30\,s; \texttt{tasks.py repro-quick} trains all six
+  problems and seven families at reduced size on CPU in about 9 minutes;
+  \texttt{tasks.py repro-all} re-derives every figure and verdict from the committed
+  runs in about a minute, while retraining every run from scratch takes about 67 hours
+  on the machine above.
 \end{itemize}

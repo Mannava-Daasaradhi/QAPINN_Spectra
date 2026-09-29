@@ -30,8 +30,7 @@ STATUS = {  # reserved status colours, always shown with the verdict text
 
 
 def accuracy_small_multiples(runs) -> None:
-    """Every seed of every family on every problem. Filled = submitted seeds (0-1),
-    hollow = seeds 2-4 added to complete the protocol; the bar is the 5-seed median."""
+    """Every seed of every family on every problem. The bar is the 5-seed median."""
     fig, axes = plt.subplots(2, 3, figsize=(11, 6.4), sharey=False)
     for ax, problem in zip(axes.flat, PROBLEMS):
         for i, fam in enumerate(FAMILIES):
@@ -41,7 +40,7 @@ def accuracy_small_multiples(runs) -> None:
             vals = np.array([r.metrics["rel_l2"] for r in rs])
             jitter = np.linspace(-0.18, 0.18, len(rs))
             for r, v, j in zip(rs, vals, jitter):
-                ax.scatter(i + j, v, marker=MARKERS[fam], s=28, color=COLORS[fam] if r.submitted else "white",
+                ax.scatter(i + j, v, marker=MARKERS[fam], s=28, color=COLORS[fam],
                            edgecolor=COLORS[fam], linewidth=1.2, zorder=3)
             ax.hlines(np.median(vals), i - 0.3, i + 0.3, color=COLORS[fam], linewidth=2.5, zorder=4)
         ax.set_yscale("log")
@@ -51,7 +50,7 @@ def accuracy_small_multiples(runs) -> None:
         ax.grid(axis="x", visible=False)
     for ax in axes[:, 0]:
         ax.set_ylabel("relative L2 error (log)")
-    fig.suptitle("Final error of every run: filled = submitted seeds 0-1, hollow = seeds 2-4, bar = median;"
+    fig.suptitle("Final error of every run, seeds 0-4: bar = median;"
                  " dotted line = error of predicting zero", fontsize=9, color=MUTED, y=1.0)
     fig.tight_layout()
     save(fig, "accuracy_all_runs")

@@ -246,7 +246,7 @@ def quantum_internals(runs, problems=("poisson", "heat")) -> None:
         axes[0, j].axhline(0.2, color=MUTED, linestyle=":", linewidth=1)
         for i in range(2):
             axes[i, j].set_xscale("log")
-    axes[0, 0].set_ylabel("encoder drift ||A - I||_F (dotted: PR-12 limit)")
+    axes[0, 0].set_ylabel("encoder drift ||A - I||_F (dotted: limit 0.2)")
     axes[1, 0].set_ylabel("SMCD coverage of the target spectrum")
     for ax in axes[1]:
         ax.set_xlabel("training step (log)")

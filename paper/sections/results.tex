@@ -1,181 +1,249 @@
 \section{Results}
 \label{sec:results}
 
-\textbf{Sample size note, stated once here rather than repeated at every number below:}
-the Aug 7 deadline forced the core matrix's seed count down from the pre-registered
-plan of 5 to 2 (\texttt{08\_TASK\_INDEX.md}'s cut-line, invoked twice under real time
-pressure). At $n=2$ paired seeds, the smallest two-sided Wilcoxon $p$ achievable is
-\textbf{0.5} (both seeds agreeing in sign is the single most extreme $n=2$ outcome), not
-the $n=5$ plan's $0.0625$. \texttt{docs/predictions.md}'s CONFIRMED gate
-($p\le 0.0625$) was left at its original, pre-registered value rather than loosened
-post hoc, which means every ratio-and-significance check below (PR-1, PR-2, PR-6) can
-now only land on REFUTED or INCONCLUSIVE, \emph{regardless of true effect size}. This is
-a real, structural consequence of the seed cut, not a weak result reported as an ambiguous
-one --- every verdict below is exactly what the pre-registered thresholds say, unmodified.
+Errors are relative $L^2$ against the reference solution, as the median over five seeds.
+Table~\ref{tab:claims} lists every pre-registered claim about the one-copy circuit and
+Table~\ref{tab:ensemble} those about the eight-copy circuit; the sections below take the
+evidence question by question.
 
-\subsection{The headline figure: coverage vs.\ error (PR-9)}
-Figure~\ref{fig:coverage}: median
-relative-$L^2$ error vs.\ SMCD's achieved coverage $|\hat S\cap\Omega|/|\hat S|$, one
-series per problem (poisson, helmholtz\_k10), Spearman $\rho$ per problem, at $n=18$
-points per problem (6 coverage targets $\times$ 3 seeds --- \texttt{coverage\_sweep} is
-the one sweep never cut on seed count). \textbf{REFUTED.} Poisson shows the predicted
-strong negative correlation, $\rho=-0.82$ ($p=3.2\times10^{-5}$), well past the $\rho\le
--0.7$ bar. Helmholtz\_k10 does not: $\rho=+0.28$ ($p=0.27$), the \emph{wrong sign} ---
-higher SMCD coverage did not track lower error on the harder, more quantum-heavy
-problem instance. The adjudication rule takes the worst case across problems, so the
-verdict is REFUTED even though one problem instance individually confirms the claim;
-this is the headline figure and it ships exactly as measured, per this project's own
-``ships whatever it says'' rule. \emph{Post-submission caveat} (\S\ref{sec:errata}, E4):
-the sweep trained at 1500+150 steps, the six coverage targets produce only three distinct
-Poisson circuits (so the 18 points are 9 distinct measurements), and at the full
-20000+2000 budget the ordering reverses on two of three seeds.
+\input{sections/claims_table}
+
+\subsection{The circuit realises its design}
+\label{sec:realise}
+For every one-dimensional problem, the SMCD circuit was evaluated at 40 random parameter
+settings and its output Fourier-transformed. The largest amplitude outside the designed
+set $\Omega$, relative to the largest overall, is at most $3.8\times10^{-15}$, i.e.\
+floating-point zero (Figure~\ref{fig:circuitspec}), and the test suite checks the same
+property on every build. The encoder that feeds the circuit could in
+principle move $\Omega$ during training, but it barely does: the drift $\|A-I\|_F$ at the
+end of training is 0.13 for one copy and 0.10 for eight, under the 0.2 at which the
+coverage computed at initialisation would stop describing the trained model. The design
+card is therefore a statement about the trained model, not only its starting point.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.62\linewidth]{figures/coverage_vs_error.pdf}
-  \caption{Coverage vs.\ error (PR-9, \texttt{coverage\_sweep}, 1500+150 training steps):
-    median rel-$L^2$ over seeds, grouped by achieved weighted coverage; shaded bands are
-    the interquartile range and labels give $(n_{\text{qubits}}, L)$ of the circuit SMCD
-    built. Helmholtz\_k10 builds the same circuit at every target and scores
-    rel-$L^2\approx1$ throughout.}
-  \label{fig:coverage}
+  \includegraphics[width=0.5\linewidth]{../results/report/figures/validation_circuit_spectrum.png}
+  \caption{Largest Fourier amplitude outside $\Omega$ for each problem's SMCD circuit,
+    over 40 random parameter draws (line: $10^{-8}$). The two-dimensional Helmholtz
+    designs are not covered by this one-dimensional check.}
+  \label{fig:circuitspec}
 \end{figure}
 
-\subsection{NTK spectroscopy (PR-7)}
-Figure~\ref{fig:ntk} (also \texttt{ntk\_spectrum\_\{p1,p4\}}): classical-vs-hybrid
-eigenvalue spectra with $\Omega$ shaded, decay exponent measured inside vs.\ outside the
-band, from each run's committed \texttt{xai/ntk\_step*.npz} only. \textbf{Helmholtz\_k10:
-REFUTED}, gap $=-8.37$ (need $\ge+0.5$; the submitted version stated $-9.67$,
-\S\ref{sec:errata}, E1) --- steeper, not flatter, inside $\Omega$.
-\textbf{Poisson: INSUFFICIENT\_DATA}, not REFUTED --- fewer than 2 positive eigenvalues
-fall in the outside-band range, so that exponent is undefined, not just noisy; reported
-as such rather than letting \texttt{NaN}$\ge 0.5$ silently evaluate false. Where measurable, the quantum block's NTK does not show the
-predicted eigen-concentration at the encoded frequencies.
+\subsection{Accuracy across six problems}
+\label{sec:accuracy}
+Table~\ref{tab:accuracy} and Figure~\ref{fig:accuracy} give every family's error on every
+problem with one copy of the circuit. Three regimes appear.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lrrrrrr}
+  \toprule
+  & & & & \multicolumn{3}{c}{Helmholtz} \\
+  Family & Poisson & Heat & Burgers & $k{=}4$ & $k{=}10$ & $k{=}20$ \\
+  \midrule
+  MLP & 1.08 & \textbf{0.305} & \textbf{0.014} & $\mathbf{5.0\times10^{-5}}$ & 1.00 & 1.00 \\
+  Fourier features & \textbf{0.21} & 0.39 & 0.33 & 0.92 & 1.00 & 1.00 \\
+  Frequency-matched & 0.33 & 0.33 & 0.31 & 0.95 & 1.00 & 1.00 \\
+  SMCD circuit & 1.68 & 0.42 & 1.14 & 1.59 & 1.09 & 1.00 \\
+  Random frequencies & 3.08 & 2.74 & 1.06 & 0.95 & 1.01 & 1.01 \\
+  Parallel hybrid & 0.35 & 0.76 & 0.26 & 0.26 & 1.00 & 1.00 \\
+  Octave ensemble & 0.75 & 0.68 & 0.85 & 1.00 & 1.00 & 1.00 \\
+  \bottomrule
+  \end{tabular}
+  \caption{Median relative $L^2$ error, one copy of each circuit, seeds 0--4 (two to four
+    seeds for six Helmholtz $k{=}10$/$20$ cells). Bold: best per problem. Predicting
+    $u\equiv0$ scores exactly 1.}
+  \label{tab:accuracy}
+\end{table}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.48\linewidth]{figures/ntk_spectrum_poisson_pr7.pdf}\hfill
-  \includegraphics[width=0.48\linewidth]{figures/ntk_spectrum_helmholtz_k10_pr7.pdf}
-  \caption{Residual NTK eigenvalue spectra at the final checkpoint, \texttt{c\_mlp} vs.\
-    \texttt{q\_serial}, with the top-$|\Omega|$ index range shaded (PR-7). Left: Poisson,
-    $|\Omega|=81$, which leaves fewer than two eigenvalues outside the band
-    (INSUFFICIENT\_DATA). Right: Helmholtz\_k10, $|\Omega|=15$ (REFUTED, gap $-8.37$).}
-  \label{fig:ntk}
+  \includegraphics[width=\linewidth]{../results/report/figures/accuracy_all_runs.png}
+  \caption{Final relative $L^2$ error of every run, per problem and family.}
+  \label{fig:accuracy}
 \end{figure}
 
-\subsection{Per-frequency error trajectories (PR-8)}
-Figure~\ref{fig:heatmaps} (all six problem instances render as
-\texttt{freq\_heatmap\_*}; see \S\ref{sec:xai} note on the crash-retry
-\texttt{specerr.npz} corruption found and fixed while building this figure).
-\textbf{Split verdict.} Poisson: \textbf{CONFIRMED} --- 99.9\% of the total error
-improvement lands inside $\Omega$, well past the 70\% bar, on real positive total
-improvement (13{,}751 in the accumulated per-frequency metric). The submitted version
-reported 71.3\%: it counted only the positive-frequency half of the symmetric set
-$\Omega$ on Poisson's two-sided spectrum (\S\ref{sec:errata}, E2). Helmholtz\_k10:
-\textbf{REFUTED}, and not narrowly --- \texttt{q\_serial} does not outperform
-\texttt{c\_mlp} at \emph{any} frequency (total\_improvement $=0$), so there is no
-improvement for PR-8's premise to attribute to $\Omega$ in the first place, independent
-of the 70\% threshold.
+\paragraph{Where a slow and a fast wave mix (Poisson, Burgers, Helmholtz $k{=}4$),
+classical models win against one copy.} On Poisson the circuit's error (1.68) is higher
+than the MLP's (1.08), the Fourier-feature network's (0.21) and the frequency-matched
+model's (0.33); all three comparisons are refuted. Section~\ref{sec:copyresult} traces
+this to coupled amplitudes and removes it with copies.
+
+\paragraph{On a smoothing operator (heat), nothing beats a plain MLP.} SMCD predicts
+this before training (Proposition~2): diffusion removes the high-frequency content a
+circuit could supply, and the design card's predicted benefit is 2.5\%. Every family is
+worse than the MLP, the circuit by 38\% and the random-frequency circuit by $9\times$, so
+the claim that no family beats it by more than 5\% is confirmed.
+
+\paragraph{At high wavenumber (Helmholtz $k{=}10,20$), every model fails.} Every
+family's median error is 0.995--1.09, the score of predicting zero. The pre-registered
+trend that the circuit's error ratio against the MLP improves with $k$ is confirmed
+($3\times10^{-5}\to0.92\to0.99$), and the circuit is within $1.3\times$ of the
+frequency-matched model at both wavenumbers, but both are parity among models that did
+not learn the solution. A plausible cause, not tested here: at these $k$ the forcing
+term is about 1\% of the Laplacian term, so $u\equiv0$ leaves a small residual. SMCD's
+own predicted benefit is zero at $k=4$ and $k=10$.
+
+\paragraph{Cost.} On a classical simulator a circuit run takes a median of about
+2{,}900\,s, against 330--590\,s for the classical families, with the same number of
+optimiser steps.
+
+\subsection{Designed frequencies beat random ones}
+\label{sec:design}
+The sharpest test of SMCD holds the circuit, its size and its training fixed and changes
+only the encoding scalings, from SMCD's to random ones (Figure~\ref{fig:designrandom}).
+Random scalings drawn from $U(0.5,3)$ reach at most about 12 radians per unit in four
+layers, short of the $15\pi\approx47$ wave, so the comparison tests whether reaching the
+needed band matters. Wherever the circuit learns the solution, it does:
+
+\begin{itemize}
+  \item \textbf{Heat, one copy:} $6.5\times$ lower error on all five seeds (95\%
+    bootstrap interval 2.5--17.7$\times$, Section~\ref{sec:validation}). The designed
+    circuit is also the most consistent model in the matrix (worst over best seed within
+    4\%), while its random twin is the least ($7.4\times$).
+  \item \textbf{Poisson, eight copies:} $236\times$ (0.0037 against 0.87), all five
+    held-out seeds.
+  \item \textbf{Groundwater, eight copies:} $9.9\times$ (0.09\% against 0.92\%), all five
+    held-out seeds (Section~\ref{sec:groundwater}).
+\end{itemize}
+On Poisson with one copy the median ratio is $1.84\times$, but one seed of five
+disagrees, so the claim is inconclusive; this is the case where one copy does not learn
+the solution at all.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{../results/report/figures/headline_design_vs_random.png}
+  \caption{One copy of the circuit with SMCD's scalings against the same circuit with
+    random scalings, every seed, heat (left) and Poisson (right).}
+  \label{fig:designrandom}
+\end{figure}
+
+\subsection{The mechanism in the frequency domain}
+\label{sec:mechanism}
+
+\paragraph{The gain lands on the designed frequencies.} Projecting the error onto Fourier
+modes and accumulating the improvement over the MLP frequency by frequency, 99.9\% of the
+circuit's improvement on Poisson lies inside $\Omega$ with one copy, 99.9\% with eight,
+and 99.4\% on groundwater (the bar was 70\%). On Helmholtz $k{=}10$ the circuit improves
+on the MLP at no frequency at all, so there is nothing to attribute
+(Figure~\ref{fig:heatmaps}).
+
+\paragraph{The NTK is flatter inside $\Omega$ once the model can express it.} Proposition~4
+predicts a flatter NTK spectrum inside the encoded band. With eight copies on Poisson the
+decay exponent inside $\Omega$ is flatter than outside by 15.2 (the bar was 0.5). With one
+copy the comparison cannot be made on Poisson: the model has 14 parameters, so its NTK has
+at most 14 non-zero eigenvalues and none beyond index $|\Omega|=81$. On Helmholtz
+$k{=}10$, where every model fails, the spectrum is steeper inside $\Omega$ (gap $-8.4$)
+(Figure~\ref{fig:ntk}).
+
+\paragraph{Hybrid models stay closer to their initial kernel.} The prediction that
+hybrids leave the lazy-training regime earlier is reversed: at 5{,}000 steps the median
+relative NTK drift is 1.0 for the one-copy hybrid and $4.3\times10^6$ for the classical
+models (2.5 against $9.7\times10^4$ with eight copies). The circuits also use few
+directions in parameter space: an NTK effective rank of 1.4 on Poisson and 1.1 on heat,
+and a Fisher effective dimension of about 4, flat through training, where the MLP's grows
+from about 4 to 12 (Poisson) and 5 to 50 (heat). The size-matched classical model looks
+like the circuit (effective rank 2.0 and 1.9), so this is mostly an effect of size, not of
+being quantum (Figure~\ref{fig:evolution}).
+
+\paragraph{Coverage alone does not predict error.} SMCD's design card reports the
+fraction of the target spectrum inside $\Omega$. Sweeping the coverage target on Poisson
+builds only three distinct circuits (a target of 0.8, 0.9 or 1.0 yields the same one), so
+coverage there is confounded with parameter count, and at the full training budget the
+correlation between coverage and error is $\rho=+0.29$, the wrong sign for the
+pre-registered $\rho\le-0.7$. On Helmholtz $k{=}10$ every target builds the same circuit,
+which scores about 1 throughout. Covering the band is necessary for the design to help
+(Section~\ref{sec:design}) but not sufficient for a single circuit to train well.
+
+\paragraph{No measurable barren plateau at this scale.} Gradient variance fitted against
+qubit count (4 and 6 qubits, three seeds) has slope 0.31, under the $\log2=0.69$ bar, but
+the fit explains almost none of the variation ($R^2=0.001$): no decay is detectable
+between 4 and 6 qubits. Eight qubits did not fit in the simulator's memory.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{figures/freq_heatmap_poisson.pdf}\\[4pt]
   \includegraphics[width=\linewidth]{figures/freq_heatmap_helmholtz_k10.pdf}
-  \caption{Per-frequency error $|\hat e(\omega)|$ over training, \texttt{c\_mlp} (left)
-    vs.\ \texttt{q\_serial} (right), with $\Omega$ overlaid as thin white lines (PR-8).
-    Top: Poisson, two-sided spectrum, shown within $\pm2\max|\Omega|$. Bottom:
-    Helmholtz\_k10, radially binned spectrum; all of $\Omega$ ($|\omega|\le19$) falls in
-    the lowest bin.}
+  \caption{Per-frequency error $|\hat e(\omega)|$ over training, MLP (left,
+    \texttt{c\_mlp}) against one copy of the SMCD circuit (right, \texttt{q\_serial}),
+    seed 0, with $\Omega$ overlaid as thin white lines.
+    Top: Poisson, two-sided spectrum within $\pm2\max|\Omega|$. Bottom: Helmholtz
+    $k{=}10$, radially binned; all of $\Omega$ ($|\omega|\le19$) falls in the lowest bin.}
   \label{fig:heatmaps}
 \end{figure}
 
-\subsection{Ablation: is it the design, or just being quantum? (PR-1, PR-2, PR-3, PR-6)}
-Figure~\ref{fig:ablation}: \texttt{q\_serial} vs.\ \texttt{c\_mlp}, \texttt{c\_ff},
-\texttt{c\_rff\_matched} (matched spectrum, no quantum), and \texttt{q\_random}
-(quantum, unmatched spectrum), paired Wilcoxon and Cliff's delta on Poisson (P1), $n=2$
-shared seeds. \textbf{All four REFUTED}, and in the same direction: \texttt{q\_serial}'s
-median rel-$L^2$ ($1.702$) is not just short of beating the classical families, it is
-\emph{worse} than every one of them at this sample size --- \texttt{c\_mlp} ($0.877$,
-ratio $0.52\times$ vs.\ the $\ge2\times$ bar), \texttt{c\_ff} ($0.115$, ratio
-$0.068\times$ vs.\ the $\ge1.3\times$ bar), and \texttt{c\_rff\_matched} ($0.400$, ratio
-$4.25\times$ vs.\ the $[0.77,1.3]$ equivalence band PR-3 needed). PR-6
-(\texttt{q\_serial} vs.\ \texttt{q\_random}, same-size ablation, C1's own falsifier) is
-\textbf{INCONCLUSIVE} on Poisson (Cliff's $\delta=0$, the two seeds disagree in
-direction) and \textbf{INCONCLUSIVE} on heat despite a large surface ratio
-($12.2\times$, past the $1.5\times$ bar) --- Cliff's $\delta=-1$ there means both seeds
-agree, but $p=0.5$ at $n=2$ can never clear the pre-registered significance bar (see the
-sample-size note above), so it is reported as inconclusive rather than confirmed on a
-favorable-looking ratio alone. \emph{Adversarial check (T4.9):} were \texttt{c\_mlp}/
-\texttt{c\_ff} simply under-tuned, faking these REFUTED verdicts? A learning-rate/width
-sweep, re-run at the real comparison budget, says no --- \texttt{c\_ff}'s mild
-under-tuning makes its win over \texttt{q\_serial} \emph{larger} ($\approx$18$\times$, not
-smaller), and \texttt{c\_mlp}'s apparent reduced-budget improvement was worse, not
-better, once tested at the actual 20000-step schedule (\texttt{docs/self\_review.md},
-\texttt{FINDINGS.md} F14). Note that only \texttt{c\_rff\_matched} and \texttt{q\_random}
-are size-matched to \texttt{q\_serial} (13--14 parameters on Poisson); \texttt{c\_mlp}
-and \texttt{c\_ff} ran at their default sizes, 8{,}513 and 129 parameters
-(\S\ref{sec:errata}, E6).
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.48\linewidth]{figures/ntk_spectrum_poisson_pr7.pdf}\hfill
+  \includegraphics[width=0.48\linewidth]{figures/ntk_spectrum_helmholtz_k10_pr7.pdf}
+  \caption{Residual NTK eigenvalue spectra at the final checkpoint, MLP
+    (\texttt{c\_mlp}) against one copy of the SMCD circuit (\texttt{q\_serial}), seed 0,
+    with the top-$|\Omega|$ index range shaded. Left:
+    Poisson ($|\Omega|=81$ exceeds the circuit's 14 parameters). Right: Helmholtz
+    $k{=}10$ ($|\Omega|=15$).}
+  \label{fig:ntk}
+\end{figure}
+
+\subsection{Why one copy is not enough}
+\label{sec:copyresult}
+
+\paragraph{One copy learns the hard frequency and loses the easy one.} The Poisson
+solution is $\sin\pi x+0.3\sin15\pi x$. Tracking the error at those two frequencies
+(Figure~\ref{fig:specerr}), one copy cuts its $15\pi$ error to a median 10\% of its
+starting value by step 1{,}000 (103\% for the Fourier-feature network, 86\% for the MLP,
+51\% for the frequency-matched model). Its $\pi$ error falls to about 30\% by step
+5{,}000 and then \emph{rises} to 1.9--2.0$\times$ its starting value by step 20{,}000, on
+all five seeds, while the frequency-matched model reduces both. The residual loss weights
+each Fourier mode of the error by $\omega^2$, so the $15\pi$ mode carries 225 times the
+weight of the $\pi$ mode. A linear head on fixed sine features sets the two amplitudes
+independently; a single circuit cannot, because all 81 of its amplitudes are functions of
+the same ten angles read through one expectation value. Our reading, supported by these
+data but not proven, is that the optimiser buys the heavily weighted amplitude at the
+cost of the lightly weighted one. The loss agrees: it stalls near $3.3\times10^4$ from
+step 1{,}000 while the error keeps moving, and the seeds agree closely (worst over best
+$1.1\times$) because they converge to the same trade-off.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/ablation_matched.pdf}
-  \caption{Final rel-$L^2$ (log scale) per problem for \texttt{q\_serial},
-    \texttt{c\_rff\_matched}, \texttt{q\_random} and \texttt{c\_ff}, $n=2$ seeds per box
-    (PR-1--3, PR-6, T4.2). On Helmholtz\_k10 and k20 every family sits at
-    rel-$L^2\approx1$, the score of predicting $u\equiv0$.}
-  \label{fig:ablation}
+  \includegraphics[width=\linewidth]{../results/report/figures/xai_spectral_error_poisson.png}
+  \caption{Poisson, one copy: magnitude of the error spectrum at each checkpoint
+    (seed 0), with the error at $\pi$ and $15\pi$ tracked over training.}
+  \label{fig:specerr}
 \end{figure}
 
-\subsection{The matched-capacity equivalence, across all six instances (PR-3 generalized, C1/T4.2)}
-PR-3's own falsifier (\texttt{q\_serial} $\approx$ \texttt{c\_rff\_matched}, ratio within
-$[0.77,1.3]$) was checked on Poisson only in \S\ref{sec:results}'s ablation above;
-extending the same check to all six problem instances (same $n=2$ caveat throughout)
-surfaces a real pattern the single-problem view misses. Ratio
-(\texttt{q\_serial}/\texttt{c\_rff\_matched} median rel-$L^2$): Poisson $4.25\times$
-(REFUTED), heat $1.42\times$ (REFUTED), burgers $3.58\times$ (REFUTED),
-Helmholtz\_k4 $8.97\times$ (REFUTED, driven by the same catastrophic k=4
-non-convergence as PR-5), Helmholtz\_k10 $1.09\times$ (\textbf{CONFIRMED} --- inside the
-band), Helmholtz\_k20 $0.98\times$ (\textbf{CONFIRMED}, and here \texttt{q\_serial} is
-marginally \emph{ahead}). The pattern is consistent with PR-5's k-scaling trend: at low
-wavenumber, matched-capacity classical Fourier features decisively beat \texttt{q\_serial};
-at the two highest-wavenumber instances, the two are statistically indistinguishable at
-this sample size. This does not establish a quantum \emph{advantage} anywhere --- the
-best this run's data supports is ``no longer a clear quantum \emph{disadvantage}'' on the
-hardest two instances, which is itself a real, non-obvious finding this single-problem
-view would have missed. \emph{Post-submission caveat} (\S\ref{sec:errata}, E5): on those
-two instances every family's median rel-$L^2$ is 0.977--1.089, so the parity is between
-models that all failed to learn the solution.
-
-\subsection{Decision map: predicted vs.\ measured benefit, and P4's k-scaling (PR-5)}
-Figure~\ref{fig:decision}: SMCD's a-priori predicted benefit against the measured benefit
-of \texttt{q\_serial} over \texttt{c\_mlp}, one point per problem. Separately, P4's
-$k$-scaling prediction (PR-5, \textbf{CONFIRMED}): the \texttt{c\_mlp}/\texttt{q\_serial}
-rel-$L^2$ ratio increases monotonically across $k=4\to10\to20$
-($8.79\times10^{-6}\to0.918\to1.024$). The direction is confirmed, but the $k=4$ point's
-extremity is itself the finding, not a clean win: a ratio of $8.79\times10^{-6}$ means
-\texttt{q\_serial}'s error is roughly five orders of magnitude \emph{larger} than
-\texttt{c\_mlp}'s at $k=4$ --- catastrophic non-convergence, not a close loss. The
-monotonic trend is real, but it is driven by quantum failing worst at the easiest
-instance and only nearly catching up at $k=20$ (ratio $1.02$, i.e.\ still not actually
-ahead), not by quantum's advantage growing from a positive baseline.
+\paragraph{Copies decouple the amplitudes.} Section~\ref{sec:copies}'s copies keep
+$\Omega$ and give the head an independent handle on each copy. On the tuning seeds the
+error falls with the number of copies, from 1.67 with one copy to 0.003 with eight at the
+higher learning rate (Figure~\ref{fig:copies}); eight copies were selected.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.62\linewidth]{figures/decision_map.pdf}
-  \caption{SMCD's a-priori predicted benefit vs.\ the measured benefit of
-    \texttt{q\_serial} over \texttt{c\_mlp},
-    $(\mathrm{med}_{\texttt{c\_mlp}}-\mathrm{med}_{\texttt{q\_serial}})/\mathrm{med}_{\texttt{c\_mlp}}$,
-    one point per problem (C4, PR-5). The $y$ axis is symmetric-logarithmic (linear
-    within $\pm1$): on Helmholtz\_k4 \texttt{q\_serial}'s error is about $10^5$ times
-    \texttt{c\_mlp}'s.}
-  \label{fig:decision}
+  \includegraphics[width=\linewidth]{../results/report/figures/headline_v2_lab.png}
+  \caption{Model selection on Poisson, tuning seeds 0--2: median error for 1, 2, 4 and 8
+    copies at two learning rates, beside the best learning rate for each classical model.}
+  \label{fig:copies}
 \end{figure}
 
-\subsection{P2's negative control (PR-4) and the barren-plateau frontier (PR-10)}
-See \S\ref{sec:negative} for PR-4 (heat/P2, C4's core claim). PR-10 (gradient variance
-vs.\ the $2^{-n}$ barren-plateau line): \textbf{INSUFFICIENT\_DATA}, reported honestly
-rather than computed anyway --- \texttt{depth\_sweep}'s final grid (cut to
-$n_{\text{qubits}}=6$ only, under the same deadline pressure) has zero variation in
-$n_{\text{qubits}}$, the fit's own independent variable, so \texttt{barren\_plateau\_fit}
-refuses to report a slope rather than return a solver artifact from a rank-deficient
-fit. See \S\ref{sec:limitations}.
+\paragraph{Eight copies on held-out seeds.} On seeds 10--14 (Table~\ref{tab:ensemble},
+Figure~\ref{fig:ensemble}) the eight-copy circuit reaches a median error of 0.0037, with
+every seed below 0.02. It beats the Fourier-feature network by three orders of magnitude
+and the same circuit with random frequencies by $236\times$. The comparison with the MLP is
+inconclusive: at its tuned learning rate the MLP failed on three of five seeds (1.2--3.6)
+and reached 0.003--0.012 on the other two. The classical learning rates chosen on the
+tuning seeds did not transfer well (the Fourier-feature network went from 0.19 to 5.0),
+which inflates both of those ratios. \textbf{The frequency-matched classical model,
+sized to the eight-copy circuit (83 parameters), is $3.3\times$ more accurate} (0.0011):
+on Poisson, handing a classical model the frequencies SMCD reads off the equation works
+better than the circuit.
+
+\input{sections/ensemble_table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{../results/report/figures/headline_v2_retest.png}
+  \caption{Poisson, held-out seeds 10--14: every run of the eight-copy circuit and the
+    baselines (bar: median).}
+  \label{fig:ensemble}
+\end{figure}

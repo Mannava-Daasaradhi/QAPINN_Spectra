@@ -31,11 +31,11 @@ from report.common import (
 # (label, problem, family under test, baseline, threshold, kind). kind "beats": baseline /
 # tested >= threshold; "band": tested / baseline within [1/threshold, threshold].
 COMPARISONS = [
-    ("PR-1", "poisson", "q_serial", "c_mlp", 2.0, "beats"),
-    ("PR-2", "poisson", "q_serial", "c_ff", 1.3, "beats"),
-    ("PR-3", "poisson", "q_serial", "c_rff_matched", 1.3, "band"),
-    ("PR-6 Poisson", "poisson", "q_serial", "q_random", 1.5, "beats"),
-    ("PR-6 heat", "heat", "q_serial", "q_random", 1.5, "beats"),
+    ("vs MLP, Poisson", "poisson", "q_serial", "c_mlp", 2.0, "beats"),
+    ("vs Fourier features, Poisson", "poisson", "q_serial", "c_ff", 1.3, "beats"),
+    ("vs frequency-matched, Poisson", "poisson", "q_serial", "c_rff_matched", 1.3, "band"),
+    ("designed vs random, Poisson", "poisson", "q_serial", "q_random", 1.5, "beats"),
+    ("designed vs random, heat", "heat", "q_serial", "q_random", 1.5, "beats"),
 ]
 
 
@@ -76,7 +76,7 @@ def bootstrap_forest(runs, n_boot=5000) -> dict:
     ax.axvline(1.0, color=MUTED, linestyle=":", linewidth=1)
     ax.set_yticks(range(len(rows)), [r[0] for r in rows])
     ax.invert_yaxis()
-    ax.set_xlabel("error ratio (right of 1 = q_serial better; PR-3: q_serial / RFF matched)")
+    ax.set_xlabel("error ratio (right of 1 = circuit better; frequency-matched: circuit / baseline)")
     ax.set_title("Bootstrap 95% intervals (dot = median ratio, black ticks = pre-registered threshold)", fontsize=9)
     ax.grid(axis="y", visible=False)
     save(fig, "validation_bootstrap_ratios")

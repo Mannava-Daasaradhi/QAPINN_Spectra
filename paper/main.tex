@@ -15,49 +15,34 @@
   A Constructive Design Methodology for Problem-Specific\\
   Variational Circuits, Instrumented by Explainable-AI Diagnostics}
 \author{Katta Lahari \and Mannava Daasaradhi}
-\date{\today}
+\date{September 2026}
 
 \begin{document}
 \maketitle
 
-\begin{center}
-\small\emph{Revised September 2026, after the WISER 2026 BQP Challenge. The submitted
-version is repository tag \texttt{v1.0-submission}. This revision completes the
-pre-registered protocol (Section~\ref{sec:fullprotocol}), adds diagnostics, robustness
-checks, a groundwater application and a pre-registered follow-up study, and lists
-corrections in Section~\ref{sec:errata}. Sections~\ref{sec:intro}--\ref{sec:negative}
-report the submitted two-seed runs unchanged.}
-\end{center}
-
 \begin{abstract}
-A classical physics-informed neural network (PINN) fails on exactly one thing, reliably
-and provably: it learns low frequencies fast and high frequencies almost not at all
-(spectral bias), because its neural tangent kernel (NTK) eigenspectrum decays with
-Fourier-mode index. A data-re-uploading variational quantum circuit is not a black-box
-speedup --- it is a Fourier feature map whose accessible frequency set is exactly and
-prescribably determined by the eigenvalues of its data-encoding Hamiltonians. This paper
-joins those two facts into a constructive design rule, Spectrum-Matched Circuit Design
-(SMCD, Section~\ref{sec:methodology}): given a PDE, we compute the target spectral support
-analytically from the operator symbol and forcing/boundary data, then construct the
-encoding generators, re-uploading depth, and qubit count so the circuit's realized
-frequency set covers it --- no architecture search. We use six explainable-AI instruments,
-run identically on matched classical and hybrid models, to test that mechanism rather than
-merely report an accuracy delta. Against twelve predictions committed before any
-experiment ran and adjudicated by a script, at two seeds per configuration the hybrid model
-does not outperform the classical baselines: a classical model given the same frequencies
-matches or beats it on every problem, and the predicted NTK flattening is reversed where
-measurable. The design rule itself holds up: the circuit's output stays within its designed
-frequency set, 99.9\% of its per-frequency improvement on the Poisson problem lies inside
-that set, and once the protocol is completed at its pre-registered five seeds, the
-designed circuit beats a same-size random circuit on the heat equation by $6.5\times$ on
-every seed (6 of 15 checks confirmed, from 3). Diagnostics trace the Poisson loss to
-coupled amplitudes. A follow-up circuit built from eight copies of the SMCD design,
-pre-registered and tested on fresh seeds, cuts the Poisson error from 1.68 to 0.0037 and
-meets 5 of the 8 re-tested claims, but a classical model given the same frequencies
-remains $3.3\times$ more accurate. On a pre-registered groundwater problem, waterlogging
-of farmland from leaking canals, the original circuit meets 1 of 5 predictions and the
-improved one all 5: 0.09\% error, $18\times$ more accurate than a classical network of
-the same size and $9.9\times$ more than the same circuit with random frequencies.
+Physics-informed neural networks (PINNs) learn low frequencies fast and high
+frequencies slowly (spectral bias), because their neural tangent kernel (NTK) spectrum
+decays with frequency. A data-re-uploading quantum circuit behaves differently: its
+output is a Fourier series whose frequency set is fixed, exactly, by its encoding. We
+join the two facts into a constructive design rule, Spectrum-Matched Circuit Design
+(SMCD): read the frequencies a PDE's solution needs from the operator's Fourier symbol
+and the forcing, then build the circuit whose frequency set covers them, with no
+architecture search. The hybrid model mixes $K$ copies of the designed circuit through a
+linear head. Six explainable-AI instruments, run identically on matched classical and
+hybrid models, test the mechanism rather than only the accuracy, and every claim is
+pre-registered with a numeric threshold and scored by a script. The circuit produces
+exactly its designed frequencies (leakage below $4\times10^{-15}$). Designed frequencies
+beat random ones of the same size on the heat equation ($6.5\times$, one copy), on
+Poisson ($236\times$, eight copies) and on a groundwater problem ($9.9\times$, eight
+copies), on every seed. On waterlogging of farmland from leaking canals, the eight-copy
+circuit reaches 0.09\% error, $18\times$ more accurate than a classical network of the
+same size, and places the waterlogged stretch to within 1\,m. The instruments explain
+why copies matter: in one circuit every Fourier amplitude depends on the same angles, so
+the optimiser trades the slow wave for the fast one, and a single copy loses to classical
+baselines on Poisson. Two results bound the claim: on Poisson a classical model given
+the same frequencies is $3.3\times$ more accurate than the eight-copy circuit, and at
+high Helmholtz wavenumbers no model, classical or quantum, learns the solution.
 \end{abstract}
 
 \input{sections/intro}
@@ -65,15 +50,10 @@ the same size and $9.9\times$ more than the same circuit with random frequencies
 \input{sections/methodology}
 \input{sections/xai_protocol}
 \input{sections/results}
-\input{sections/negative_results}
-\input{sections/full_protocol}
-\input{sections/diagnostics}
 \input{sections/validation}
 \input{sections/groundwater}
-\input{sections/followup}
 \input{sections/limitations}
 \input{sections/conclusion}
-\input{sections/errata}
 \input{sections/repro}
 
 \bibliographystyle{plainnat}

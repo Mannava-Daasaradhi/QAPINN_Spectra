@@ -4,56 +4,34 @@
   \small
   \begin{tabular}{lll}
   \toprule
-  Claim & Verdict & Measured \\
+  Claim & 1 copy & 8 copies \\
   \midrule
-  G-1 & Refuted & median rel-$L^2$ 0.5276 (need $\le 0.01$) \\
-  G-2 & Refuted & ratio 0.09$\times$ (need $\ge1.3$) \\
-  G-3 & Refuted & ratio 0.11$\times$ (need $\ge1.5$) \\
-  G-4 & \textbf{Confirmed} & 99.4\% inside $\Omega$ (need $\ge70$\%) \\
-  G-5 & Refuted & 0\,m vs exact 713\,m (need within 5\%) \\
+  Error below 1\% & Refuted (52.76\%) & \textbf{Confirmed} (0.09\%) \\
+  Beats a classical network of the same size ($\ge1.3\times$) & Refuted (0.09$\times$) & \textbf{Confirmed} (18.23$\times$) \\
+  Beats the same circuit with random frequencies ($\ge1.5\times$) & Refuted (0.11$\times$) & \textbf{Confirmed} (9.91$\times$) \\
+  Gain over the MLP lies inside $\Omega$ ($\ge70\%$) & \textbf{Confirmed} (99.4\%) & \textbf{Confirmed} (99.4\%) \\
+  Waterlogged length within 5\% of the exact 713\,m & Refuted (0\,m) & \textbf{Confirmed} (714\,m) \\
+  \midrule
+  Confirmed & 1 of 5 & 5 of 5 \\
   \bottomrule
-  \end{tabular}\\[6pt]
+  \end{tabular}\\[8pt]
   \begin{tabular}{lrrr}
   \toprule
-  Model & median rel-$L^2$ & median waterlogged (m) & seeds \\
+  Model & parameters & median error & waterlogged (m) \\
   \midrule
-  \texttt{c\_mlp} & 0.0247 & 788 & 5 \\
-  \texttt{c\_mlp\_matched} & 0.0496 & 840 & 5 \\
-  \texttt{c\_rff\_matched} & 0.1576 & 0 & 5 \\
-  \texttt{q\_random} & 0.0596 & 535 & 5 \\
-  \texttt{q\_serial} & 0.5276 & 0 & 5 \\
+  SMCD circuit, 8 copies & 91 & 0.09\% & 714 \\
+  random frequencies, 8 copies & 91 & 0.92\% & 738 \\
+  MLP, size of 8 copies & 91 & 1.68\% & 672 \\
+  frequency-matched, size of 8 copies & 83 & 22.93\% & 0 \\
+  MLP, large & 8{,}513 & 1.94\% & 707 \\
+  SMCD circuit, 1 copy & 14 & 52.76\% & 0 \\
+  random frequencies, 1 copy & 14 & 5.96\% & 535 \\
+  MLP, size of 1 copy & 13 & 4.96\% & 840 \\
+  frequency-matched, size of 1 copy & 13 & 15.76\% & 0 \\
   \bottomrule
   \end{tabular}
-  \caption{Groundwater predictions, v1 models, seeds 10--14. Exact waterlogged length: 713\,m.}
-  \label{tab:gwv1}
+  \caption{Groundwater: pre-registered claims for the SMCD circuit with one and eight copies
+    (top) and every model's median relative $L^2$ error and waterlogged length (bottom), held-out
+    seeds 10--14. Exact waterlogged length: 713\,m.}
+  \label{tab:gw}
 \end{table}
-
-\begin{table}[htbp]
-  \centering
-  \small
-  \begin{tabular}{lll}
-  \toprule
-  Claim & Verdict & Measured \\
-  \midrule
-  G-1 & \textbf{Confirmed} & median rel-$L^2$ 0.0009 (need $\le 0.01$) \\
-  G-2 & \textbf{Confirmed} & ratio 18.23$\times$ (need $\ge1.3$) \\
-  G-3 & \textbf{Confirmed} & ratio 9.91$\times$ (need $\ge1.5$) \\
-  G-4 & \textbf{Confirmed} & 99.4\% inside $\Omega$ (need $\ge70$\%) \\
-  G-5 & \textbf{Confirmed} & 714\,m vs exact 713\,m (need within 5\%) \\
-  \bottomrule
-  \end{tabular}\\[6pt]
-  \begin{tabular}{lrrr}
-  \toprule
-  Model & median rel-$L^2$ & median waterlogged (m) & seeds \\
-  \midrule
-  \texttt{c\_mlp} & 0.0194 & 707 & 5 \\
-  \texttt{c\_mlp\_matched\_v2} & 0.0168 & 672 & 5 \\
-  \texttt{c\_rff\_matched\_v2} & 0.2293 & 0 & 5 \\
-  \texttt{q\_random\_v2} & 0.0092 & 738 & 5 \\
-  \texttt{q\_serial\_v2} & 0.0009 & 714 & 5 \\
-  \bottomrule
-  \end{tabular}
-  \caption{Groundwater predictions, v2 models, seeds 10--14. Exact waterlogged length: 713\,m.}
-  \label{tab:gwv2}
-\end{table}
-

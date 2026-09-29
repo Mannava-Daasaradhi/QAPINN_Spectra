@@ -1,71 +1,37 @@
 \section{Limitations}
 \label{sec:limitations}
 
-Stated plainly, not hedged:
-
 \begin{enumerate}
-\item \textbf{Statistical power, worse than planned.} The core matrix was
-  \emph{pre-registered} at $n=5$ seeds per (problem, family) cell, which cannot reach
-  $p<0.05$ on its own (\texttt{src/qapinn/stats.py}, T4.1: the $n=5$ Wilcoxon $p$-floor
-  is $0.0625$). Under the Aug 7 submission deadline, the seed count was cut to $n=2$
-  (\texttt{docs/plan/08\_TASK\_INDEX.md}'s cut-line, invoked twice), which lowers the
-  achievable $p$-floor further, to $0.5$ (verified directly against
-  \texttt{scipy.stats.wilcoxon}). \texttt{docs/predictions.md}'s CONFIRMED gate was left
-  at its original, pre-registered $0.0625$ threshold rather than loosened to compensate,
-  which means every ratio-and-significance prediction (PR-1, PR-2, PR-6) can now only
-  resolve to REFUTED or INCONCLUSIVE, independent of true effect size --- stated here
-  explicitly rather than left implicit in a table of verdicts.
-\item \textbf{Simulation only.} All quantum circuits are evaluated on this project's own
-  statevector simulator (\texttt{qsim.py}), cross-checked against a PennyLane oracle to
-  $<10^{-10}$; no results here were run on physical quantum hardware.
-\item \textbf{Qubit budget.} Experiments are capped at $\le 8$ qubits, dictated by
-  classical simulation cost, not by the design methodology itself --- SMCD's depth/width
-  formulas (Section~\ref{sec:methodology}) apply unchanged at larger $n$.
-\item \textbf{Noise models are surrogates.} Shot-noise and depolarizing noise are analytic
-  surrogates (T2.11), not a full density-matrix simulation; the discrepancy between the
-  surrogate and a density-matrix reference on a representative subset is measured and
-  reported (T4.4), not assumed negligible.
-\item \textbf{Scope cut.} A fifth PDE (Allen--Cahn / wave, stretch goal P5) was cut from
-  the critical path under the project's time budget; nothing in Section~\ref{sec:methodology}
-  is specific to the four PDEs actually run.
-\item \textbf{The affine-encoder constraint (D3).} The classical encoder $E_\varphi$ is
-  restricted to an affine map, imposed to keep SMCD's coverage metric well-defined (a
-  nonlinear encoder would make ``the circuit's realized frequency set'' itself
-  input-dependent); this is a real restriction on the hybrid model's expressivity, not a
-  free simplification.
-\item \textbf{\texttt{predicted\_benefit} is a heuristic.} SMCD's a-priori benefit
-  estimate (Section~\ref{sec:algorithm}'s design card, plotted in \texttt{decision\_map}) is a
-  provisional heuristic, not a proven bound; Section~\ref{sec:results} reports how well it
-  tracks the measured benefit, and a heuristic that tracks poorly is itself a reported
-  finding, not hidden.
-\item \textbf{PR-10 (barren-plateau decay rate) is unmeasurable on this run's data, and
-  reported as such rather than computed anyway.} \texttt{depth\_sweep}'s grid was cut
-  under the same deadline pressure to $n_{\text{qubits}}=6$ only (dropping the originally
-  planned $n_{\text{qubits}}=4$ point); \texttt{barren\_plateau\_fit} needs at least two
-  distinct $n_{\text{qubits}}$ values to fit a slope, and now detects this degenerate
-  case explicitly (\texttt{src/qapinn/xai/gradvar.py}) rather than returning the
-  ill-conditioned solver artifact \texttt{numpy.polyfit} would otherwise silently produce
-  against a constant independent variable. The practical frontier (largest $n$ before
-  grad-var collapses below the $10^{-10}$ floor) is unaffected and still reported; only
-  the decay-rate metric is the casualty.
+\item \textbf{Simulation only.} Every circuit is evaluated on a statevector simulator,
+  cross-checked against PennyLane to $10^{-10}$; nothing here ran on quantum hardware.
+  Shot and depolarising noise are modelled by analytic surrogates, whose agreement with a
+  density-matrix simulation is measured on a representative subset rather than assumed.
+\item \textbf{Small circuits.} On the one-dimensional problems each circuit is one qubit
+  without entanglement, a model a classical computer evaluates cheaply; the Helmholtz
+  circuits use three qubits. Simulation cost capped the experiments at 6--8 qubits, though
+  SMCD's formulas apply unchanged at larger $n$. No claim of quantum computational
+  advantage is made or tested.
+\item \textbf{Statistical power.} Five seeds per configuration give a smallest two-sided
+  Wilcoxon $p$ of 0.0625, so ``confirmed'' means all five seeds agree; bootstrap intervals
+  and three alternative tests (Section~\ref{sec:validation}) support each verdict but do
+  not raise the sample size.
+\item \textbf{Where the method wins, and where it does not.} The eight-copy circuit's
+  strongest result is one applied problem. On Poisson a classical model given the same
+  frequencies remains $3.3\times$ more accurate, and at high Helmholtz wavenumbers no
+  model learns the solution, so parity there says nothing about capability.
+\item \textbf{Baseline sizes and tuning.} In the six-problem matrix only the
+  frequency-matched model and the random-frequency circuit are size-matched to the
+  circuit; the MLP and Fourier-feature network run at standard sizes. The eight-copy model
+  was selected from a small grid of copy counts and learning rates, while each classical
+  family received a learning-rate search only, and those learning rates did not transfer
+  reliably to held-out seeds.
+\item \textbf{Coverage.} Achieved coverage does not predict error on its own
+  (Section~\ref{sec:mechanism}); the coverage sweep builds few distinct circuits, which
+  confounds coverage with parameter count.
+\item \textbf{The affine encoder.} The classical encoder is restricted to an affine map
+  so that the circuit's frequency set, and hence coverage, is well-defined; a nonlinear
+  encoder would make $\Omega$ input-dependent. This restricts the hybrid model.
+\item \textbf{The predicted-benefit number is a heuristic.} The design card's a-priori
+  benefit estimate is not a proven bound. It predicted 2.5\% on heat and zero on
+  Helmholtz $k{=}4,10$; the circuit beat the MLP on none of them.
 \end{enumerate}
-
-\paragraph{An infrastructure limitation worth stating explicitly.} The core-matrix sweep
-this project's results are drawn from ran on a single consumer GPU under real memory and
-process-stability constraints, and required several crash-recovery restarts over the
-course of Phase 3. The external retry mechanism resumes correctly by run-completion
-(\texttt{metrics.json} existence), but a known consequence is that a small fraction of
-runs' cumulative per-checkpoint diagnostic files (\texttt{specerr.npz}) were appended to
-across a crash boundary, producing duplicate checkpoint entries in that specific artifact
-(10 of 84 core-matrix runs, detected mechanically by
-\texttt{scripts/check\_specerr\_integrity.py}). Rather than exclude these runs, the
-duplicate entries were deduplicated post hoc
-(\texttt{scripts/dedupe\_specerr.py}, run once all sweeps had finished so the fix could
-not race a still-writing task): for each of the affected files, only the last --- most
-recent, post-crash-recovery --- row for each real checkpoint step is kept, discarding
-the stale row written before the crash. This is a mechanical cleanup of an accumulation
-artifact, not new data; it recovered two figures (\texttt{freq\_heatmap\_poisson},
-\texttt{freq\_heatmap\_helmholtz\_k4}) and one prediction (PR-8/poisson, from
-INSUFFICIENT\_DATA to a real CONFIRMED; 99.9\% overlap after the post-submission
-correction in \S\ref{sec:errata}) that would otherwise have been
-reported as missing or excluded rather than fixed.

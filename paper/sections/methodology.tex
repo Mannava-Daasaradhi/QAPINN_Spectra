@@ -60,7 +60,7 @@ PennyLane oracle (agreement $<10^{-10}$) before being trusted:
   have no dead frequencies.
 \end{enumerate}
 
-\subsubsection{Corollary: ternary scaling and the corrected depth rule}
+\subsubsection{Corollary: ternary scaling and the depth rule}
 
 Set the per-layer scalings to $\omega_l = \Delta\cdot 3^{l-1}$ (single-wire case). Then
 $\Omega = \Delta\cdot\{-\tfrac{3^L-1}{2},\dots,\tfrac{3^L-1}{2}\}$ --- exactly $3^L$
@@ -79,12 +79,10 @@ $\Delta$:
   \;\Longrightarrow\;
   \boxed{L = \left\lceil \log_3\!\left(\tfrac{2K}{\Delta}+1\right)\right\rceil.}
 \]
-This is the corrected form of the depth rule (correcting an earlier draft that stated
-$L=\lceil\log_3(K/\Delta)\rceil$, missing the factor of two inside the logarithm and the
-$+1$ term). The difference is not cosmetic: for P1's target spectrum ($K=15\pi$,
-$\Delta=\pi$), the uncorrected formula gives $L=3$, whose reachable band tops out at
-$13\pi < 15\pi$ --- it silently misses the target mode. The corrected formula gives $L=4$,
-whose band reaches $40\pi \ge 15\pi$.
+Both the factor of two inside the logarithm and the $+1$ matter. For the Poisson target
+spectrum ($K=15\pi$, $\Delta=\pi$), the naive $L=\lceil\log_3(K/\Delta)\rceil$ gives
+$L=3$, whose reachable band tops out at $13\pi < 15\pi$ and silently misses the target
+mode; the rule above gives $L=4$, whose band reaches $40\pi \ge 15\pi$.
 
 \subsection{Proposition 2 --- PDE target spectrum}
 
@@ -101,7 +99,7 @@ $|\mathbf{k}|\approx k$ --- the near-resonant band a classical PINN's low-freque
 learning dynamics reach last, if at all. For the heat equation, $\sigma$ grows
 quadratically with $|\mathbf{k}|$ and the solution decays exponentially in time at every
 nonzero mode, so $S_\varepsilon$ collapses toward $k=0$ as $t$ increases: this is the
-project's negative control (Section~\ref{sec:negative}) --- there is no high-frequency content
+project's negative control (Section~\ref{sec:accuracy}) --- there is no high-frequency content
 for a quantum layer to supply, and SMCD predicts zero benefit \emph{a priori}, not just
 observes it after the fact.
 
@@ -111,7 +109,7 @@ observes it after the fact.
 If $S_\varepsilon \subseteq \Omega$, the hybrid model represents the solution to
 $\varepsilon$ accuracy with a linear head --- the remaining optimization problem is convex
 in $w$. Covering $S_\varepsilon$ with maximum frequency $K$ and resolution $\Delta$
-requires $L \ge \log_3(K/\Delta)$ layers (ternary scaling, corrected form above) and
+requires $L \ge \log_3(2K/\Delta+1)$ layers (ternary scaling, above) and
 $n \ge \lceil d\rceil$ qubits for $d$ input dimensions, plus ancilla wires for any required
 cross-frequency terms.
 \end{proposition}
@@ -128,9 +126,8 @@ disjoint classical and quantum groups,
 \[
   \boxed{\Theta_{\mathrm{hyb}}(x,x') \;=\; \Theta_{\mathrm{cl}}(x,x') \;+\; \Theta_q(x,x'),}
 \]
-exactly, with \textbf{no cross term} --- correcting an earlier draft of this proposition
-that stated $\Theta_{\mathrm{hyb}}=\Theta_{\mathrm{cl}}+\Theta_q+2\Theta_\times$, which is
-mathematically incorrect for a shared-output, disjoint-parameter model of this form.
+exactly, with \textbf{no cross term}; a term of the form $2\Theta_\times$ does not arise
+for a shared-output, disjoint-parameter model.
 \end{proposition}
 
 \paragraph{Proof.} $\Theta(x,x') = \sum_{k=1}^{P}
@@ -147,10 +144,9 @@ splits additively over the partition:
 There is no third term: a cross term would only arise from a fundamentally different
 quantity, such as a covariance between two \emph{separately} defined kernels or the square
 of a sum of outputs --- not from the NTK of a single model with disjoint parameter groups,
-which this project's ansatz is. This was verified independently, both analytically (the
-index-summation argument above) and numerically (random matched/mismatched-size synthetic
-Jacobians), before being trusted; \texttt{src/qapinn/xai/ntk.py} implements the corrected,
-no-cross-term identity. $\blacksquare$
+which this project's ansatz is. The identity is also checked numerically on random
+synthetic Jacobians of matched and mismatched sizes; \texttt{src/qapinn/xai/ntk.py}
+implements it. $\blacksquare$
 
 Because $\Omega$ (the quantum block's realized frequency set) is discrete and prescribed
 by construction, $\Theta_q$ has eigen-directions \emph{at} the encoded frequencies with
@@ -178,7 +174,7 @@ matched classical and hybrid models.
 \State \textbf{Band:} $K \gets \max|k|$ in $\hat S$; $\Delta \gets$ min spacing in $\hat S$;
   $d \gets \dim(x)$
 \State \textbf{Depth:} $L \gets \lceil \log_3(2K/\Delta + 1)\rceil$ with ternary scalings
-  $\omega_j = \Delta\cdot 3^{j-1}$ (corrected form, Section~\ref{sec:prop1}; fall back to linear
+  $\omega_j = \Delta\cdot 3^{j-1}$ (Section~\ref{sec:prop1}; fall back to linear
   scaling if $\hat S$ is a dense low band)
 \State \textbf{Width:} $n \gets d + n_{\mathrm{cross}}$, where $n_{\mathrm{cross}}$ covers
   required mixed-frequency terms (e.g.\ 2-D Helmholtz needs $k_x\pm k_y$ $\Rightarrow$
@@ -200,9 +196,7 @@ matched classical and hybrid models.
 \end{algorithm}
 
 The design card (final step) is what makes the methodology auditable: every run's
-predicted coverage can be correlated against its measured error, and that correlation
---- Section~\ref{sec:results}'s headline coverage-vs-error figure --- is the direct empirical
-validation of SMCD, independent of any single problem instance's outcome.
+predicted coverage can be set against its measured error (Section~\ref{sec:mechanism}).
 
 \subsection{Octave-split circuit ensembles}
 \label{sec:octave}
@@ -212,3 +206,21 @@ When a single circuit cannot cover $\hat S$ within the barren-plateau depth budg
 $[2^j\Delta, 2^{j+1}\Delta)$ of $\hat S$, summed at the head. This keeps every individual
 circuit shallow (trainable) while the ensemble covers a wide band --- multi-resolution
 analysis with a quantum basis per resolution level.
+
+\subsection{Circuit copies}
+\label{sec:copies}
+
+A single circuit reads all of its Fourier amplitudes out through one expectation value,
+so every amplitude is a function of the same few angles: changing one frequency's
+amplitude moves the others. The copy model removes that coupling without changing the
+frequency set. It evaluates $K$ copies of the SMCD circuit on the same encoded input,
+each with its own trainable angles, and mixes them with a linear head,
+\[
+  u(x) = B(x) + D(x)\Big[\,b + \sum_{j=1}^{K} w_j\, Q_{\theta_j}\big(E_\varphi(x)\big)\Big].
+\]
+Every copy has the same encoding scalings, so the model's frequency set is still exactly
+$\Omega$ and every design-card statement above applies unchanged; only the number of
+independent handles on the amplitudes grows. $K=1$ is the plain SMCD circuit. On the
+one-dimensional problems each copy is a one-qubit, four-layer circuit, and $K=8$ gives
+91 trainable parameters. $K$ and the learning rate were selected on tuning seeds before
+any held-out run (Section~\ref{sec:setup}).

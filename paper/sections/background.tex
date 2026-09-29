@@ -26,18 +26,17 @@ phenomenon, not merely a loss-weight-tuning problem (\texttt{docs/derivations/03
 
 \textbf{Spectral bias.} For a tanh or ReLU MLP, the NTK eigenvalues decay roughly as a
 power law in Fourier-mode index, so high-frequency solution components are learned last
-and slowly (Figure~\ref{fig:staircase}, measured on this project's own P1). Fourier-feature and random-feature encodings \citep{tancik2020fourier} are the standard classical fix
-and the non-negotiable fair baseline this project compares against (model family
-\texttt{C-FF}, Section~\ref{sec:results}) --- if the quantum layer beats only a plain MLP and not
-a Fourier-feature MLP, it has bought nothing that random Fourier features do not already
-supply.
+and slowly (Figure~\ref{fig:staircase}, measured on the Poisson problem studied here).
+Fourier-feature and random-feature encodings \citep{tancik2020fourier} are the standard
+classical fix and a necessary baseline (Section~\ref{sec:setup}): if the quantum layer
+beats only a plain MLP and not a Fourier-feature network, it has bought nothing that
+Fourier features do not already supply.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.55\linewidth]{figures/staircase_cmlp_p1.pdf}
-  \caption{Spectral bias, measured (the T1.5 gate figure): per-frequency error of a
-    plain MLP (\texttt{c\_mlp}) over training on P1, $u^*=\sin(\pi x)+\alpha\sin(15\pi x)$
-    with $\alpha=0.05$. The $\omega=\pi$ mode converges first; $\omega=15\pi\approx47$
+  \caption{Spectral bias, measured: per-frequency error of a plain MLP over training on
+    the Poisson problem, $u^*=\sin(\pi x)+\alpha\sin(15\pi x)$ with $\alpha=0.05$. The $\omega=\pi$ mode converges first; $\omega=15\pi\approx47$
     needs 16.2 times as many steps to reach tolerance (3 seeds).}
   \label{fig:staircase}
 \end{figure}
