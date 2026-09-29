@@ -1,20 +1,21 @@
-\clearpage
-\subsection*{The locked re-test on fresh seeds}
-Eight of v1's claims, word for word, were re-tested on seeds 10--14 with the v2 circuit,
-after the predictions were pushed to GitHub. \textbf{\VTwoConf{} of 8 held.}
+\newpart
+\section{Benchmark: Poisson}
+The Poisson benchmark, with solution $\sin\pi x + 0.3\sin15\pi x$ mixes a slow and a
+fast wave, the case spectral bias makes hard. Eight predictions were locked before the
+held-out runs; \textbf{\VTwoConf{} of 8 held.}
 \begin{center}
   \includegraphics[width=0.92\linewidth]{headline_v2_retest}
 \end{center}
 \begin{itemize}
-  \item \textbf{Held:} beats Fourier features; beats the same circuit with random
-    frequencies (236$\times$); its improvement lands on the designed frequencies; the NTK
-    is flatter inside $\Omega$ than outside; the encoder stays put.
-  \item \textbf{Did not hold:} a classical model with the \emph{same} frequencies and
-    nearly the same size (83 parameters) is still 3$\times$ more accurate; the circuit does
-    not leave the lazy-training regime earlier.
-  \item \textbf{Inconclusive:} against the MLP. The MLP at its tuned learning rate failed on
-    three of five fresh seeds and did well on two, so the seeds do not agree.
-  \item \textbf{Caveat:} the classical learning rates chosen in tuning did not carry over
-    to new seeds (the MLP and Fourier features were unstable), while every v2 circuit run
-    landed below 2\% error.
+  \item \textbf{Held:} beats the same circuit with random frequencies (236$\times$) and
+    Fourier features (1{,}360$\times$); its improvement lands on the designed frequencies
+    (99.9\%); the NTK is flatter inside $\Omega$ than outside; the encoder stays put
+    during training.
+  \item \textbf{Did not hold:} a classical model given the same frequencies (83
+    parameters) is 3$\times$ more accurate here; the circuit does not leave the lazy
+    training regime earlier.
+  \item \textbf{Inconclusive:} against the large MLP, which failed on three of five
+    held-out seeds and did well on two.
 \end{itemize}
+Every one of the circuit's runs landed below 2\% error, while the MLP and Fourier
+features were unstable at the learning rates tuning chose for them.

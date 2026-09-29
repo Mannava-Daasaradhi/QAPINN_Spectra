@@ -166,8 +166,9 @@ def model_profiles(model_set: str = "v1") -> None:
     fig, (ax, axe) = plt.subplots(2, 1, figsize=(8, 5.6), sharex=True, gridspec_kw={"height_ratios": [3, 2]})
     ax.plot(X, exact, color="#1f1f1f", linewidth=2.6, label="exact")
     order = ["c_mlp", spec["matched_mlp"], spec["rff"], spec["q_random"], spec["q"]]
-    names = {"c_mlp_matched": "MLP, same size as circuit", "q_serial": f"{model_set} circuit (SMCD)",
-             "q_random": f"{model_set} circuit, random frequencies"}
+    circuit = "SMCD circuit (8 copies)" if model_set == "v2" else "SMCD circuit (1 copy)"
+    names = {"c_mlp_matched": "MLP, same size as circuit", "q_serial": circuit,
+             "q_random": "same circuit, random frequencies"}
     for name in order:
         dirs = runs.get(name, [])
         if not dirs:
@@ -187,7 +188,7 @@ def model_profiles(model_set: str = "v1") -> None:
         axe.plot(X, np.maximum(np.abs(median - exact), 1e-4), **style_kw)
     ax.axhline(THRESHOLD_M, color=RISK, linewidth=1.2, linestyle=":", label="waterlogging threshold")
     ax.set_ylabel("water table (m)")
-    ax.set_title(f"Trained models vs the exact water table ({model_set} models, median of 5 fresh seeds)")
+    ax.set_title("Trained models vs the exact water table (median of 5 held-out seeds)")
     ax.legend(loc="lower center", fontsize=7, ncol=3)
     axe.set_yscale("log")
     axe.set_ylabel("|error| (m, log)")

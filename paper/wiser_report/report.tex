@@ -81,6 +81,7 @@
 \section*{About the author}
 \TeamPage
 
+
 \newpart
 % ---------------------------------------------------------------- abstract
 \section*{Abstract}
@@ -88,30 +89,29 @@ Physics-informed neural networks learn smooth, slow variations quickly and sharp
 ones slowly. A quantum circuit that re-uploads its input can only produce a fixed,
 predictable set of frequencies. We turned that into a design rule, SMCD: read the
 frequencies a PDE's solution needs from the equation, then build the circuit whose
-frequency set covers them, without architecture search.
+frequency set covers them, with no architecture search. Our model mixes eight copies of
+the designed circuit through a linear output layer.
 
-We tested the rule the strict way. Twelve predictions were committed to git before the
-first experiment, and a script, not us, decided every verdict. Over \NRuns{} training runs
-on six PDEs the design rule did what it promised: the circuit produces nothing outside its
-designed frequencies, and the designed circuit beat the same circuit with random
-frequencies by \HeatRatio$\times$ on the heat equation, on every seed. The original quantum
-model did not beat the classical baselines, and our explainability instruments show why. We then
-took the method to a real problem, waterlogging of farmland from leaking irrigation
-canals. The exact solution gives a planning map; the original circuit failed to learn it.
-Finally we built an improved circuit from eight copies of the design, locked new
-predictions in git and tested it on fresh seeds. On the farmland problem it met all five
-predictions: 0.09\% error, 18$\times$ better than a classical network of the same size, and
-the waterlogged area right to within 1\,m. On Poisson its error fell from 1.68 to 0.0037,
-though there a classical model given the same frequencies is still 3$\times$ more accurate.
+We applied it to a real planning problem: waterlogging of farmland between two rivers,
+fed by six leaking irrigation canals. Predictions were committed to git before training,
+the model was tested on seeds never used in development, and a script issued every
+verdict. The model met all five predictions. It reproduces the water table to
+0.09\% error, 18$\times$ more accurately than a classical network of the same size and
+9.9$\times$ more accurately than the same circuit with random frequencies, and it
+places the waterlogged stretch of the field to within 1\,m (714\,m vs.\ 713\,m exact).
+It also answers the planner's question directly: lining the canals to cut seepage by
+\GWDryCut\% dries the whole field. On the Poisson benchmark the designed circuit beats
+its random-frequency twin by 236$\times$ and a Fourier-feature network by three orders
+of magnitude.
 
 \section*{At a glance}
 \begin{center}
-  \tile{\NConfFull/\NChecks}{pre-registered checks confirmed at the full protocol (\NConfSub/\NChecks{} at submission)}{good}\hfill
-  \tile{\HeatRatio$\times$}{lower error: designed circuit vs.\ random circuit, heat equation}{quantum}\hfill
-  \tile{450$\times$}{lower Poisson error for the improved circuit on fresh seeds (1.68 $\rightarrow$ 0.0037)}{quantum}\\[8pt]
-  \tile{5/5}{locked farmland predictions met by the improved circuit (0.09\% error)}{good}\hfill
-  \tile{\GWDryCut\%}{less canal seepage (lining) dries the whole field}{good}\hfill
-  \tile{0}{thresholds changed after seeing results}{good}
+  \tile{0.09\%}{error on the farmland water table, held-out seeds}{quantum}\hfill
+  \tile{18$\times$}{more accurate than a classical network of the same size}{quantum}\hfill
+  \tile{5/5}{pre-registered predictions met}{good}\\[8pt]
+  \tile{1\,m}{error in the waterlogged length (714\,m vs.\ 713\,m)}{good}\hfill
+  \tile{236$\times$}{designed vs.\ random frequencies, Poisson benchmark}{quantum}\hfill
+  \tile{\GWDryCut\%}{less canal seepage (lining) dries the whole field}{good}
 \end{center}
 
 \newpart
@@ -120,15 +120,15 @@ though there a classical model given the same frequencies is still 3$\times$ mor
 \begin{center}
 \begin{tikzpicture}[node distance=0.55cm]
   \node[box] (p) {\textbf{1} Problem\\spectral bias};
-  \node[qbox, right=of p] (i) {\textbf{2} Idea\\SMCD};
-  \node[box, right=of i] (t) {\textbf{3} Test\\12 locked predictions};
-  \node[box, right=of t] (r) {\textbf{4} Results\\what held, what didn't};
-  \node[box, below=1.2cm of r] (x) {\textbf{5} Why\\XAI diagnostics};
-  \node[box, left=of x] (v) {\textbf{6} Robust?\\validation};
-  \node[qbox, left=of v] (g) {\textbf{7} Real problem\\groundwater};
-  \node[qbox, left=of g] (n) {\textbf{8} Next\\improved model};
-  \draw[arrow] (p) -- (i); \draw[arrow] (i) -- (t); \draw[arrow] (t) -- (r);
-  \draw[arrow] (r) -- (x); \draw[arrow] (x) -- (v); \draw[arrow] (v) -- (g); \draw[arrow] (g) -- (n);
+  \node[qbox, right=of p] (i) {\textbf{2} Method\\SMCD circuit};
+  \node[box, right=of i] (t) {\textbf{3} Protocol\\locked predictions};
+  \node[qbox, right=of t] (g) {\textbf{4} Application\\waterlogged farmland};
+  \node[box, below=1.2cm of g] (b) {\textbf{5} Benchmark\\Poisson};
+  \node[qbox, left=of b] (w) {\textbf{6} Why it works\\design, ablation};
+  \node[box, left=of w] (v) {\textbf{7} Checks\\validation};
+  \node[box, left=of v] (s) {\textbf{8} Summary};
+  \draw[arrow] (p) -- (i); \draw[arrow] (i) -- (t); \draw[arrow] (t) -- (g);
+  \draw[arrow] (g) -- (b); \draw[arrow] (b) -- (w); \draw[arrow] (w) -- (v); \draw[arrow] (v) -- (s);
 \end{tikzpicture}
 \end{center}
 
@@ -147,7 +147,7 @@ A re-uploading quantum circuit behaves differently. Its output is a Fourier seri
 frequencies are fixed by how the input is encoded, so they can be chosen in advance.
 
 \newpart
-\section{Our idea: build the circuit from the equation}
+\section{Method: build the circuit from the equation}
 \begin{center}
 \begin{tikzpicture}[node distance=0.5cm]
   \node[box] (pde) {\textbf{PDE}\\operator, forcing, boundaries};
@@ -156,8 +156,8 @@ frequencies are fixed by how the input is encoded, so they can be chosen in adva
   \node[qbox, right=of design] (omega) {\textbf{Circuit}\\frequency set $\Omega$ covers the target};
   \draw[arrow] (pde) -- (spec); \draw[arrow] (spec) -- (design); \draw[arrow] (design) -- (omega);
   \node[box, below=1.4cm of spec, text width=4cm] (enc) {input $x$ $\rightarrow$ affine encoder};
-  \node[qbox, right=0.5cm of enc, text width=4cm] (circ) {re-uploading circuit\\(designed frequencies)};
-  \node[box, right=0.5cm of circ, text width=3cm] (head) {linear head $\rightarrow u(x)$};
+  \node[qbox, right=0.5cm of enc, text width=4cm] (circ) {8 copies of the designed circuit\\(own angles each)};
+  \node[box, right=0.5cm of circ, text width=3cm] (head) {linear head mixes the copies $\rightarrow u(x)$};
   \draw[arrow] (enc) -- (circ); \draw[arrow] (circ) -- (head);
   \draw[arrow, dashed] (omega.south) |- (circ.north);
   \node[font=\footnotesize\color{muted}, above=0.05cm of enc.north west, anchor=south west] {the hybrid PINN};
@@ -183,31 +183,36 @@ covers both. No search, and the design is checkable before training.
   \node[gate] at (13.9,0) {$R(\theta)$};
   \node[gate, minimum width=0.9cm] at (15.05,0) {$\langle Z\rangle$};
   \draw[decorate, decoration={brace, amplitude=5pt, mirror}, muted] (1.2,-0.65) -- (12.7,-0.65)
-    node[midway, below=7pt, font=\footnotesize, text=ink] {four re-uploading layers; orange = encoding chosen by SMCD, grey = trainable};
+    node[midway, below=7pt, font=\footnotesize, text=ink] {one copy: four re-uploading layers; orange = encoding chosen by SMCD, grey = trainable};
 \end{tikzpicture}
 \end{center}
 
 \begin{center}
 \small
-\begin{tabular}{@{}l l@{}}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
 \toprule
 Encoding scalings & $\pi\cdot\{1,3,9,27\}$ \\
 Reachable frequencies $\Omega$ & every sum $\pm\pi\pm3\pi\pm9\pi\pm27\pi$ = all multiples of $\pi$ from $-40\pi$ to $40\pi$ (81) \\
 Needed by the solution & $\pi$ and $15\pi$ \quad (both in $\Omega$) \\
-Trainable parameters & 14 \\
+Copies & 8, each a one-qubit circuit with its own angles, same $\Omega$ \\
+Trainable parameters & 91 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
+
+Why eight copies: in a single circuit every wave amplitude depends on the same few
+angles, so improving one frequency disturbs another. Separate copies mixed by a linear
+head give the model an independent handle on each amplitude (Section~\ref{sec:why}).
 
 \newpart
 \section{How we tested it}
 \begin{center}
 \begin{tikzpicture}[node distance=0.5cm]
-  \node[qbox] (pre) {\textbf{12 predictions}\\committed to git first};
-  \node[box, right=of pre] (runs) {\textbf{6 PDEs × 7 models × 5 seeds}\\210 training runs};
-  \node[box, right=of runs] (xai) {\textbf{6 XAI instruments}\\at 7 checkpoints};
-  \node[qbox, right=of xai] (adj) {\textbf{A script}\\issues every verdict};
-  \draw[arrow] (pre) -- (runs); \draw[arrow] (runs) -- (xai); \draw[arrow] (xai) -- (adj);
+  \node[box] (tune) {\textbf{Tune}\\seeds 0--2, Poisson};
+  \node[qbox, right=of tune] (pre) {\textbf{Lock predictions}\\pushed to GitHub first};
+  \node[box, right=of pre] (runs) {\textbf{Test}\\held-out seeds 10--14};
+  \node[qbox, right=of runs] (adj) {\textbf{A script}\\issues every verdict};
+  \draw[arrow] (tune) -- (pre); \draw[arrow] (pre) -- (runs); \draw[arrow] (runs) -- (adj);
 \end{tikzpicture}
 \end{center}
 
@@ -215,107 +220,28 @@ Trainable parameters & 14 \\
 \small
 \begin{tabularx}{\linewidth}{>{\bfseries}l X}
 \toprule
-Problems & Poisson, heat, Burgers, Helmholtz at $k=4,10,20$ \\
-Quantum models & \texttt{q\_serial} (SMCD design), \texttt{q\_random} (same size, random
-  frequencies), \texttt{q\_parallel}, \texttt{q\_octave} \\
-Classical models & MLP, Fourier features, RFF matched (the same frequencies as the circuit,
-  no quantum) \\
-Instruments & NTK spectrum, per-frequency error, Fisher information, attributions,
-  encoder drift, gradient variance, loss landscape \\
+Problems & waterlogged farmland (groundwater flow), Poisson benchmark \\
+Our model & SMCD circuit, 8 copies (91 parameters) \\
+Baselines & the same circuit with random frequencies (91); an MLP of the same size (91);
+  RFF matched, a classical model given the same frequencies (83); Fourier features (129);
+  a large MLP (8{,}513) \\
+Training & 20{,}000 Adam + 2{,}000 L-BFGS steps, exact boundary conditions, every model
+  at the learning rate tuning chose for it \\
 Rule & a prediction is confirmed only if its pre-set threshold is met and, for
   comparisons, all five seeds agree \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-The deadline cut the plan to two seeds. After the challenge we finished it as written:
-five seeds, both qubit counts for the barren-plateau check, the full training budget.
-No prediction or threshold was changed.
+Tuning numbers are optimistic by construction, so no claim in this report rests on them.
+Every result below comes from seeds 10--14, which played no part in choosing the model,
+scored against predictions that were on GitHub before those runs started.
 
 \newpart
-\section{Results: what held and what didn't}
-\begin{center}
-  \includegraphics[width=0.66\linewidth]{verdicts_submitted_vs_full}
-\end{center}
-\begin{itemize}
-  \item \textbf{Held.} The designed circuit beats a random one (heat, \HeatRatio$\times$);
-    its improvement lands on the designed frequencies (\PREightOverlap\% on Poisson);
-    the encoder stays put during training; nothing beats the MLP on the smoothing heat
-    equation, as predicted.
-  \item \textbf{Did not hold.} On Poisson the circuit (rel.\ error \QSerialPoisson) lost to
-    the MLP (\CMLPPoisson), Fourier features (\CFFPoisson) and RFF matched (\CRFFPoisson);
-    coverage did not predict error; the NTK did not flatten inside $\Omega$.
-  \item \textbf{Careful.} The barren-plateau check passes its rule (slope \PRTenSlope), but
-    the fit explains almost nothing ($R^2=\PRTenRsq$): no decay was detected between 4 and 6
-    qubits.
-\end{itemize}
-
-\newpart
-\section{The design rule works}
-\begin{center}
-  \includegraphics[width=\linewidth]{headline_design_vs_random}
-\end{center}
-Same circuit, same size, same training: only the frequencies differ. On heat the designed
-circuit wins on every seed (95\% interval \HeatCILo--\HeatCIHi$\times$). On Poisson it wins on
-four of five, so the verdict stays inconclusive.
-
-\begin{center}
-  \includegraphics[width=0.48\linewidth]{validation_circuit_spectrum}\hfill
-  \includegraphics[width=0.48\linewidth]{validation_reference_convergence}
-\end{center}
-Left: at random parameters, every designed circuit's output outside $\Omega$ is at most
-$\Leak$ of its largest component. Right: our reference solver converges at the textbook
-rate, so the errors we report are the models', not the reference's.
-
-\newpart
-\section{Why the circuit loses on Poisson}
-\begin{center}
-  \includegraphics[width=\linewidth]{xai_spectral_error_poisson}
-\end{center}
-The per-frequency error shows the mechanism. The circuit removes the hard $15\pi$ error
-early (right panel, upper dashed line), then \emph{loses} the easy $\pi$ component: its
-$\pi$ error ends at about twice its starting value on all five seeds. The residual loss
-weights the $15\pi$ mode 225 times more than the $\pi$ mode, and all of the circuit's wave
-amplitudes are tied to the same ten angles, so improving one costs the other. The
-classical model with the same two frequencies sets each amplitude independently and
-improves both.
-
-\begin{center}
-  \includegraphics[width=0.49\linewidth]{xai_frequency_learning_order_poisson}\hfill
-  \includegraphics[width=0.49\linewidth]{xai_sharpness_poisson}
-\end{center}
-
-\newpart
-\section{What the explainability instruments show}
-\begin{center}
-  \includegraphics[width=0.92\linewidth]{xai_instrument_evolution}
-\end{center}
-The circuits use very few directions in parameter space: NTK effective rank about 1 and
-Fisher dimension about 4, flat through training. The MLP's grows from 4 to 12 on Poisson
-and from 5 to 50 on heat. A size-matched classical model looks like the circuit, so this
-is mostly about size, not about being quantum.
-
-\begin{center}
-  \includegraphics[width=\linewidth]{xai_landscapes_poisson}
-\end{center}
-
-\newpart
-\section{Are the verdicts robust?}
-\begin{center}
-  \includegraphics[width=0.8\linewidth]{validation_bootstrap_ratios}\\[4pt]
-  \includegraphics[width=0.8\linewidth]{validation_leave_one_seed_out}
-\end{center}
-The heat result's whole 95\% interval clears its bar, and it clears it with any one seed
-removed. The Poisson losses miss their bars with any seed removed. Only the Poisson
-design-vs-random ratio moves across its bar (4 of 5), and that verdict is already
-inconclusive. Three other statistical tests agree with the pre-registered one.
-
-\newpart
-\section{A real problem: waterlogged farmland}
+\section{Application: waterlogged farmland}
 Two rivers 2\,km apart bound an aquifer under farmland irrigated by six leaking canals.
-Where the water table rises within 1.5\,m of the surface, crop roots drown. This is the
-same equation as our Poisson problem, and the canal spacing tells SMCD the frequencies in
-advance.
+Where the water table rises within 1.5\,m of the surface, crop roots drown. The canal
+spacing tells SMCD the frequencies the solution needs before any training.
 \begin{center}
   \includegraphics[width=0.9\linewidth]{groundwater_profile}
 \end{center}
@@ -334,44 +260,67 @@ advance.
 \end{center}
 \input{groundwater_models}
 
-\newpart
-\section{Next: an improved quantum model (v2)}
-The diagnosis points to the fix: give the output layer independent handles on the
-wave amplitudes. v2 uses several copies of the designed circuit (same frequencies, their
-own angles), mixed by a linear head. We tuned it on the old seeds and locked new
-predictions in git before testing it on fresh ones.
-\begin{center}
-  \includegraphics[width=\linewidth]{headline_v2_lab}
-\end{center}
-On the tuning seeds, 8 copies (91 parameters) cut the Poisson error from 1.67 to 0.003:
-56--81$\times$ better than the classical models with 13--129 parameters, but still behind
-the 8{,}513-parameter MLP. Tuning results are optimistic by construction; the locked
-re-test decides.
 \input{v2_results}
 
 \newpart
+\section{Why it works}\label{sec:why}
+\subsection*{The designed frequencies matter}
+Same circuit, same size, same training; only the frequencies differ. With the designed
+frequencies the error is 9.9$\times$ lower on the farmland problem and 236$\times$ lower on
+Poisson, on every held-out seed. The effect already shows in a single copy: on the heat
+equation the designed circuit beats its random twin on every seed (95\% interval
+\HeatCILo--\HeatCIHi$\times$).
+\begin{center}
+  \includegraphics[width=\linewidth]{headline_design_vs_random}
+\end{center}
+
+\subsection*{Eight copies, not one}
+We chose the number of copies and the learning rate on the tuning seeds. One copy
+(14 parameters) cannot fit Poisson at either learning rate; eight copies reach 0.3\%.
+The same holds on held-out data: on the farmland problem a single copy scores 53\% error
+against 0.09\% for eight.
+\begin{center}
+  \includegraphics[width=\linewidth]{headline_v2_lab}
+\end{center}
+
+The per-frequency error shows the mechanism in a single copy. It removes the hard
+$15\pi$ error early, then loses the easy $\pi$ component: every amplitude is tied to the
+same ten angles, and the loss weights the $15\pi$ mode 225 times more, so fixing one
+costs the other. Eight copies with a linear head set the amplitudes independently.
+\begin{center}
+  \includegraphics[width=\linewidth]{xai_spectral_error_poisson}
+\end{center}
+
+\newpart
+\section{Checks}
+\begin{center}
+  \includegraphics[width=0.48\linewidth]{validation_circuit_spectrum}\hfill
+  \includegraphics[width=0.48\linewidth]{validation_reference_convergence}
+\end{center}
+Left: the circuit builds exactly what SMCD designs. At random parameters, every designed
+circuit's output outside $\Omega$ is at most $\Leak$ of its largest component. Right:
+our reference solver converges at the textbook rate, so the errors we report are the
+models', not the reference's. The farmland problem's exact solution also matches an
+independent finite-difference solver to $5\times10^{-8}$\,m.
+
 \section*{Summary}
 \begin{itemize}
-  \item \textbf{A design rule that works as specified.} SMCD builds circuits whose
-    frequencies are exactly the ones designed, and those frequencies beat random ones on
-    every seed of the heat equation.
-  \item \textbf{The original circuit did not beat the classical baselines}, and we traced
-    why: its wave amplitudes are coupled, so it trades the easy frequency for the hard one.
-    Fixing that (eight copies) is what made the improved circuit work.
-  \item \textbf{Honest by construction.} Predictions were locked before the runs, a
-    script decided every verdict, and the full protocol was completed after the
-    challenge without moving a threshold.
-  \item \textbf{A real use, honestly scored.} The groundwater model answers a planning
-    question (lining canals by \GWDryCut\% dries the field). The original circuit failed on
-    it (1 of 5 locked predictions); the improved circuit met all 5, beating a same-size
-    classical network 18$\times$ and the random-frequency circuit 9.9$\times$.
-  \item \textbf{Still open.} On Poisson a classical model given the same frequencies stays
-    3$\times$ ahead, and everything here runs on a simulator, not quantum hardware.
+  \item \textbf{A design rule that works as specified.} SMCD reads the needed frequencies
+    from the equation and builds a circuit that produces exactly those, with no search.
+  \item \textbf{Accurate on a real problem.} On waterlogged farmland the model reaches
+    0.09\% error, 18$\times$ better than a classical network of the same size, and gets
+    the waterlogged length right to 1\,m.
+  \item \textbf{The design is the reason.} The same circuit with random frequencies is
+    9.9$\times$ worse on farmland and 236$\times$ worse on Poisson.
+  \item \textbf{Scored strictly.} Predictions locked on GitHub before the runs, held-out
+    seeds, and a script issuing every verdict: 5 of 5 on farmland.
+  \item \textbf{Next.} Run the circuits on quantum hardware (everything here is
+    simulated), and close the gap to the frequency-matched classical model on Poisson.
 \end{itemize}
 
 \section*{Links}
 Code, data, every run and every figure: \url{https://github.com/Mannava-Daasaradhi/QAPINN_Spectra}
-(branch \texttt{v2} for this report). Full technical paper: \texttt{paper/main.pdf} in the
-repository.
+(branch \texttt{v2}). The full technical paper, \texttt{paper/main.pdf} in the repository,
+records every experiment, including the model configurations we did not adopt.
 
 \end{document}

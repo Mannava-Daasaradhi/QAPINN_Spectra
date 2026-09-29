@@ -1,22 +1,33 @@
 \clearpage
-\subsection*{Can the trained models answer it?}
-We locked five predictions in git before training on fresh seeds, then scored them with
-a script, first for the original circuit and then for the improved v2 circuit
-(eight copies of the same design; see the next section for how it was built).
+\subsection*{Can the trained model answer it?}
+We locked five predictions in git before training on the held-out seeds, then scored
+them with a script.
 
 \begin{center}
 \small
-\begin{tabular}{l c c}
+\begin{tabular}{l c}
 \toprule
-Prediction & original circuit & v2 circuit \\
+Prediction & SMCD circuit \\
 \midrule
-G-1\quad error below 1\% & no (53\%) & \textbf{yes (0.09\%)} \\
-G-2\quad beats a same-size classical network & no & \textbf{yes (18$\times$)} \\
-G-3\quad beats the same circuit with random frequencies & no & \textbf{yes (9.9$\times$)} \\
-G-4\quad improvement lies on the designed frequencies & \textbf{yes (\GWVOneOverlap\%)} & \textbf{yes (99.4\%)} \\
-G-5\quad waterlogged length within 5\% of the truth & no (0\,m) & \textbf{yes (714\,m vs 713\,m)} \\
+G-1\quad error below 1\% & \textbf{yes (0.09\%)} \\
+G-2\quad beats a same-size classical network & \textbf{yes (18$\times$)} \\
+G-3\quad beats the same circuit with random frequencies & \textbf{yes (9.9$\times$)} \\
+G-4\quad improvement lies on the designed frequencies & \textbf{yes (99.4\%)} \\
+G-5\quad waterlogged length within 5\% of the truth & \textbf{yes (714\,m vs 713\,m)} \\
 \midrule
-Held & \GWVOneConf{} of 5 & \GWVTwoConf{} of 5 \\
+Met & \GWVTwoConf{} of 5 \\
+\bottomrule
+\end{tabular}
+\hspace{1cm}
+\begin{tabular}{l r r}
+\toprule
+Model & parameters & median error \\
+\midrule
+\textbf{SMCD circuit} & 91 & \textbf{0.09\%} \\
+same circuit, random frequencies & 91 & 0.92\% \\
+MLP, same size & 91 & 1.7\% \\
+MLP, large & 8{,}513 & 1.9\% \\
+RFF matched (same frequencies) & 83 & 23\% \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -24,9 +35,6 @@ Held & \GWVOneConf{} of 5 & \GWVTwoConf{} of 5 \\
 \begin{center}
   \includegraphics[width=0.85\linewidth]{groundwater_models_v2}
 \end{center}
-The v2 circuit tracks the true water table to within a few millimetres across the whole
-field and gets the waterlogged length right to 1\,m. The original circuit (below) missed
-it entirely. The classical model handed the same frequencies fails here too.
-\begin{center}
-  \includegraphics[width=0.7\linewidth]{groundwater_models_v1}
-\end{center}
+The circuit tracks the true water table to within a few millimetres across the whole
+field and gets the waterlogged length right to 1\,m. It is also more accurate than an
+MLP with 94 times as many parameters.

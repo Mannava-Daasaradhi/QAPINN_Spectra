@@ -83,7 +83,7 @@ def v2_lab() -> None:
     ax.set_yscale("log")
     ax.set_xticks(range(len(vals)), labels, fontsize=7)
     ax.set_ylabel("median relative L2 error (log)")
-    ax.set_title("v2 lab, Poisson, tuning seeds (exploratory): more circuit copies + higher learning rate")
+    ax.set_title("Choosing the model on tuning seeds 0-2 (Poisson): circuit copies and learning rate")
     ax.grid(axis="x", visible=False)
     save(fig, "headline_v2_lab")
 
@@ -150,8 +150,8 @@ def v2_retest() -> None:
     if not rows:
         return
     order = ["q_serial_v2", "c_rff_matched_v2", "c_mlp", "c_ff", "q_random_v2"]
-    names = {"q_serial_v2": "v2 circuit\n(SMCD, 8 copies)", "c_rff_matched_v2": "RFF matched\n(same frequencies)",
-             "c_mlp": "MLP", "c_ff": "Fourier\nfeatures", "q_random_v2": "v2 circuit,\nrandom frequencies"}
+    names = {"q_serial_v2": "SMCD circuit\n(8 copies)", "c_rff_matched_v2": "RFF matched\n(same frequencies)",
+             "c_mlp": "MLP", "c_ff": "Fourier\nfeatures", "q_random_v2": "same circuit,\nrandom frequencies"}
     fig, ax = plt.subplots(figsize=(8, 3.6))
     for i, fam in enumerate(f for f in order if f in rows):
         vals = [v for v, _ in rows[fam]]
@@ -165,7 +165,7 @@ def v2_retest() -> None:
     ax.set_xticks(range(len(present)), [names[f] for f in present], fontsize=8)
     ax.set_yscale("log")
     ax.set_ylabel("relative L2 error (log)")
-    ax.set_title("v2 re-test on fresh seeds 10-14, Poisson: every run (bar = median)")
+    ax.set_title("Poisson benchmark, held-out seeds 10-14: every run (bar = median)")
     ax.grid(axis="x", visible=False)
     save(fig, "headline_v2_retest")
 
