@@ -1,27 +1,22 @@
-% Cover and author details. The photo goes in paper/wiser_report/figures/photo-daasaradhi.jpg.
-% Until it exists, a grey placeholder box is drawn.
+% Cover and author details.
 \newcommand{\CoverLogos}{}  % e.g. \includegraphics[height=1.6cm]{wiser_logo}\hspace{1cm}\includegraphics[height=1.6cm]{ap_logo}
 \newcommand{\CoverProgram}{WISER Summer Program 2026 \textbullet{} Industry Challenge (BQP) \textbullet{} Top 10}
 \newcommand{\CoverDate}{September 2026}
 \newcommand{\CoverAuthor}{Mannava Daasaradhi}
 
-\newcommand{\photo}[1]{%
-  \IfFileExists{figures/#1}{\includegraphics[width=4cm,height=5cm,keepaspectratio]{#1}}%
-  {\fcolorbox{muted}{panel}{\parbox[c][5cm][c]{3.8cm}{\centering\small\color{muted} photo}}}}
-
-\newcommand{\member}[5]{% photo file, name, college, email, role
-  \begin{minipage}[t]{0.6\linewidth}
-    \centering \photo{#1}\\[10pt]
-    {\LARGE\bfseries #2}\\[4pt]
-    {\color{muted} #3}\\[4pt]
-    \href{mailto:#4}{#4}\\[10pt]
-    \begin{minipage}{0.95\linewidth}\raggedright\textbf{Role.} #5\end{minipage}
-  \end{minipage}}
-
 \newcommand{\TeamPage}{%
   \vspace{1cm}
   \begin{center}
-    \member{photo-daasaradhi.jpg}{Mannava Daasaradhi}{[College name]}{daasaradhimannava@gmail.com}%
-      {[One or two lines on what you did in the project.]}
+    \begin{minipage}[t]{0.6\linewidth}
+      \centering
+      {\LARGE\bfseries Mannava Daasaradhi}\\[6pt]
+      {\color{muted} Amrita Vishwa Vidyapeetham}\\[6pt]
+      \href{mailto:daasaradhimannava@gmail.com}{daasaradhimannava@gmail.com}\\[12pt]
+      \begin{minipage}{0.95\linewidth}\raggedright
+        \textbf{Role.} Designed the SMCD method, built the simulator, training and
+        explainability pipeline, ran and adjudicated the pre-registered experiments,
+        and wrote this report.
+      \end{minipage}
+    \end{minipage}
   \end{center}
 }
