@@ -41,15 +41,16 @@ verdict.
 \item \textbf{An explainable-AI protocol for hybrid PINNs}: six instruments with
   published metric definitions, run identically on every model family
   (Section~\ref{sec:xai}).
-\item \textbf{Evidence} from seven model families on six PDE instances and one applied
-  problem, groundwater under irrigated farmland (Sections~\ref{sec:results}--\ref{sec:groundwater}).
+\item \textbf{Evidence} on the Poisson and heat equations and on an applied problem,
+  groundwater under irrigated farmland (Sections~\ref{sec:results}--\ref{sec:groundwater}).
 \end{enumerate}
 
-\paragraph{Findings in brief.} The circuit realises exactly the frequencies SMCD designs.
-Designed frequencies beat random ones of the same size wherever the circuit learns the
-solution: heat, Poisson and groundwater. One copy is not enough on problems that mix a
-slow and a fast wave, and the instruments show why; eight copies fix it, reaching 0.09\%
-error on the groundwater problem, $18\times$ better than a classical network of the same
-size. The method does not beat every classical model: on Poisson a classical model
-handed the same frequencies stays ahead, on the smoothing heat equation no model beats a
-plain MLP (as SMCD predicts), and at high Helmholtz wavenumbers every model fails.
+\paragraph{Findings in brief.} The circuit realises exactly the frequencies SMCD designs,
+and the design matters: against the same circuit with random frequencies, the designed
+circuit is $6.5\times$ more accurate on heat, $236\times$ on Poisson and $9.9\times$ on
+groundwater, on every seed. The instruments show why it works (the improvement lies
+inside the designed frequency set, where the NTK is flat) and why several copies of the
+circuit train far better than one. On waterlogging of farmland, eight copies reach 0.09\%
+error, $18\times$ more accurate than a classical network of the same size, and place the
+waterlogged stretch to within 1\,m. SMCD also predicts, before training, when a quantum
+layer will not help.

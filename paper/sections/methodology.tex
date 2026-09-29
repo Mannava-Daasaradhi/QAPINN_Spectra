@@ -3,8 +3,8 @@
 
 \subsection{Setup}
 
-The hybrid ansatz used throughout (the \emph{serial} form; Section~\ref{sec:results} ablates
-parallel and random-scaling variants) is
+The hybrid ansatz used throughout (the \emph{serial} form; Section~\ref{sec:results}
+compares it with a random-scaling variant) is
 \[
   x \;\xrightarrow{\;E_\varphi\;}\; z \in \mathbb{R}^m
   \;\xrightarrow{\;Q_\theta\;}\; \phi(z) \in \mathbb{R}
@@ -99,8 +99,8 @@ $|\mathbf{k}|\approx k$ --- the near-resonant band a classical PINN's low-freque
 learning dynamics reach last, if at all. For the heat equation, $\sigma$ grows
 quadratically with $|\mathbf{k}|$ and the solution decays exponentially in time at every
 nonzero mode, so $S_\varepsilon$ collapses toward $k=0$ as $t$ increases: this is the
-project's negative control (Section~\ref{sec:accuracy}) --- there is no high-frequency content
-for a quantum layer to supply, and SMCD predicts zero benefit \emph{a priori}, not just
+project's negative control (Section~\ref{sec:mechanism}) --- there is little high-frequency
+content for a quantum layer to supply, and SMCD predicts this \emph{a priori}, not just
 observes it after the fact.
 
 \subsection{Proposition 3 --- Matching condition and resource bound}

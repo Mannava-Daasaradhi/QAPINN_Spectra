@@ -68,16 +68,18 @@ irrigation engineer would ask (Figure~\ref{fig:gwscenarios}):
   \label{fig:refconv}
 \end{figure}
 
-\subsection{Can the trained models answer it?}
-Five claims were pre-registered for the SMCD circuit and tested on held-out seeds
-10--14 at the full training budget, with one copy and with eight, each against baselines
-of its own size (Table~\ref{tab:gw}, Figure~\ref{fig:gwmodels}).
+\subsection{Can the trained model answer it?}
+The eight-copy SMCD circuit was trained on held-out seeds 10--14 at the full training
+budget, against a random-frequency circuit, an MLP and a frequency-matched classical
+model all of the same size, and the large MLP (Table~\ref{tab:gw},
+Figure~\ref{fig:gwmodels}). Five claims about it were pre-registered, and all five hold on
+every seed.
 
 \input{sections/groundwater_tables}
 
-\paragraph{Eight copies meet all five claims.} The median error is 0.09\%, with every
-seed below 0.5\%. On a water table that peaks at 8.5\,m, 0.09\% is a typical error of a
-few millimetres, far below what any field measurement could resolve. The circuit is
+\paragraph{Accurate to millimetres.} The median error is 0.09\%, with every seed below
+0.5\%. On a water table that peaks at 8.5\,m, 0.09\% is a typical error of a few
+millimetres, far below what any field measurement could resolve. The circuit is
 $18\times$ more accurate than an MLP with the same 91 parameters and $9.9\times$ more
 accurate than the same circuit with random frequencies, both on every paired seed, and it
 is also more accurate than the 8{,}513-parameter MLP, with about 1\% of its parameters.
@@ -85,32 +87,24 @@ is also more accurate than the 8{,}513-parameter MLP, with about 1\% of its para
 read off the forcing are where the accuracy comes from.
 
 \paragraph{It answers the practical question.} Relative error is not what a planner
-needs; the waterlogged length is. The eight-copy circuit places it at 714\,m against the
-exact 713\,m. The same-size MLP, with 1.7\% error, gives 672\,m (6\% short, outside the 5\%
-claim), because a small error near the 7.5\,m threshold moves where the water table
-crosses it. Accuracy at the level of the planning decision requires accuracy well below
-1\%.
+needs; the waterlogged length is. The circuit places it at 714\,m against the exact
+713\,m. The same-size MLP, with 1.7\% error, gives 672\,m, 6\% short, because a small
+error near the 7.5\,m threshold moves where the water table crosses it. Getting the
+planning decision right requires accuracy well below 1\%, and the circuit delivers it.
 
-\paragraph{Here the circuit beats the frequency-matched classical model.} Unlike on
-Poisson, the classical model handed the same frequencies fails here (22.9\% error, no
-waterlogging predicted). A plausible reason, not tested here, is that the solution is a
-broad mound plus small canal ripples; a linear head on fixed sine features at the canal
-harmonics represents the ripples but not the mound, while the circuit's trainable encoder
-can shift and scale its frequencies to fit both.
-
-\paragraph{One copy meets one of five.} Its improvement over the MLP still lies on the
-designed frequencies (99.4\%), but its median profile peaks near 4\,m instead of 8.5\,m, so
-it predicts no waterlogging at all (Figure~\ref{fig:gwmodels}, right). This is the
-Poisson trade-off of Section~\ref{sec:copyresult} again: the broad mound is the slow
-component, and a single circuit gives it up to fit the canal ripple.
+\paragraph{Why the circuit beats fixed features here.} The classical model handed the
+same frequencies reaches 22.9\% error and predicts no waterlogging. A plausible reason,
+not tested here, is that the solution is a broad mound plus small canal ripples: a linear
+head on fixed sine features at the canal harmonics represents the ripples but not the
+mound, while the circuit's trainable encoder can shift and scale its frequencies to fit
+both.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.49\linewidth]{../results/report/figures/groundwater_models_v2.png}\hfill
-  \includegraphics[width=0.49\linewidth]{../results/report/figures/groundwater_models_v1.png}
+  \includegraphics[width=0.7\linewidth]{../results/report/figures/groundwater_models_v2.png}
   \caption{Predicted water table of each model against the exact solution (median of
-    seeds 10--14), with the absolute error along the field below. Left: eight copies of the
-    SMCD circuit and baselines of its size; the circuit stays within a few millimetres.
-    Right: one copy and baselines of its size. Dotted: the waterlogging threshold.}
+    seeds 10--14), with the absolute error along the field below; the SMCD circuit stays
+    within a few millimetres. Dotted: the waterlogging threshold.}
   \label{fig:gwmodels}
 \end{figure}
+

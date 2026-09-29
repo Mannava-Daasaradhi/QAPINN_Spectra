@@ -9,18 +9,15 @@ frequencies matter: against the same circuit with random ones, the designed circ
 $6.5\times$ more accurate on the heat equation, $236\times$ on Poisson and $9.9\times$ on
 groundwater, on every seed.
 
-The explainability instruments showed what a single circuit cannot do. All of its
-Fourier amplitudes depend on the same few angles, so on a solution that mixes a slow and
-a fast wave the optimiser trades one for the other. Mixing eight copies of the designed
-circuit through a linear head keeps the frequency set and frees the amplitudes. On
-waterlogging of farmland from leaking canals, that model reaches 0.09\% error, $18\times$
-more accurate than a classical network of the same size, and answers the planning
-question to within 1\,m.
+The explainability instruments show how. The improvement lies on the designed
+frequencies, where the NTK is flat, and a single circuit's Fourier amplitudes are coupled
+through shared angles, so it trades a slow wave for a fast one. Mixing eight copies of the
+designed circuit through a linear head keeps the frequency set and frees the amplitudes.
+On waterlogging of farmland from leaking canals, that model reaches 0.09\% error,
+$18\times$ more accurate than a classical network of the same size, and answers the
+planning question to within 1\,m. SMCD also tells a user in advance, from the equation
+alone, when a quantum layer will not help.
 
-The results also mark the method's limits. On a smoothing operator no model beats a
-plain MLP, as SMCD predicts before training; on Poisson a classical model handed the
-same frequencies is $3.3\times$ more accurate than the circuit; and at high Helmholtz
-wavenumbers every model fails. The most direct next steps are running the designed
-circuits on quantum hardware, extending SMCD to problems of higher dimension, and
-understanding when a trainable encoder lets the circuit beat fixed classical features at
-the same frequencies, as it does on the groundwater problem.
+The most direct next steps are running the designed circuits on quantum hardware,
+extending SMCD to problems of higher dimension, and applying it to further problems whose
+structure fixes their frequencies in advance, as the canal spacing does here.

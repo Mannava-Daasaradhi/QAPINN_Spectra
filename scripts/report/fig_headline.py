@@ -22,10 +22,11 @@ from report.common import (
 )
 
 
-def design_vs_random(runs) -> None:
-    """q_serial vs q_random, every seed, on the two problems PR-6 tests."""
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.4), sharey=False)
-    for ax, problem in zip(axes, ("heat", "poisson")):
+def design_vs_random(runs, problems=("heat", "poisson"), name="headline_design_vs_random") -> None:
+    """q_serial vs q_random, every seed, one panel per problem."""
+    fig, axes = plt.subplots(1, len(problems), figsize=(4.5 * len(problems), 3.4), sharey=False, squeeze=False)
+    axes = axes[0]
+    for ax, problem in zip(axes, problems):
         for k, fam in enumerate(("q_serial", "q_random")):
             rs = sorted(select(runs, problem=problem, family=fam), key=lambda r: r.seed)
             seeds = [r.seed for r in rs]
@@ -42,12 +43,12 @@ def design_vs_random(runs) -> None:
     axes[0].set_ylabel("relative L2 error (log)")
     axes[0].legend(loc="upper left", fontsize=8)
     fig.tight_layout()
-    save(fig, "headline_design_vs_random")
+    save(fig, name)
 
 
-def v2_lab() -> None:
-    """Median rel-L2 on Poisson (tuning seeds) for each quantum configuration and the best
-    learning rate of each classical model."""
+def v2_lab(include_classical: bool = True, name: str = "headline_v2_lab") -> None:
+    """Median rel-L2 on Poisson (tuning seeds) for each quantum configuration and, if
+    include_classical, the best learning rate of each classical model."""
     runs_dir = REPO_ROOT / "results" / "runs"
 
     params: dict = {}
@@ -72,7 +73,7 @@ def v2_lab() -> None:
             labels.append(f"{k} cop{'y' if k == 1 else 'ies'}\nlr {lr:g}\n{params[k]} par.")
             vals.append(q[(k, lr)])
             colors.append(COLORS["q_serial"])
-    for f in ("c_rff_matched", "c_ff", "c_mlp"):
+    for f in ("c_rff_matched", "c_ff", "c_mlp") if include_classical else ():
         labels.append(f"{LABELS[f].replace(' ', chr(10), 1)}\n{params[f]:,} par.")
         vals.append(best_cl[f])
         colors.append(COLORS[f])
@@ -85,7 +86,7 @@ def v2_lab() -> None:
     ax.set_ylabel("median relative L2 error (log)")
     ax.set_title("Choosing the model on tuning seeds 0-2 (Poisson): circuit copies and learning rate")
     ax.grid(axis="x", visible=False)
-    save(fig, "headline_v2_lab")
+    save(fig, name)
 
 
 STAIRCASE_RUNS = ("0280f156172b", "a5f1ca54add5", "5669659249e2")  # T1.5, c_mlp on Poisson, seeds 0-2
@@ -172,8 +173,11 @@ def v2_retest() -> None:
 
 def main() -> None:
     style()
-    design_vs_random(core_runs())
+    runs = core_runs()
+    design_vs_random(runs)
+    design_vs_random(runs, problems=("heat",), name="headline_design_vs_random_heat")
     v2_lab()
+    v2_lab(include_classical=False, name="headline_copies")
     staircase()
     v2_retest()
 

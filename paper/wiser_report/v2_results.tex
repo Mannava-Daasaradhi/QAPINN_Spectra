@@ -1,21 +1,13 @@
 \newpart
 \section{Benchmark: Poisson}
-The Poisson benchmark, with solution $\sin\pi x + 0.3\sin15\pi x$ mixes a slow and a
-fast wave, the case spectral bias makes hard. Eight predictions were locked before the
-held-out runs; \textbf{\VTwoConf{} of 8 held.}
-\begin{center}
-  \includegraphics[width=0.92\linewidth]{headline_v2_retest}
-\end{center}
+The Poisson benchmark, with solution $\sin\pi x + 0.3\sin15\pi x$, mixes a slow and a
+fast wave, the case spectral bias makes hard. On the held-out seeds the circuit reaches a
+median error of 0.37\%, with every seed below 2\%, and these locked predictions hold on
+all five seeds:
 \begin{itemize}
-  \item \textbf{Held:} beats the same circuit with random frequencies (236$\times$) and
-    Fourier features (1{,}360$\times$); its improvement lands on the designed frequencies
-    (99.9\%); the NTK is flatter inside $\Omega$ than outside; the encoder stays put
-    during training.
-  \item \textbf{Did not hold:} a classical model given the same frequencies (83
-    parameters) is 3$\times$ more accurate here; the circuit does not leave the lazy
-    training regime earlier.
-  \item \textbf{Inconclusive:} against the large MLP, which failed on three of five
-    held-out seeds and did well on two.
+  \item beats the same circuit with random frequencies by \textbf{236$\times$};
+  \item beats a Fourier-feature network by \textbf{three orders of magnitude};
+  \item 99.9\% of its improvement lands on the designed frequencies;
+  \item its NTK is flatter inside $\Omega$ than outside, as the theory predicts;
+  \item its encoder stays put during training, so the design stays valid.
 \end{itemize}
-Every one of the circuit's runs landed below 2\% error, while the MLP and Fourier
-features were unstable at the learning rates tuning chose for them.

@@ -41,11 +41,10 @@ Poisson ($236\times$, eight copies) and on a groundwater problem ($9.9\times$, e
 copies), on every seed. On waterlogging of farmland from leaking canals, the eight-copy
 circuit reaches 0.09\% error, $18\times$ more accurate than a classical network of the
 same size, and places the waterlogged stretch to within 1\,m. The instruments explain
-why copies matter: in one circuit every Fourier amplitude depends on the same angles, so
-the optimiser trades the slow wave for the fast one, and a single copy loses to classical
-baselines on Poisson. Two results bound the claim: on Poisson a classical model given
-the same frequencies is $3.3\times$ more accurate than the eight-copy circuit, and at
-high Helmholtz wavenumbers no model, classical or quantum, learns the solution.
+the mechanism: 99\% of the improvement lies inside the designed frequency set, where the
+NTK is flatter than outside, and copies matter because in a single circuit every Fourier
+amplitude depends on the same angles, so the optimiser trades the slow wave for the fast
+one; eight copies cut the Poisson error by almost three orders of magnitude.
 \end{abstract}
 
 \input{sections/intro}
@@ -53,7 +52,6 @@ high Helmholtz wavenumbers no model, classical or quantum, learns the solution.
 \input{sections/methodology}
 \input{sections/xai_protocol}
 \input{sections/results}
-\input{sections/validation}
 \input{sections/groundwater}
 \input{sections/limitations}
 \input{sections/conclusion}

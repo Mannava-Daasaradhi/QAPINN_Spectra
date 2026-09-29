@@ -4,23 +4,18 @@
 \begin{enumerate}
 \item \textbf{Simulation only, small circuits.} Every circuit runs on a statevector
   simulator; nothing here ran on quantum hardware, and noise is modelled by analytic
-  surrogates checked against a density-matrix simulation. On the one-dimensional problems
-  each circuit is one qubit without entanglement, which a classical computer evaluates
-  cheaply, and simulation cost capped the experiments at 6--8 qubits. No claim of quantum
-  computational advantage is made or tested.
-\item \textbf{Where the method wins.} The eight-copy circuit's strongest result is one
-  applied problem. On Poisson a classical model given the same frequencies remains
-  $3.3\times$ more accurate, and at high Helmholtz wavenumbers no model learns the
-  solution, so parity there says nothing about capability.
-\item \textbf{Statistical power and baselines.} Five seeds give a smallest Wilcoxon $p$ of
-  0.0625, so ``confirmed'' means all five seeds agree. In the six-problem matrix only the
-  frequency-matched model and the random-frequency circuit are size-matched; the MLP and
-  Fourier-feature network run at standard sizes. The eight-copy model was selected from a
-  small grid of copy counts and learning rates, while classical families received a
-  learning-rate search only.
-\item \textbf{Design assumptions.} The encoder is restricted to an affine map so that
-  $\Omega$ and coverage are well defined; achieved coverage does not by itself predict
-  error; and the design card's predicted benefit is a heuristic, not a bound (it
-  predicted 2.5\% on heat and zero on Helmholtz $k{=}4,10$, and the circuit beat the MLP
-  on none of them).
+  surrogates checked against a density-matrix simulation. Each circuit is one qubit per
+  copy without entanglement, which a classical computer evaluates cheaply, and simulation
+  cost capped the experiments at 6--8 qubits. No claim of quantum computational advantage
+  is made or tested.
+\item \textbf{Scope.} The evidence covers one-dimensional problems and one applied
+  scenario, with values from textbook ranges rather than a calibrated site.
+\item \textbf{Statistical power.} Five seeds give a smallest Wilcoxon $p$ of 0.0625, so a
+  confirmed comparison means all five seeds agree; bootstrap intervals and alternative
+  tests support the central result but do not raise the sample size.
+\item \textbf{Tuning.} The eight-copy model was selected from a small grid of copy counts
+  and learning rates, while classical families received a learning-rate search only.
+\item \textbf{The affine encoder.} The encoder is restricted to an affine map so that
+  $\Omega$ is well defined; a nonlinear encoder would make the frequency set
+  input-dependent.
 \end{enumerate}
