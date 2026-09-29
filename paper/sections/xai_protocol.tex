@@ -2,42 +2,37 @@
 \label{sec:xai}
 
 \subsection{Explainable-AI instruments}
-Six instruments run at the same checkpoints ($\{0,100,500,1\text{k},5\text{k},
-20\text{k},\text{final}\}$ steps) for every model, problem and seed, on matched classical
-and hybrid families, so a measured difference cannot come from when or how each family
-was probed. This addresses the post-hoc storytelling that PINN explainability work is
-criticised for \citep{fundamental_flaws_pinns}: each instrument's expected signature is
-stated as a claim before the runs (Section~\ref{sec:claims}).
+Six instruments run at the same checkpoints (0, 100, 500, 1k, 5k, 20k steps and the final
+step) for every model, problem and seed, so a measured difference cannot come from when or
+how each family was probed (Table~\ref{tab:instruments}). Each instrument's expected
+signature is stated as a pre-registered claim, which guards against the post-hoc
+storytelling PINN explainability work is criticised for \citep{fundamental_flaws_pinns}.
 
-\paragraph{NTK spectroscopy.} Following \citet{ntk_pikans_2506} for classical
-physics-informed solvers, extended here to the hybrid case: the empirical NTK on a fixed
-probe set, its eigenvalue spectrum, decay exponent, condition number and effective rank.
-The expected signature is a flatter spectrum inside the encoded band $\Omega$ than
-outside it (Proposition~4). NTK drift $\|\Theta_t-\Theta_0\|_F/\|\Theta_0\|_F$ tracks
-whether a model stays in the lazy-training regime.
-
-\paragraph{Per-frequency error trajectory.} The error field $u_\theta - u^*$ projected
-onto Fourier modes at each checkpoint, shown as a frequency-by-step map with $\Omega$
-overlaid. A classical PINN gives the spectral-bias staircase; if the hybrid model's
-improvement falls inside $\Omega$, the mechanism is visible directly rather than inferred
-from an aggregate error.
-
-\paragraph{Collocation-point attribution.} Integrated Gradients of the residual loss with
-respect to the input coordinates, with the completeness violation and the correlation
-between attribution and true residual reported alongside the field, since Integrated
-Gradients is known to be unstable.
-
-\paragraph{Fisher information and effective dimension.} The empirical Fisher spectrum and
-the effective dimension of \citet{abbas2021effdim}, tracked through training for every
-family, to separate ``more expressive'' from ``more parameters''.
-
-\paragraph{Gradient variance.} $\mathrm{Var}[\partial_\theta L]$ against qubit count and
-depth, compared with the $2^{-n}$ decay expected for a global cost on a deep random
-circuit \citep{mcclean2018barren}.
-
-\paragraph{Layerwise probes and loss landscapes.} Ridge-regression $R^2$ per layer for
-how much of $u^*$ is linearly decodable there, and filter-normalised two-dimensional
-loss-landscape slices around the trained point.
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{p{0.2\linewidth}p{0.37\linewidth}p{0.35\linewidth}}
+  \toprule
+  Instrument & What it measures & Expected signature for SMCD \\
+  \midrule
+  NTK spectroscopy \citep{ntk_pikans_2506} & eigenvalues, decay exponent, effective rank
+    and drift $\|\Theta_t-\Theta_0\|_F/\|\Theta_0\|_F$ of the empirical NTK & flatter
+    spectrum inside $\Omega$ than outside (Proposition~4) \\
+  Per-frequency error & error $u_\theta-u^*$ projected on Fourier modes at every checkpoint
+    & improvement over the MLP concentrated inside $\Omega$ \\
+  Attribution & Integrated Gradients of the residual over the domain, with completeness
+    violation and correlation to the true residual & attributions track the residual \\
+  Fisher information & empirical Fisher spectrum and effective dimension
+    \citep{abbas2021effdim} & separates expressivity from parameter count \\
+  Gradient variance & $\mathrm{Var}[\partial_\theta L]$ against qubit count and depth &
+    stays above the $2^{-n}$ barren-plateau line \citep{mcclean2018barren} \\
+  Probes and landscapes & per-layer ridge-regression $R^2$; 2-D loss slices around the
+    trained point & trained point is a minimum \\
+  \bottomrule
+  \end{tabular}
+  \caption{The six instruments, run identically on classical and hybrid models.}
+  \label{tab:instruments}
+\end{table}
 
 \subsection{Experimental setup}
 \label{sec:setup}
@@ -74,13 +69,35 @@ cross-checked against PennyLane to $10^{-10}$.
 \subsection{Pre-registered claims and how they are scored}
 \label{sec:claims}
 Every claim about the method was written with a deciding metric and a numeric threshold
-in \texttt{docs/predictions*.md} and committed to git before the runs that test it;
-\texttt{scripts/verify\_preregistration.py} checks that the committing revision is an
-ancestor of every such run. Claims about the eight-copy circuit were written after model
-selection on the tuning seeds and before any held-out run. A script
-(\texttt{scripts/adjudicate\_predictions.py}, \texttt{adjudicate\_groundwater.py}) issues
-every verdict from the committed run records. A claim is \emph{confirmed} when its
+in the repository's \texttt{docs/} folder and committed to git before the runs that test
+it; a verification script checks that the committing revision is an ancestor of every
+such run. Claims about the eight-copy circuit were written after model selection on the
+tuning seeds and before any held-out run. An adjudication script issues every verdict
+from the committed run records. A claim is \emph{confirmed} when its
 threshold is met and, for a comparison between two models, all five paired seeds agree
 (paired Wilcoxon $p\le0.0625$, the smallest value five pairs allow); \emph{refuted} when
 the threshold is missed; \emph{inconclusive} when the median meets the threshold but the
 seeds disagree. No threshold is changed after a run.
+
+\subsection{Implementation}
+\label{sec:implementation}
+Everything above is implemented in one open codebase (about 5{,}400 lines of library
+code, 4{,}500 of experiment and analysis scripts and 6{,}300 of tests). Its parts are:
+\begin{itemize}
+  \item \textbf{A statevector simulator} for data-re-uploading circuits with exact
+    derivatives in the input and the angles, cross-checked against PennyLane to
+    $10^{-10}$ and against a density-matrix simulation for the noise surrogates.
+  \item \textbf{SMCD itself}: the symbol-based target spectrum, the depth and width
+    rules, the octave split and the design card, with a test that every designed circuit
+    emits nothing outside $\Omega$.
+  \item \textbf{One training harness} for all seven families (hard or soft boundary
+    conditions, Adam then L-BFGS, deterministic seeding) that records the six instruments
+    at fixed checkpoints and stores every run under a content hash of its configuration.
+  \item \textbf{An adjudication pipeline} that reads only the stored run records, issues
+    every verdict, verifies that each claim was committed before its runs, and redraws
+    every figure and table without retraining.
+\end{itemize}
+The experiments comprise 327 recorded training runs, about 130 hours of training on one
+laptop GPU. 402 automated tests and a continuous-integration job rerun the test suite,
+re-derive every verdict and compare every figure against the committed record on each
+change.

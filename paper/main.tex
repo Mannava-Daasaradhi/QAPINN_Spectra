@@ -1,5 +1,8 @@
 \documentclass[11pt]{article}
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=2cm]{geometry}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -54,12 +57,13 @@ high Helmholtz wavenumbers no model, classical or quantum, learns the solution.
 \input{sections/groundwater}
 \input{sections/limitations}
 \input{sections/conclusion}
-\input{sections/repro}
-
-\bibliographystyle{plainnat}
-\bibliography{refs}
 
 \appendix
-\input{sections/appendix_gallery}
+\input{sections/repro}
+
+\renewcommand{\bibfont}{\small}
+\setlength{\bibsep}{2pt}
+\bibliographystyle{plainnat}
+\bibliography{refs}
 
 \end{document}

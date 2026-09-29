@@ -1,78 +1,59 @@
 \section{Background}
 \label{sec:background}
 
-Full derivations for every item below are in \texttt{docs/derivations/}; this section
-states results and the one-line reason each matters to the design rule in
-Section~\ref{sec:methodology}.
+This section states the results the design rule builds on; full derivations are in the
+repository's derivations folder.
 
 \subsection{Classical side}
 
-\textbf{PINNs as strong-form collocation.} A PINN \citep{raissi2019pinn} minimizes the PDE residual directly at
-sampled collocation points via automatic differentiation, with no mesh and no weak form
---- unlike Galerkin/FEM, the optimization problem is non-convex in the network parameters
-even when the underlying PDE is linear.
+\textbf{PINNs.} A PINN \citep{raissi2019pinn} minimises the PDE residual at sampled
+collocation points, with derivatives from automatic differentiation that are exact to
+floating-point precision. Unlike a Galerkin or finite-element method, the optimisation is
+non-convex in the network parameters even when the PDE is linear.
 
-\textbf{Exact derivatives via reverse-mode AD.} Reverse-mode AD gives derivatives that are
-exact (to floating-point precision), not finite-difference approximations; the dominant
-cost for a PINN is second derivatives (e.g.\ $u_{xx}$ in $\ge 2$ dimensions), computed via
-double backward passes.
-
-\textbf{The NTK and lazy training} \citep{jacot2018ntk} \textbf{(Section~\ref{sec:prop4}'s classical baseline).} Writing
+\textbf{The NTK and spectral bias.} Writing
 $\Theta(x,x')=\nabla_\theta N[u_\theta](x)\cdot\nabla_\theta N[u_\theta](x')^\top$ for the
-residual network's tangent kernel, gradient-flow training linearizes in the lazy regime to
-$\dot e = -\Theta_0 e$, so each eigenmode of $\Theta_0$ decays as $\exp(-\lambda_i t)$:
-loss-term imbalance between residual and boundary blocks is an eigenvalue-imbalance
-phenomenon, not merely a loss-weight-tuning problem (\texttt{docs/derivations/03\_ntk\_pinn.md}).
-
-\textbf{Spectral bias.} For a tanh or ReLU MLP, the NTK eigenvalues decay roughly as a
-power law in Fourier-mode index, so high-frequency solution components are learned last
-and slowly (Figure~\ref{fig:staircase}, measured on the Poisson problem studied here).
-Fourier-feature and random-feature encodings \citep{tancik2020fourier} are the standard
-classical fix and a necessary baseline (Section~\ref{sec:setup}): if the quantum layer
-beats only a plain MLP and not a Fourier-feature network, it has bought nothing that
-Fourier features do not already supply.
+residual's tangent kernel \citep{jacot2018ntk}, gradient-flow training in the lazy regime
+linearises to $\dot e = -\Theta_0 e$, so each eigenmode of $\Theta_0$ decays as
+$\exp(-\lambda_i t)$. For a tanh or ReLU MLP the eigenvalues decay roughly as a power law
+in Fourier-mode index, so high-frequency components are learned last and slowly
+(Figure~\ref{fig:staircase}). Fourier-feature encodings \citep{tancik2020fourier} are the
+standard classical fix, and therefore a necessary baseline: a quantum layer that beats
+only a plain MLP has bought nothing Fourier features do not already supply.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.55\linewidth]{figures/staircase_cmlp_p1.pdf}
+  \includegraphics[width=0.45\linewidth]{figures/staircase_cmlp_p1.pdf}
   \caption{Spectral bias, measured: per-frequency error of a plain MLP over training on
-    the Poisson problem, $u^*=\sin(\pi x)+\alpha\sin(15\pi x)$ with $\alpha=0.05$. The $\omega=\pi$ mode converges first; $\omega=15\pi\approx47$
-    needs 16.2 times as many steps to reach tolerance (3 seeds).}
+    the Poisson problem, $u^*=\sin(\pi x)+\alpha\sin(15\pi x)$ with $\alpha=0.05$. The
+    $\omega=\pi$ mode converges first; $\omega=15\pi\approx47$ needs 16.2 times as many
+    steps to reach tolerance (3 seeds).}
   \label{fig:staircase}
 \end{figure}
 
-\textbf{Hard vs.\ soft boundary enforcement.} The ansatz $u = B(x) + D(x)\cdot N(x)$
-(distance function $D$ vanishing on the boundary, particular solution $B$ matching the
-boundary data) removes the boundary-loss NTK block entirely by construction, at the cost
-of a distance-function derivation per domain; the soft-BC alternative keeps a
-separately-weighted boundary loss term whose own NTK block this project instruments
-directly (Section~\ref{sec:xai}).
+\textbf{Hard boundary conditions.} The ansatz $u = B(x) + D(x)\,N(x)$, with $D$ vanishing
+on the boundary and $B$ matching the boundary data, satisfies the boundary conditions by
+construction and removes the boundary-loss block of the NTK.
 
 \subsection{Quantum side}
 
-\textbf{Data-re-uploading circuits as Fourier series.} For encoding gates
-$\exp(-ix H^{(l)})$ with generator eigenvalues $\{\lambda^{(l)}_a\}$, an $L$-layer
-re-uploading circuit's output expectation is a truncated Fourier series whose frequency
-set is the set of signed sums of per-layer eigenvalue differences --- the central theorem
-this project's entire methodology is engineering on top of (Proposition~1,
-Section~\ref{sec:prop1}; \citealp{schuld2021effect}).
+\textbf{Re-uploading circuits are Fourier series.} For encoding gates $\exp(-ix H^{(l)})$
+with generator eigenvalues $\{\lambda^{(l)}_a\}$, an $L$-layer re-uploading circuit's
+output is a truncated Fourier series whose frequencies are the signed sums of per-layer
+eigenvalue differences \citep{schuld2021effect}. This is the fact SMCD engineers on
+(Proposition~1).
 
-\textbf{Parameter-shift derivatives.} $\partial_\theta f = \tfrac12[f(\theta+\pi/2) -
-f(\theta-\pi/2)]$ for a Pauli-generated gate; because the circuit's input $x$ enters as a
-rotation angle, $\partial_x f$ is \emph{also} exactly computable via a parameter shift ---
-a hardware-exact PINN residual gradient, not a finite-difference approximation, and the
-reason this project's whole approach is physically realizable on real quantum hardware,
-not just simulable.
+\textbf{Exact derivatives on hardware.} The parameter-shift rule
+$\partial_\theta f = \tfrac12[f(\theta+\pi/2) - f(\theta-\pi/2)]$ holds for Pauli-generated
+gates, and because the input $x$ enters as a rotation angle, $\partial_x f$ is also exact
+by a shift. The PINN residual can therefore be computed exactly on quantum hardware, not
+only in simulation.
 
 \textbf{Barren plateaus.} $\mathrm{Var}[\partial_\theta C]$ decays exponentially in qubit
-count $n$ for a global-observable cost function on a deep, unstructured random circuit
-\citep{mcclean2018barren}. SMCD's Algorithm~1 (Section~\ref{sec:algorithm}) mitigates this
-structurally: shallow depth (by design, not by luck --- the depth rule targets the
-\emph{minimum} $L$ that covers the target band), a local observable, and small-angle
-initialization.
+count for a global cost on a deep random circuit \citep{mcclean2018barren}. SMCD avoids
+this by construction: the depth rule picks the \emph{minimum} depth that covers the target
+band, the observable is local, and angles start small.
 
-\textbf{Effective dimension.} The Abbas et al.\ effective-dimension statistic
-\citep{abbas2021effdim}, computed from the empirical Fisher information eigenspectrum, is
-this project's quantum-native capacity measure (Section~\ref{sec:xai}'s Fisher/effective-dimension
-instrument), reported alongside --- not instead of --- parameter count, since ``fewer
-parameters'' is a claim prior QPINN work makes loosely.
+\textbf{Effective dimension.} The effective dimension of \citet{abbas2021effdim}, from the
+empirical Fisher spectrum, measures capacity beyond parameter count and is reported for
+every family.

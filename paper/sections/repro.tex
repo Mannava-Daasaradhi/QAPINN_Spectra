@@ -1,29 +1,16 @@
 \section{Reproducibility}
 \label{sec:repro}
 
-\begin{itemize}
-\item \textbf{Code and data.} \texttt{src/qapinn/} holds the PDEs, models, SMCD, training
-  loop and instruments; \texttt{results/runs/} holds every run's metrics and instrument
-  records, from which every figure and verdict is computed without reloading a trained
-  model. \texttt{results/README.md} maps run IDs to experiments.
-\item \textbf{Hardware:} NVIDIA RTX 4090 Laptop GPU, 32 logical CPU cores
-  (\texttt{provenance.json}, recorded per run); one machine for every run.
-\item \textbf{Software} (\texttt{docs/ENV\_RESOLVED.md}, pinned via \texttt{uv}):
-  Python 3.12.13, \texttt{torch 2.11.0+cu128} (CUDA 12.8), \texttt{pennylane 0.45.1},
-  \texttt{numpy 2.4.4}, \texttt{scipy 1.18.0}.
-\item \textbf{Determinism:} \texttt{qapinn.seeding.set\_global\_seed} seeds Python,
-  NumPy and Torch from one integer and enables deterministic algorithms; an explicit
-  generator is threaded through every sampling call, so two runs at the same seed on the
-  same device produce bit-identical metrics. A CPU and a CUDA run of the same
-  configuration round differently (by $10^{-15}$ in relative $L^2$ on a checked run).
-\item \textbf{Seeds.} Six-problem matrix: 0--4. Coverage sweep: 0--2. Barren-plateau
-  sweep: 0--2 at 4 and 6 qubits. Model selection for circuit copies: 0--2. Held-out
-  evaluation of the eight-copy circuit and of all groundwater models: 10--14.
-\item \textbf{Commands} (\texttt{docs/REPRODUCE.md}). \texttt{tasks.py test} runs the
-  test suite in about 4 minutes on CPU; \texttt{tasks.py figures} redraws every figure
-  from the committed runs in about 30\,s; \texttt{tasks.py repro-quick} trains all six
-  problems and seven families at reduced size on CPU in about 9 minutes;
-  \texttt{tasks.py repro-all} re-derives every figure and verdict from the committed
-  runs in about a minute, while retraining every run from scratch takes about 67 hours
-  on the machine above.
-\end{itemize}
+The code, every run's metrics and instrument records, and the scripts that turn them into
+every figure, table and verdict are in the project repository; no figure reloads a
+trained model. All runs used one machine (NVIDIA RTX 4090 Laptop GPU, 32 CPU cores) with
+Python 3.12, PyTorch 2.11 (CUDA 12.8), PennyLane 0.45, NumPy 2.4 and SciPy 1.18, pinned by
+\texttt{uv}. A single integer seeds Python, NumPy and PyTorch with deterministic
+algorithms, so two runs at the same seed on the same device give bit-identical metrics.
+Seeds: six-problem matrix 0--4; coverage and barren-plateau sweeps 0--2; model selection
+for circuit copies 0--2; held-out evaluation of the eight-copy circuit and all groundwater
+models 10--14. \texttt{tasks.py test} runs the test suite (about 4 minutes on CPU),
+\texttt{tasks.py figures} redraws every figure from the committed runs (about 30\,s),
+\texttt{tasks.py repro-quick} trains all problems and families at reduced size (about 9
+minutes on CPU), and retraining all 327 recorded runs from scratch takes about 130 hours
+on the machine above.
