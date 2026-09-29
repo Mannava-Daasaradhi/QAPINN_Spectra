@@ -180,8 +180,8 @@ def model_profiles(model_set: str = "v1") -> None:
         base = name.removesuffix("_v2")
         fam = base if base in COLORS else ("c_mlp" if base.startswith("c_mlp") else base)
         label = names.get(base, LABELS.get(base, name))
-        style_kw = dict(color=COLORS[fam], linewidth=1.8, marker=MARKERS[fam], markevery=800, markersize=5,
-                        linestyle="--" if base == "c_mlp_matched" else "-")
+        style_kw = {"color": COLORS[fam], "linewidth": 1.8, "marker": MARKERS[fam], "markevery": 800,
+                    "markersize": 5, "linestyle": "--" if base == "c_mlp_matched" else "-"}
         median = np.median(preds, axis=0)
         ax.plot(X, median, label=label, **style_kw)
         axe.plot(X, np.maximum(np.abs(median - exact), 1e-4), **style_kw)
