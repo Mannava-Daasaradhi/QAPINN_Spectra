@@ -94,21 +94,22 @@ We tested the rule the strict way. Twelve predictions were committed to git befo
 first experiment, and a script, not us, decided every verdict. Over \NRuns{} training runs
 on six PDEs the design rule did what it promised: the circuit produces nothing outside its
 designed frequencies, and the designed circuit beat the same circuit with random
-frequencies by \HeatRatio$\times$ on the heat equation, on every seed. The quantum model did
-not beat the classical baselines, and our explainability instruments show why. We then
+frequencies by \HeatRatio$\times$ on the heat equation, on every seed. The original quantum
+model did not beat the classical baselines, and our explainability instruments show why. We then
 took the method to a real problem, waterlogging of farmland from leaking irrigation
 canals. The exact solution gives a planning map; the original circuit failed to learn it.
 Finally we built an improved circuit from eight copies of the design, locked new
-predictions in git and tested it on fresh seeds: its Poisson error fell from 1.68 to
-0.0037 and 5 of 8 re-tested claims held, though a classical model given the same
-frequencies is still 3$\times$ more accurate.
+predictions in git and tested it on fresh seeds. On the farmland problem it met all five
+predictions: 0.09\% error, 18$\times$ better than a classical network of the same size, and
+the waterlogged area right to within 1\,m. On Poisson its error fell from 1.68 to 0.0037,
+though there a classical model given the same frequencies is still 3$\times$ more accurate.
 
 \section*{At a glance}
 \begin{center}
   \tile{\NConfFull/\NChecks}{pre-registered checks confirmed at the full protocol (\NConfSub/\NChecks{} at submission)}{good}\hfill
   \tile{\HeatRatio$\times$}{lower error: designed circuit vs.\ random circuit, heat equation}{quantum}\hfill
   \tile{450$\times$}{lower Poisson error for the improved circuit on fresh seeds (1.68 $\rightarrow$ 0.0037)}{quantum}\\[8pt]
-  \tile{\GWWet\,m}{of a 2\,km field waterlogged; the exact model shows how to fix it}{classical}\hfill
+  \tile{5/5}{locked farmland predictions met by the improved circuit (0.09\% error)}{good}\hfill
   \tile{\GWDryCut\%}{less canal seepage (lining) dries the whole field}{good}\hfill
   \tile{0}{thresholds changed after seeing results}{good}
 \end{center}
@@ -354,16 +355,18 @@ re-test decides.
   \item \textbf{A design rule that works as specified.} SMCD builds circuits whose
     frequencies are exactly the ones designed, and those frequencies beat random ones on
     every seed of the heat equation.
-  \item \textbf{No quantum advantage over classical baselines} in the pre-registered
-    study, and a traced cause: the circuit's wave amplitudes are coupled, so it trades
-    the easy frequency for the hard one.
+  \item \textbf{The original circuit did not beat the classical baselines}, and we traced
+    why: its wave amplitudes are coupled, so it trades the easy frequency for the hard one.
+    Fixing that (eight copies) is what made the improved circuit work.
   \item \textbf{Honest by construction.} Predictions were locked before the runs, a
     script decided every verdict, and the full protocol was completed after the
     challenge without moving a threshold.
-  \item \textbf{A real use, honestly scored.} The exact groundwater model answers a
-    planning question (lining canals by \GWDryCut\% dries the field). The original
-    circuit failed on it (1 of 5 locked predictions held); the improved circuit is being
-    re-tested on the same problem.
+  \item \textbf{A real use, honestly scored.} The groundwater model answers a planning
+    question (lining canals by \GWDryCut\% dries the field). The original circuit failed on
+    it (1 of 5 locked predictions); the improved circuit met all 5, beating a same-size
+    classical network 18$\times$ and the random-frequency circuit 9.9$\times$.
+  \item \textbf{Still open.} On Poisson a classical model given the same frequencies stays
+    3$\times$ ahead, and everything here runs on a simulator, not quantum hardware.
 \end{itemize}
 
 \section*{Links}

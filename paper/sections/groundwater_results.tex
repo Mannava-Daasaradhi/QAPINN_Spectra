@@ -15,8 +15,24 @@ a classical network with the same number of parameters (13), whose median error 
 5.0\% and whose waterlogged length is 840\,m against the exact 713\,m. The
 groundwater solution is dominated by a broad mound, not by the canal ripple, which is
 what SMCD designs for; our reading is that on this problem the design's high
-frequencies are a cost rather than a help. The v2 model (\S\ref{sec:followup}) is
-being tested on the same problem.
+frequencies are a cost rather than a help.
+
+\paragraph{With the v2 circuit: five of five confirmed.} The same five claims were
+pre-registered for the v2 models of \S\ref{sec:followup}
+(\texttt{docs/predictions\_v2.md}, pushed before any run;
+\texttt{verify\_preregistration.py --v2}: 50 runs, 0 violations) and scored by the same
+script (Table~\ref{tab:gwv2}, Figure~\ref{fig:gwmodelsv2}). The v2 circuit's median
+error is 0.09\% (every seed below 0.5\%). It is 18$\times$ more accurate than a classical
+network with the same 91 parameters and 9.9$\times$ more accurate than the same circuit
+with random frequencies, on every paired seed; 99.4\% of its improvement over
+\texttt{c\_mlp} lies inside $\Omega$; and its waterlogged length is 714\,m against the
+exact 713\,m. Unlike on Poisson, the classical model handed the same frequencies does
+not match it here (22.9\% error, no waterlogging predicted). A plausible reason, not
+tested here, is that the solution's broad mound is poorly represented by a linear head
+on those fixed sine features, while the circuit's trainable encoder can move its
+frequencies. We read this as the strongest result in the
+paper, with two limits: it is one problem, and the circuit is simulated, not run on
+quantum hardware.
 
 \begin{figure}[htbp]
   \centering
@@ -24,4 +40,12 @@ being tested on the same problem.
   \caption{Predicted water table of each trained model (median of seeds 10--14) against
     the exact solution. Dotted: the waterlogging threshold.}
   \label{fig:gwmodels}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{../results/report/figures/groundwater_models_v2.png}
+  \caption{The v2 models on the groundwater problem (median of seeds 10--14). Bottom: absolute
+    error along the field; the v2 circuit stays within a few millimetres.}
+  \label{fig:gwmodelsv2}
 \end{figure}

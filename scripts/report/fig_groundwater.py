@@ -162,9 +162,12 @@ def model_profiles(model_set: str = "v1") -> None:
     if not runs:
         return
     pde = Groundwater(**_base_params())
-    fig, ax = plt.subplots(figsize=(8, 3.8))
-    ax.plot(X, pde.head_m(X), color="#1f1f1f", linewidth=2.6, label="exact")
+    exact = pde.head_m(X)
+    fig, (ax, axe) = plt.subplots(2, 1, figsize=(8, 5.6), sharex=True, gridspec_kw={"height_ratios": [3, 2]})
+    ax.plot(X, exact, color="#1f1f1f", linewidth=2.6, label="exact")
     order = ["c_mlp", spec["matched_mlp"], spec["rff"], spec["q_random"], spec["q"]]
+    names = {"c_mlp_matched": "MLP, same size as circuit", "q_serial": f"{model_set} circuit (SMCD)",
+             "q_random": f"{model_set} circuit, random frequencies"}
     for name in order:
         dirs = runs.get(name, [])
         if not dirs:
@@ -174,16 +177,21 @@ def model_profiles(model_set: str = "v1") -> None:
             with np.load(d / "prediction.npz") as p:
                 idx = np.argsort(p["x"])
                 preds.append(np.interp(X, p["x"][idx] * 2000.0, p["u"][idx]))
-        base = name.removesuffix("_v2").replace("_matched_v2", "_matched")
+        base = name.removesuffix("_v2")
         fam = base if base in COLORS else ("c_mlp" if base.startswith("c_mlp") else base)
-        label = {"c_mlp_matched": "MLP, same size as circuit"}.get(base, LABELS.get(base, name))
-        ax.plot(X, np.median(preds, axis=0), color=COLORS[fam], linewidth=1.8, marker=MARKERS[fam],
-                markevery=800, markersize=5, linestyle="--" if base == "c_mlp_matched" else "-", label=label)
+        label = names.get(base, LABELS.get(base, name))
+        style_kw = dict(color=COLORS[fam], linewidth=1.8, marker=MARKERS[fam], markevery=800, markersize=5,
+                        linestyle="--" if base == "c_mlp_matched" else "-")
+        median = np.median(preds, axis=0)
+        ax.plot(X, median, label=label, **style_kw)
+        axe.plot(X, np.maximum(np.abs(median - exact), 1e-4), **style_kw)
     ax.axhline(THRESHOLD_M, color=RISK, linewidth=1.2, linestyle=":", label="waterlogging threshold")
-    ax.set_xlabel("distance from the upstream river (m)")
     ax.set_ylabel("water table (m)")
     ax.set_title(f"Trained models vs the exact water table ({model_set} models, median of 5 fresh seeds)")
     ax.legend(loc="lower center", fontsize=7, ncol=3)
+    axe.set_yscale("log")
+    axe.set_ylabel("|error| (m, log)")
+    axe.set_xlabel("distance from the upstream river (m)")
     save(fig, f"groundwater_models_{model_set}")
 
 

@@ -1,11 +1,32 @@
 \clearpage
 \subsection*{Can the trained models answer it?}
-Five predictions were locked in git before training on fresh seeds. The v1 quantum
-circuit does not solve this problem: its water table stops near 4\,m, so it misses the
-waterlogging entirely. A classical network with the same 13 parameters reaches about 5\% error.
-Only G-4 held: the circuit's improvement lands on its designed frequencies
-(\GWVOneOverlap\%).
+We locked five predictions in git before training on fresh seeds, then scored them with
+a script, first for the original circuit and then for the improved v2 circuit
+(eight copies of the same design; see the next section for how it was built).
+
 \begin{center}
-  \includegraphics[width=0.9\linewidth]{groundwater_models_v1}
+\small
+\begin{tabular}{l c c}
+\toprule
+Prediction & original circuit & v2 circuit \\
+\midrule
+G-1\quad error below 1\% & no (53\%) & \textbf{yes (0.09\%)} \\
+G-2\quad beats a same-size classical network & no & \textbf{yes (18$\times$)} \\
+G-3\quad beats the same circuit with random frequencies & no & \textbf{yes (9.9$\times$)} \\
+G-4\quad improvement lies on the designed frequencies & \textbf{yes (\GWVOneOverlap\%)} & \textbf{yes (99.4\%)} \\
+G-5\quad waterlogged length within 5\% of the truth & no (0\,m) & \textbf{yes (714\,m vs 713\,m)} \\
+\midrule
+Held & \GWVOneConf{} of 5 & \GWVTwoConf{} of 5 \\
+\bottomrule
+\end{tabular}
 \end{center}
-\input{../sections/groundwater_tables}
+
+\begin{center}
+  \includegraphics[width=0.85\linewidth]{groundwater_models_v2}
+\end{center}
+The v2 circuit tracks the true water table to within a few millimetres across the whole
+field and gets the waterlogged length right to 1\,m. The original circuit (below) missed
+it entirely. The classical model handed the same frequencies fails here too.
+\begin{center}
+  \includegraphics[width=0.7\linewidth]{groundwater_models_v1}
+\end{center}

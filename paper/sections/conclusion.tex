@@ -81,14 +81,18 @@ pre-registered and run (\S\ref{sec:groundwater}, \S\ref{sec:followup}).
     rule with no measurable trend. The Poisson comparisons against classical models stay
     refuted, and the diagnostics trace why: the circuit's coupled amplitudes trade the
     slow wave for the fast one (\S\ref{sec:diagnostics}).
-  \item \textbf{Groundwater application, v1 models:} 1 of 5 predictions held. The circuit's
-    improvement lands on its designed frequencies, but it does not learn the water table,
-    and a same-size classical network does.
+  \item \textbf{Groundwater application:} with v1 models 1 of 5 predictions held (the
+    circuit does not learn the water table; a same-size classical network does). With the
+    v2 circuit all 5 held: 0.09\% error, $18\times$ better than a same-size classical network
+    and $9.9\times$ better than the random-frequency circuit, waterlogged length within
+    1\,m.
   \item \textbf{v2 (eight copies of the SMCD circuit), fresh seeds:} 5 of 8 re-tested claims
     held. Error on Poisson fell from 1.68 to 0.0037, every seed below 0.02, and the
     spectral mechanisms v1 could not show became visible (PR-7, PR-8). A classical model with
     the same frequencies and nearly the same size remains 3.3$\times$ more accurate.
 \end{itemize}
 The design rule does what it specifies, and a circuit built from it can be trained to
-high accuracy; what we still do not find is an advantage over a classical model handed
-the same frequencies.
+high accuracy. On the groundwater problem it beat every baseline we pre-registered; on
+Poisson a classical model handed the same frequencies stays ahead. Both results come
+from a simulated circuit on one-dimensional problems, and establishing either on
+hardware or at larger scale is the next step.

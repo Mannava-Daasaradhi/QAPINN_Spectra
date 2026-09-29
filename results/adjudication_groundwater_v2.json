@@ -1,0 +1,80 @@
+{
+  "families": {
+    "c_mlp": {
+      "median_rel_l2": 0.01937024472,
+      "median_waterlogged_m": 706.5740354,
+      "n": 5
+    },
+    "c_mlp_matched_v2": {
+      "median_rel_l2": 0.01684288837,
+      "median_waterlogged_m": 671.536492,
+      "n": 5
+    },
+    "c_rff_matched_v2": {
+      "median_rel_l2": 0.2292952631,
+      "median_waterlogged_m": 0.0,
+      "n": 5
+    },
+    "q_random_v2": {
+      "median_rel_l2": 0.009156302886,
+      "median_waterlogged_m": 738.0067791,
+      "n": 5
+    },
+    "q_serial_v2": {
+      "median_rel_l2": 0.0009240992692,
+      "median_waterlogged_m": 714.2474355,
+      "n": 5
+    }
+  },
+  "exact_waterlogged_m": 713.2768033,
+  "G-1": {
+    "verdict": "CONFIRMED",
+    "median_rel_l2": 0.0009240992692,
+    "threshold": 0.01
+  },
+  "G-2": {
+    "measured_ratio": 18.22627604,
+    "threshold": 1.3,
+    "stats": {
+      "median_a": 0.0009240992692,
+      "median_b": 0.01684288837,
+      "iqr_a": 0.000703461741,
+      "iqr_b": 0.007606368171,
+      "ratio_median": 0.05486584303,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.0625,
+      "n_pairs": 5,
+      "cliffs_delta": -1.0
+    },
+    "verdict": "CONFIRMED"
+  },
+  "G-3": {
+    "measured_ratio": 9.908354212,
+    "threshold": 1.5,
+    "stats": {
+      "median_a": 0.0009240992692,
+      "median_b": 0.009156302886,
+      "iqr_a": 0.000703461741,
+      "iqr_b": 0.006603923671,
+      "ratio_median": 0.1009249345,
+      "wilcoxon_stat": 0.0,
+      "p_value": 0.0625,
+      "n_pairs": 5,
+      "cliffs_delta": -1.0
+    },
+    "verdict": "CONFIRMED"
+  },
+  "G-4": {
+    "verdict": "CONFIRMED",
+    "threshold": 0.7,
+    "overlap_fraction": 0.9940952094,
+    "total_improvement": 863.5602684
+  },
+  "G-5": {
+    "verdict": "CONFIRMED",
+    "median_waterlogged_m": 714.2474355,
+    "exact_m": 713.2768033,
+    "relative_error": 0.001360807208,
+    "threshold": 0.05
+  }
+}

@@ -28,3 +28,32 @@
   \label{tab:gwv1}
 \end{table}
 
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{lll}
+  \toprule
+  Claim & Verdict & Measured \\
+  \midrule
+  G-1 & \textbf{Confirmed} & median rel-$L^2$ 0.0009 (need $\le 0.01$) \\
+  G-2 & \textbf{Confirmed} & ratio 18.23$\times$ (need $\ge1.3$) \\
+  G-3 & \textbf{Confirmed} & ratio 9.91$\times$ (need $\ge1.5$) \\
+  G-4 & \textbf{Confirmed} & 99.4\% inside $\Omega$ (need $\ge70$\%) \\
+  G-5 & \textbf{Confirmed} & 714\,m vs exact 713\,m (need within 5\%) \\
+  \bottomrule
+  \end{tabular}\\[6pt]
+  \begin{tabular}{lrrr}
+  \toprule
+  Model & median rel-$L^2$ & median waterlogged (m) & seeds \\
+  \midrule
+  \texttt{c\_mlp} & 0.0194 & 707 & 5 \\
+  \texttt{c\_mlp\_matched\_v2} & 0.0168 & 672 & 5 \\
+  \texttt{c\_rff\_matched\_v2} & 0.2293 & 0 & 5 \\
+  \texttt{q\_random\_v2} & 0.0092 & 738 & 5 \\
+  \texttt{q\_serial\_v2} & 0.0009 & 714 & 5 \\
+  \bottomrule
+  \end{tabular}
+  \caption{Groundwater predictions, v2 models, seeds 10--14. Exact waterlogged length: 713\,m.}
+  \label{tab:gwv2}
+\end{table}
+
