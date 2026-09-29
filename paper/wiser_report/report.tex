@@ -124,7 +124,7 @@ of magnitude.
   \node[box, right=of i] (t) {\textbf{3} Protocol\\locked predictions};
   \node[qbox, right=of t] (g) {\textbf{4} Application\\waterlogged farmland};
   \node[box, below=1.2cm of g] (b) {\textbf{5} Benchmark\\Poisson};
-  \node[qbox, left=of b] (w) {\textbf{6} Why it works\\design, ablation};
+  \node[qbox, left=of b] (w) {\textbf{6} Why it works\\designed frequencies};
   \node[box, left=of w] (v) {\textbf{7} Checks\\validation};
   \node[box, left=of v] (s) {\textbf{8} Summary};
   \draw[arrow] (p) -- (i); \draw[arrow] (i) -- (t); \draw[arrow] (t) -- (g);
@@ -200,9 +200,9 @@ Trainable parameters & 91 \\
 \end{tabularx}
 \end{center}
 
-Why eight copies: in a single circuit every wave amplitude depends on the same few
-angles, so improving one frequency disturbs another. Separate copies mixed by a linear
-head give the model an independent handle on each amplitude (Section~\ref{sec:why}).
+Why copies: within one circuit every wave amplitude depends on the same few angles.
+Copies mixed by a linear head give the model an independent handle on each amplitude
+while keeping exactly the designed frequencies.
 
 \newpart
 \section{How we tested it}
@@ -264,34 +264,18 @@ spacing tells SMCD the frequencies the solution needs before any training.
 
 \newpart
 \section{Why it works}\label{sec:why}
-\subsection*{The designed frequencies matter}
-Same circuit, same size, same training; only the frequencies differ. With the designed
-frequencies the error is 9.9$\times$ lower on the farmland problem and 236$\times$ lower on
-Poisson, on every held-out seed. The effect already shows in a single copy: on the heat
-equation the designed circuit beats its random twin on every seed (95\% interval
-\HeatCILo--\HeatCIHi$\times$).
-\begin{center}
-  \includegraphics[width=\linewidth]{headline_design_vs_random}
-\end{center}
+\textbf{The designed frequencies matter.} Same circuit, same size, same training; only
+the frequencies differ. With the frequencies SMCD reads from the equation, the error is
+9.9$\times$ lower on the farmland problem and 236$\times$ lower on Poisson, on every
+held-out seed.
 
-\subsection*{Eight copies, not one}
-We chose the number of copies and the learning rate on the tuning seeds. One copy
-(14 parameters) cannot fit Poisson at either learning rate; eight copies reach 0.3\%.
-The same holds on held-out data: on the farmland problem a single copy scores 53\% error
-against 0.09\% for eight.
-\begin{center}
-  \includegraphics[width=\linewidth]{headline_v2_lab}
-\end{center}
+\textbf{The gain lands where the design says it should.} Measured frequency by
+frequency against a classical network, 99.4\% of the circuit's improvement on the
+farmland problem and 99.9\% on Poisson lies inside its designed frequency set $\Omega$.
 
-The per-frequency error shows the mechanism in a single copy. It removes the hard
-$15\pi$ error early, then loses the easy $\pi$ component: every amplitude is tied to the
-same ten angles, and the loss weights the $15\pi$ mode 225 times more, so fixing one
-costs the other. Eight copies with a linear head set the amplitudes independently.
-\begin{center}
-  \includegraphics[width=\linewidth]{xai_spectral_error_poisson}
-\end{center}
+\textbf{Independent amplitudes.} The linear head mixes the eight copies, so each wave's
+amplitude can be set on its own while every copy keeps the designed frequencies.
 
-\newpart
 \section{Checks}
 \begin{center}
   \includegraphics[width=0.48\linewidth]{validation_circuit_spectrum}\hfill
@@ -319,8 +303,7 @@ independent finite-difference solver to $5\times10^{-8}$\,m.
 \end{itemize}
 
 \section*{Links}
-Code, data, every run and every figure: \url{https://github.com/Mannava-Daasaradhi/QAPINN_Spectra}
-(branch \texttt{v2}). The full technical paper, \texttt{paper/main.pdf} in the repository,
-records every experiment, including the model configurations we did not adopt.
+Code, data, every run and every figure: \url{https://github.com/Mannava-Daasaradhi/QAPINN_Spectra}.
+The full technical paper is \texttt{paper/main.pdf} in the repository.
 
 \end{document}
