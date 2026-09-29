@@ -3,8 +3,34 @@
 
 Errors are relative $L^2$ against the reference solution, reported as the median over
 five seeds. A relative error of 1 is what the trivial prediction $u\equiv0$ scores, so
-the scale runs from 1 (nothing learned) towards 0. The subsections take the evidence one
-question at a time and say what each result means for the method.
+the scale runs from 1 (nothing learned) towards 0. Table~\ref{tab:glance} collects the
+main results; the subsections take the evidence one question at a time and say what each
+result means for the method.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{p{0.44\linewidth}p{0.22\linewidth}r}
+  \toprule
+  Result & Problem, model & Value \\
+  \midrule
+  Energy outside the designed frequency set & all 1-D problems & $\le4\times10^{-15}$ \\
+  Designed vs.\ random frequencies, error ratio & heat, 1 copy & $6.5\times$ \\
+  & Poisson, 8 copies & $236\times$ \\
+  & groundwater, 8 copies & $9.9\times$ \\
+  Improvement lying inside $\Omega$ & Poisson / groundwater & 99.9\% / 99.4\% \\
+  NTK decay-exponent gap, inside vs.\ outside $\Omega$ & Poisson, 8 copies & 15.2 \\
+  Error reduction from 1 to 8 copies (tuning seeds) & Poisson & $500\times$ \\
+  Error on held-out seeds & Poisson, 8 copies & 0.37\% \\
+  & groundwater, 8 copies & 0.09\% \\
+  Accuracy vs.\ an MLP of the same size & groundwater, 8 copies & $18\times$ \\
+  Waterlogged length (exact 713\,m) & groundwater, 8 copies & 714\,m \\
+  \bottomrule
+  \end{tabular}
+  \caption{The main results. Every comparison between two models holds on all five
+    seeds; the effect of copies is measured on the three tuning seeds.}
+  \label{tab:glance}
+\end{table}
 
 \subsection{The circuit builds exactly what SMCD designs}
 \label{sec:realise}
@@ -71,9 +97,14 @@ no cost in parameters.
 Fourier modes at every checkpoint and accumulating how much better the circuit does than
 the MLP at each frequency, 99.9\% of the circuit's total improvement on Poisson lies
 inside $\Omega$ with one copy, 99.9\% with eight, and 99.4\% on groundwater; the
-pre-registered bar was 70\%. Figure~\ref{fig:heatmaps} shows it directly: the MLP's error
-at high $|\omega|$ persists through training (the spectral-bias staircase), while the
-circuit clears the rows marked by $\Omega$.
+pre-registered bar was 70\%. Figure~\ref{fig:heatmaps} shows it directly. Each panel has
+training steps on the horizontal axis and frequency on the vertical axis, and the colour
+is the size of the error at that frequency at that moment; a row that turns dark has been
+learned. In the circuit's panel, rows inside $\Omega$ ($|\omega|\le40\pi\approx126$)
+darken within the first thousand steps, while everything outside $\Omega$ stays exactly as
+it started: the circuit changes the error only where its design says it can. The bright
+band that returns at $\omega\approx0$ late in training is the slow-mode trade-off analysed
+in Section~\ref{sec:copyresult}, which circuit copies remove.
 
 \begin{figure}[htbp]
   \centering
@@ -87,17 +118,25 @@ circuit clears the rows marked by $\Omega$.
 \paragraph{The NTK is flatter inside $\Omega$.} Proposition~4 says the quantum block's
 kernel keeps non-decaying eigen-directions at the encoded frequencies, so its spectrum
 should be flatter inside $\Omega$ than outside, the opposite of a classical network's
-power-law decay. With eight copies on Poisson the decay exponent inside $\Omega$ is
-flatter than outside by 15.2, against a pre-registered bar of 0.5.
+power-law decay. The instrument fits $\lambda_i\propto i^{-p}$ to the sorted NTK
+eigenvalues, once over the indices inside the encoded band and once outside, and reports
+the difference in the exponent $p$. A larger $p$ means eigenvalues fall off faster, so
+those directions are learned more slowly (Section~\ref{sec:background}). With eight copies
+on Poisson the exponent inside $\Omega$ is smaller than outside by 15.2, against a
+pre-registered bar of 0.5: the kernel keeps its learning speed across the designed
+frequencies and loses it only beyond them.
 
 \emph{What this means.} Both instruments see the same thing from two sides: the circuit
 learns fast exactly where the design puts its frequencies. The accuracy gains come from
 the mechanism SMCD is built on, not from an incidental property such as size or
 initialisation.
 
-\paragraph{SMCD also says when not to use a circuit.} On the heat equation diffusion
-damps each Fourier mode at a rate proportional to $\omega^2$, so the $15\pi$ ripple in the
-initial condition vanishes almost immediately. SMCD's design card, computed before any
+\paragraph{SMCD also says when not to use a circuit.} On the heat equation
+$u_t=\nu u_{xx}$ each Fourier mode decays as $e^{-\nu\omega^2t}$. With $\nu=0.05$ the slow
+$\pi$ mode decays at rate $\nu\pi^2\approx0.49$ and still keeps 61\% of its amplitude at
+$t=1$, while the $15\pi$ ripple decays at rate $\nu(15\pi)^2\approx111$: by $t=0.05$ it is
+down to 0.4\% and by $t=1$ to $e^{-111}$. Over almost the whole space-time domain the
+solution is a single smooth, slowly decaying hump. SMCD's design card, computed before any
 training, predicts a benefit of only 2.5\% from a quantum layer, and the pre-registered
 check confirms it: no model improves on a plain MLP by more than 5\%. A user learns this
 from the equation alone, before spending any compute.

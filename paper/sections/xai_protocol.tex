@@ -52,6 +52,35 @@ sine and cosine features at exactly the frequencies SMCD targets, sized to match
 circuit. For all three problems SMCD builds a one-qubit, four-layer circuit with
 $|\Omega|=81$ frequencies (14--18 parameters per copy).
 
+Each comparison model is there to answer one question, summarised in
+Table~\ref{tab:baselines}. The most important is the random-frequency circuit: it has the
+same gates, the same number of parameters and the same training as the SMCD circuit, and
+differs only in its encoding scalings, so any gap between the two is caused by the design
+rule and nothing else.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{p{0.3\linewidth}p{0.62\linewidth}}
+  \toprule
+  Model & Question it answers \\
+  \midrule
+  Same circuit, random frequencies & Does choosing the frequencies from the PDE matter,
+    at identical size and training? \\
+  MLP of the circuit's size & Is the circuit a better use of the same parameter budget
+    than a standard network? \\
+  Large MLP (8{,}513 parameters) & How does the circuit compare with a standard PINN that
+    has about a hundred times more parameters? \\
+  Fourier-feature network & Does the circuit add anything over the standard classical cure
+    for spectral bias? \\
+  Frequency-matched classical & Given exactly SMCD's frequencies as fixed features, what
+    does a classical linear model achieve? \\
+  \bottomrule
+  \end{tabular}
+  \caption{The comparison models and the question each one answers.}
+  \label{tab:baselines}
+\end{table}
+
 \paragraph{Training.} 20{,}000 Adam steps followed by 2{,}000 L-BFGS steps, five seeds per
 configuration. The one-copy circuit uses seeds 0--4 at a common learning rate. The eight-copy circuit was selected on the Poisson problem with seeds 0--2
 from eight configurations ($K\in\{1,2,4,8\}$, two learning rates), while each classical

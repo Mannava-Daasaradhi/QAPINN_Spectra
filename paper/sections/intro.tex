@@ -1,6 +1,18 @@
 \section{Introduction}
 \label{sec:intro}
 
+Partial differential equations describe most of the physical systems engineers plan
+around: heat moving through a material, stress in a structure, water moving under
+farmland. Physics-informed neural networks \citep{raissi2019pinn} solve them by training a
+network to satisfy the equation itself at sampled points, with no mesh, which makes them
+attractive for irregular domains, inverse problems and fast what-if studies. Their
+best-known weakness is fine structure. A solution that combines a broad trend with sharp,
+fast variation, such as a water table shaped by a row of irrigation canals, is learned
+trend first and detail last, and the detail is often what the decision depends on.
+Quantum machine-learning models are an attractive candidate here, because the functions a
+data-re-uploading circuit can represent are Fourier series with frequencies set by the
+circuit's design. The open question is how to choose that design for a given equation.
+
 A classical physics-informed neural network (PINN) learns low-frequency solution
 components fast and high-frequency components slowly --- spectral bias --- because its
 neural tangent kernel (NTK) eigenspectrum decays with Fourier-mode index. Separately, a

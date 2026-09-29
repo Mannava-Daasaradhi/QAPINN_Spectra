@@ -22,8 +22,9 @@ with $c_j=(j-\tfrac12)L/6$. The scenario uses values within textbook ranges
 transmissivity $T=100$\,m$^2$/day (silty sand), $R_0=0.4$\,mm/day, $q=0.4$\,m$^2$/day,
 $\sigma=30$\,m, $h_A=1$\,m, $h_B=0$. On $x=X/L$ this is $-u''=f$, the Poisson operator
 with non-zero boundary values, so every model and instrument applies unchanged. The
-canal spacing fixes the frequencies, harmonics of $2\pi\cdot6$ in $x$, and SMCD designs
-a one-qubit, four-layer circuit for them.
+canals fix the frequencies before any training: SMCD's target spectrum is the 32
+multiples of $\pi$ up to $32\pi$, and it designs a one-qubit, four-layer circuit that
+covers them (Section~\ref{sec:worked}).
 
 Because $\sigma(z\Phi(z)+\phi(z))$ with $z=(X-c)/\sigma$ has second derivative
 $\phi(z)/\sigma$, the head has a closed form. An independent second-order
@@ -31,6 +32,39 @@ finite-difference solver agrees with it to $5\times10^{-8}$\,m and converges to 
 measured order $2.00$ as the grid is refined from 100 to 6{,}400 intervals
 (Figure~\ref{fig:refconv}), which checks the closed form, the forcing and the boundary
 treatment together.
+
+\subsection{Where the mound comes from}
+The size of the answer can be checked by hand, which also shows which inputs matter. Water
+that enters the aquifer between the rivers can only leave through them, so the water table
+bulges upward in the middle. For a uniform recharge $R$ between two rivers at the same
+level, the equation $T h''=-R$ gives a parabola with a mid-field rise of $RL^2/(8T)$.
+\begin{itemize}
+  \item \textbf{Background recharge}, $R_0=0.0004$\,m/day:
+    $0.0004\times2000^2/(8\times100)=2.0$\,m.
+  \item \textbf{Canal seepage}, six canals leaking 0.4\,m$^3$/day per metre, spread over
+    the 2{,}000\,m field, is equivalent to $6\times0.4/2000=0.0012$\,m/day of uniform
+    recharge: $0.0012\times2000^2/800=6.0$\,m, three times the rain.
+  \item \textbf{River levels}, 1\,m and 0\,m, add a straight line that is 0.5\,m at
+    mid-field.
+\end{itemize}
+The total, $2.0+6.0+0.5=8.5$\,m, matches the exact peak of 8.53\,m; the canals' being
+narrow strips rather than uniform recharge only adds the small ripples. The same
+arithmetic explains the planning answers below. The field waterlogs above 7.5\,m, so it
+has 1\,m of headroom over the mound: a 10\% canal lining lowers the canal term by 0.6\,m,
+to a peak near 7.9\,m, still above the threshold, while a 20\% lining lowers it by 1.2\,m,
+to about 7.3\,m, and the whole field dries. Because the rise scales as $1/T$, clay loam with
+a quarter of the transmissivity quadruples the mound and waterlogs most of the field (Figure~\ref{fig:gwlining}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.49\linewidth]{../results/report/figures/groundwater_canal_lining.png}\hfill
+  \includegraphics[width=0.49\linewidth]{../results/report/figures/groundwater_soil_type.png}
+  \caption{Planning scenarios from the exact solution. Left: lining the canals lowers the
+    mound until, at a 20\% seepage cut, no part of the field is waterlogged. Right: the
+    same canals on tighter soils (lower transmissivity) raise the mound and waterlog more
+    of the field.}
+  \label{fig:gwlining}
+\end{figure}
 
 \subsection{The practical question}
 A field is waterlogged where the water table rises within 1.5\,m of the land surface,
@@ -47,6 +81,19 @@ irrigation engineer would ask (Figure~\ref{fig:gwscenarios}):
     waterlogs 1{,}066\,m and raises 84\,cm mounds under each canal; spreading it over
     twelve reduces the mounds to 1\,cm.
 \end{itemize}
+
+The spacing result is a reminder that the planning answer depends on the fine structure,
+not only on the total water: the same seepage from fewer, larger canals builds taller
+local mounds that break through the threshold (Figure~\ref{fig:gwspacing}). This fine
+structure is exactly the canal ripple that SMCD's frequencies are chosen to capture.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.62\linewidth]{../results/report/figures/groundwater_canal_spacing.png}
+  \caption{The same total seepage from 2, 6 or 12 canals: fewer, larger canals build
+    taller mounds under each canal, exact solution.}
+  \label{fig:gwspacing}
+\end{figure}
 
 \begin{figure}[htbp]
   \centering

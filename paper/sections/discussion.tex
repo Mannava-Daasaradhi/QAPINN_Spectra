@@ -1,0 +1,48 @@
+\section{Discussion: using SMCD in practice}
+\label{sec:discussion}
+
+\paragraph{A workflow.} For a new problem the method reduces to five steps, all but the
+last done before any training.
+\begin{enumerate}
+  \item Write the operator's Fourier symbol and the forcing and boundary data
+    (Proposition~2); for a nonlinear operator, linearise about a base state.
+  \item Threshold the resulting spectrum to get the target frequencies $\hat S$, with
+    band $K$ and spacing $\Delta$.
+  \item Read off the depth $L=\lceil\log_3(2K/\Delta+1)\rceil$, the ternary scalings, the
+    qubit count and the entangler (Algorithm~1), and check the design card: coverage
+    should be 1 and the predicted benefit non-trivial.
+  \item If the design card predicts little benefit, as it does for a smoothing operator,
+    stop: a classical PINN is the better tool, and the answer cost no training.
+  \item Otherwise build $K$ copies of the designed circuit behind a linear head and train
+    it like any PINN; eight copies were enough for both problems here.
+\end{enumerate}
+The worked designs of Section~\ref{sec:worked} show the arithmetic is short enough to do
+by hand, and the implementation does it in milliseconds.
+
+\paragraph{Which problems suit the method.} SMCD pays off when the frequencies a
+solution needs are known from the problem's structure before it is solved: evenly spaced
+sources such as the canals here, wells or drains on a grid, periodic geometry, or forcing
+at known harmonics. In those problems the classical difficulty is precisely spectral bias,
+fine structure that a standard network learns last, and the design rule places the
+circuit's frequencies exactly on that structure. The groundwater application shows the
+practical consequence: the fine structure decides the planning answer (where the water
+table crosses the root zone), and the circuit gets it right to 1\,m.
+
+\paragraph{Explainability as a design check.} The instruments did more than report
+accuracy: the per-frequency error showed that improvements land on the designed
+frequencies, and the same instrument exposed why a single circuit trades a slow wave for a
+fast one, which led directly to circuit copies. Running the same instruments at the same
+checkpoints on every model turned them from after-the-fact illustrations into tests,
+and each expected signature was stated before the runs.
+
+\paragraph{Towards hardware.} Everything a PINN needs from the circuit is available on
+quantum hardware without approximation. The circuit's output is an expectation value;
+its derivatives with respect to the angles and to the input $x$ follow from the
+parameter-shift rule (Section~\ref{sec:background}), so the residual $-u''-f$ and its
+gradient can be estimated from repeated circuit evaluations alone. The circuits are as
+short as a re-uploading model can be: one qubit, four encoding layers and five trainable
+rotations per copy, with no entangling gates, which keeps them within the coherence times
+of current devices. Eight copies can run as eight independent single-qubit circuits, on
+separate qubits in parallel or one after another. The main cost on hardware is shot
+noise in the estimated expectation values and their derivatives, which the noise
+surrogates in the implementation are built to study.

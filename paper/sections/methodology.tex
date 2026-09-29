@@ -224,3 +224,85 @@ independent handles on the amplitudes grows. $K=1$ is the plain SMCD circuit. On
 one-dimensional problems each copy is a one-qubit, four-layer circuit, and $K=8$ gives
 91 trainable parameters. $K$ and the learning rate were selected on tuning seeds before
 any held-out run (Section~\ref{sec:setup}).
+
+\paragraph{Why a linear head decouples the amplitudes.} Write the $j$-th copy's output as
+a Fourier series over the shared frequency set. The model's amplitude at each frequency is
+then a linear combination over copies:
+\[
+  Q_{\theta_j}(x)=\sum_{\omega\in\Omega}c_\omega(\theta_j)\,e^{i\omega x}
+  \quad\Longrightarrow\quad
+  \sum_{j=1}^{K} w_j Q_{\theta_j}(x)=\sum_{\omega\in\Omega}\Big(\sum_{j=1}^{K} w_j\,c_\omega(\theta_j)\Big)e^{i\omega x}.
+\] With one copy, every $c_\omega$ is fixed by the same ten angles,
+and the head can only rescale all of them together. With $K$ copies the head can weight
+copies whose angles favour one frequency against copies that favour another, so the
+amplitudes at $\pi$ and $15\pi$ can be tuned separately, which is exactly what the
+Poisson residual needs (Section~\ref{sec:copyresult}). The parameter count grows
+linearly: each copy has 10 angles, the encoder has 2 parameters and the head $K+1$, so
+one copy has $10+2+2=14$ parameters and eight copies $80+2+9=91$.
+
+\subsection{A worked design}
+\label{sec:worked}
+
+Table~\ref{tab:design} follows Algorithm~1 through the two problems where the method is
+tested at full strength. Both designs are computed from the equation and its data alone,
+before any training, by \texttt{qapinn.smcd.smcd}.
+
+\paragraph{Poisson.} The forcing of $-u''=f$ with solution $\sin\pi x+0.3\sin15\pi x$ has
+two modes, so Proposition~2 gives a target spectrum of exactly two frequencies, $\pi$ and
+$15\pi$, with weights 1 and 0.3. The band is $K=15\pi$ and the spacing $\Delta=\pi$, so the
+depth rule gives $L=\lceil\log_3(2\cdot15+1)\rceil=\lceil\log_3 31\rceil=4$, since
+$3^3=27<31\le81=3^4$. The ternary scalings are $\pi\cdot\{1,3,9,27\}$, and the signed sums
+$\pm1\pm3\pm9\pm27$ produce every integer from $-40$ to $40$: 81 frequencies, all multiples
+of $\pi$ up to $40\pi$, covering both targets. One input dimension and no cross terms mean
+one qubit and no entangler.
+
+\paragraph{Groundwater.} Here the solution is a broad mound from recharge plus six small
+ripples from the canals. Its sine series, thresholded at $\varepsilon=10^{-3}$ of the
+largest mode, keeps the 32 multiples of $\pi$ from $\pi$ to $32\pi$: the $\pi$ mode carries
+most of the weight (the mound), and the canals spread the rest up to $32\pi\approx100$.
+Now $K=32\pi$ and $\Delta=\pi$, so $L=\lceil\log_3 65\rceil=4$ again, since $65\le81$. The
+same four ternary layers reach $40\pi$ and cover all 32 targets. The two problems need the
+same circuit for different reasons: Poisson because of one fast mode at $15\pi$,
+groundwater because of many canal harmonics below $32\pi$.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{lll}
+  \toprule
+  Design step & Poisson & Groundwater \\
+  \midrule
+  Target spectrum $\hat S$ & $\{\pi, 15\pi\}$ & $\{\pi, 2\pi, \dots, 32\pi\}$ \\
+  Band $K$, spacing $\Delta$ & $15\pi$, $\pi$ & $32\pi$, $\pi$ \\
+  Depth $L=\lceil\log_3(2K/\Delta+1)\rceil$ & $\lceil\log_3 31\rceil=4$ & $\lceil\log_3 65\rceil=4$ \\
+  Scalings & $\pi\cdot\{1,3,9,27\}$ & $\pi\cdot\{1,3,9,27\}$ \\
+  Frequency set $\Omega$ & $\pi\cdot\{-40,\dots,40\}$, 81 & $\pi\cdot\{-40,\dots,40\}$, 81 \\
+  Coverage $|\hat S\cap\Omega|/|\hat S|$ & 1.0 & 1.0 \\
+  Qubits, entangler & 1, none & 1, none \\
+  Parameters, 1 copy / 8 copies & 14 / 91 & 14 / 91 \\
+  \bottomrule
+  \end{tabular}
+  \caption{SMCD's design for the two main problems, step by step (Algorithm~1).}
+  \label{tab:design}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, scale=0.92, transform shape,
+    gate/.style={draw=black!60, fill=black!5, rounded corners=2pt, minimum height=0.75cm, font=\footnotesize, inner sep=3pt},
+    enc/.style={gate, draw=orange!80!black, fill=orange!15}]
+  \draw[black!60, thick] (-0.3,0) -- (15.4,0);
+  \node[font=\small, anchor=east] at (-0.35,0) {$|0\rangle$};
+  \node[gate] at (0.45,0) {$R_Y$};
+  \foreach \s/\x in {1/1.8, 3/4.8, 9/7.8, 27/10.8} {
+    \node[enc] at (\x,0) {$R_Z(\s\pi x)$};
+    \node[gate] at (\x+1.4,0) {$R(\theta)$};
+  }
+  \node[gate] at (13.7,0) {$R(\theta)$};
+  \node[gate, minimum width=0.9cm] at (14.85,0) {$\langle Z\rangle$};
+\end{tikzpicture}
+\caption{One copy of the SMCD circuit for both problems: state preparation, four
+  re-uploading layers whose encoding gates (orange) carry SMCD's scalings, trainable
+  rotations (grey), and a local $Z$ measurement.}
+\label{fig:circuit}
+\end{figure}
